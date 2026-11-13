@@ -1,0 +1,24 @@
+# Credenciales y archivos sensibles (NUNCA subir a Git)
+SUPABASEPASS.txt
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Archivos comprimidos pesados de diseño
+stitch_legal_tax.zip
+
+# Dependencias y compilación
+node_modules/
+.next/
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db

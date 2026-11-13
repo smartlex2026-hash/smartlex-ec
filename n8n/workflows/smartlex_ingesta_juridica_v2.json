@@ -1,0 +1,322 @@
+{
+  "name": "SmartLex - Ingesta Jurídica v2.2 (Espejo Google Drive -> Supabase Storage + Gemini)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "10000000-0000-4000-8000-000000000001",
+      "name": "1. Iniciar Ingesta Espejo (Google Drive)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "={{ $json.file_name || 'LRTI' }}",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1-09b4Y5N7guKejiBG9_8PCU4MdJ7aft2",
+            "mode": "list",
+            "cachedResultName": "01_PDF_Original",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1-09b4Y5N7guKejiBG9_8PCU4MdJ7aft2"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "size",
+            "webViewLink",
+            "sha256Checksum",
+            "parents"
+          ]
+        }
+      },
+      "id": "10000000-0000-4000-8000-000000000002",
+      "name": "2. Buscar PDF en Google Drive (01_PDF_Original)",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -800,
+        0
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1iGsrTFHEHDjrBzP",
+          "name": "Google Drive SmartLex"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "10000000-0000-4000-8000-000000000003",
+      "name": "3. Descargar PDF desde Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -560,
+        0
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1iGsrTFHEHDjrBzP",
+          "name": "Google Drive SmartLex"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://kqtjxkblebdcgrepfajh.supabase.co/storage/v1/object/legal-documents/' + ($json.folder_category || '02_leyes') + '/' + $('2. Buscar PDF en Google Drive (01_PDF_Original)').item.json.name }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-upsert",
+              "value": "true"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/pdf"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "10000000-0000-4000-8000-000000000004",
+      "name": "3b. Subir Copia Espejo a Supabase Storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -320,
+        -180
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "eum2gQIuarsJwBIp",
+          "name": "Apikey"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "10000000-0000-4000-8000-000000000005",
+      "name": "4. Extraer Texto Base del PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================================\n// PASO 5: Clasificación de Carpeta Espejo + Fragmentación Inteligente\n// ============================================================================\nconst driveFile = $('2. Buscar PDF en Google Drive (01_PDF_Original)').first().json;\nconst rawText = ($input.first().json.text || '').replace(/\\r\\n/g, '\\n');\n\n// Determinar la subcarpeta espejo según el nombre o ruta\nconst upperName = (driveFile.name || '').toUpperCase();\nlet folderCategory = '02_leyes';\nif (upperName.includes('REGISTRO') || upperName.startsWith('RO_') || upperName.startsWith('RS1_') || upperName.startsWith('RS_') || upperName.includes('HISTORICO')) folderCategory = '00_registros_oficiales';\nelse if (upperName.includes('CODIGO') || upperName.startsWith('CT')) folderCategory = '01_codigos';\nelse if (upperName.includes('RLRTI') || upperName.includes('REGLAMENTO')) folderCategory = '03_reglamentos';\nelse if (upperName.includes('LRET') || upperName.includes('REFORMA')) folderCategory = '04_leyes_reformas';\nelse if (upperName.includes('NAC-') || upperName.includes('RESOLUCION') || upperName.includes('DGER')) folderCategory = '05_resoluciones_sri';\nelse if (upperName.includes('CIRCULAR') || upperName.includes('DGECC')) folderCategory = '06_circulares_sri';\nelse if (upperName.includes('FORMULARIO') || upperName.includes('ANEXO')) folderCategory = '07_formularios_anexos';\n\nconst MAX_CHUNK_SIZE = 14000;\nconst boundaryRegex = /\\n(?=\\s*(?:T[ÍI]TULO\\s+[IVXLCDM0-9]+|CAP[ÍI]TULO\\s+[IVXLCDM0-9]+|DISPOSICIONES\\s+(?:GENERALES|TRANSITORIAS|REFORMATORIAS|DEROGATORIAS|FINALES)|Art(?:[íi]culo|\\.)\\s*\\d+\\s*(?:[-–—.:]|\\b)))/gi;\n\nconst splitPoints = [0];\nlet match;\nwhile ((match = boundaryRegex.exec(rawText)) !== null) {\n  if (match.index > 0) splitPoints.push(match.index);\n}\nsplitPoints.push(rawText.length);\n\nconst chunks = [];\nlet chunkStart = 0;\nlet currentTitle = 'SIN TÍTULO';\nlet currentChapter = 'SIN CAPÍTULO';\n\nfor (let i = 1; i < splitPoints.length; i++) {\n  const point = splitPoints[i];\n  if (point - chunkStart >= MAX_CHUNK_SIZE || i === splitPoints.length - 1) {\n    const endPos = i === splitPoints.length - 1 ? rawText.length : point;\n    const sliceText = rawText.slice(chunkStart, endPos).trim();\n\n    if (sliceText.length > 0) {\n      chunks.push({\n        google_drive_file_id: driveFile.id,\n        file_name: driveFile.name,\n        folder_category: folderCategory,\n        storage_path: `${folderCategory}/${driveFile.name}`,\n        google_drive_path: `01_PDF_Original/${folderCategory}/${driveFile.name}`,\n        sha256: driveFile.sha256Checksum || null,\n        file_size: driveFile.size ? Number(driveFile.size) : null,\n        source_url: driveFile.webViewLink || null,\n        chunk_index: chunks.length,\n        char_start: chunkStart,\n        char_end: endPos,\n        context_title_before: currentTitle,\n        context_chapter_before: currentChapter,\n        chunk_text: sliceText\n      });\n    }\n\n    const titles = [...sliceText.matchAll(/(?:^|\\n)\\s*(T[ÍI]TULO\\s+[^\\n]+)/gi)];\n    if (titles.length > 0) currentTitle = titles[titles.length - 1][1].trim();\n\n    const chapters = [...sliceText.matchAll(/(?:^|\\n)\\s*(CAP[ÍI]TULO\\s+[^\\n]+)/gi)];\n    if (chapters.length > 0) currentChapter = chapters[chapters.length - 1][1].trim();\n\n    chunkStart = endPos;\n  }\n}\n\nreturn chunks.map(c => ({ json: c }));"
+      },
+      "id": "10000000-0000-4000-8000-000000000006",
+      "name": "5. Fragmentador Jurídico con Carpeta Espejo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ 'CONTEXTO HEREDADO DEL FRAGMENTO ANTERIOR:\\n- Carpeta Jerárquica: ' + $json.folder_category + '\\n- Título actual: ' + $json.context_title_before + '\\n- Capítulo actual: ' + $json.context_chapter_before + '\\n\\nINSTRUCCIONES DE EXTRACCIÓN JURÍDICA ECUATORIANA (MOTOR EVOLUTIVO REGISTRO OFICIAL):\\n1. REGLA DE FILTRADO TRIBUTARIO: Si el PDF corresponde a un Registro Oficial del Ecuador con múltiples actos estatales, filtra y extrae ÚNICAMENTE las leyes, fe de erratas, decretos ejecutivos, resoluciones del SRI o sentencias del Tribunal/Corte Constitucional en materia tributaria (Principio de Reserva de Ley: no hay impuesto sin ley).\\n2. MODELACIÓN UTL (5.-MODELACION-ARTUCULADO-DE-UNA-LEY): Respeta la estructura jerárquica Título -> Capítulo -> Artículo -> Párrafos/Incisos/Literales -> Disposiciones Transitorias -> Disposición Final.\\n3. ATENCIÓN CON ENCABEZADOS IRREGULARES Y CITAS INTERNAS: Reconoce encabezados aunque usen dos puntos (\"Art. 55:\") y NO separes citas internas de artículos derogados (ej. Art. 121 LRTI) como artículos independientes.\\n4. CLASIFICACIÓN VERTICAL: En conceptos_verticales asigna códigos exactos: [\"HECHO_GENERADOR\", \"SUJETO_ACTIVO\", \"SUJETO_PASIVO\", \"EXONERACIONES\", \"DEDUCCIONES\", \"BASE_IMPONIBLE\", \"TARIFAS\", \"TARIFA_IMPUESTO_RENTA\", \"TARIFA_CERO_IVA\", \"RETENCION_FUENTE\", \"CREDITO_TRIBUTARIO\"].\\n5. TABLAS NORMATIVAS (ej. Art. 36 LRTI / Resoluciones SRI 773 y 628): Incluye la tabla en Markdown dentro de texto_completo_markdown Y extráela estructurada en tablas_normativas.\\n6. TRAZABILIDAD DE REFORMAS CRONOLÓGICAS: Si el artículo o fe de erratas reforma un artículo de la Ley de Régimen Tributario Interno (LRTI) u otra norma tributaria, indica en reforma_norma_objetivo (ej. \"LRTI\"), reforma_articulo_objetivo (ej. \"36\", \"9\", \"55\"), texto_consolidado_post_reforma, fecha_inicio_vigencia (YYYY-MM-DD) y registro_oficial_cita.\\n\\nFRAGMENTO A PROCESAR (Chunk #' + $json.chunk_index + '):\\n' + $json.chunk_text }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"articulos_detectados\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"tipo_estructura\": {\n            \"type\": \"string\",\n            \"description\": \"article, transitory, final, reform\"\n          },\n          \"numero\": {\n            \"type\": \"string\",\n            \"description\": \"Número o identificador del artículo, ej: 1, 10, 36, 55, 121, DT-PRIMERA, DF-UNICA\"\n          },\n          \"encabezado\": {\n            \"type\": \"string\",\n            \"description\": \"Epígrafe o título del artículo si lo tiene\"\n          },\n          \"titulo_padre\": {\n            \"type\": \"string\"\n          },\n          \"capitulo_padre\": {\n            \"type\": \"string\"\n          },\n          \"texto_completo_markdown\": {\n            \"type\": \"string\",\n            \"description\": \"Texto literal íntegro del artículo en Markdown, incluyendo sus numerales, literales y tablas\"\n          },\n          \"fecha_inicio_vigencia\": {\n            \"type\": \"string\",\n            \"description\": \"Fecha YYYY-MM-DD de entrada en vigencia según el Registro Oficial\"\n          },\n          \"fecha_fin_vigencia\": {\n            \"type\": \"string\",\n            \"description\": \"Fecha YYYY-MM-DD de fin de vigencia si aplica (ej. tabla anual o derogatoria)\"\n          },\n          \"registro_oficial_cita\": {\n            \"type\": \"string\",\n            \"description\": \"Cita exacta del Registro Oficial, ej: Suplemento R.O. No. 463 de 17 de noviembre de 2004\"\n          },\n          \"reforma_norma_objetivo\": {\n            \"type\": \"string\",\n            \"description\": \"Código de la norma reformada si este artículo modifica otra norma (ej: LRTI)\"\n          },\n          \"reforma_articulo_objetivo\": {\n            \"type\": \"string\",\n            \"description\": \"Identificador del artículo reformado en la norma objetivo (ej: 2, 9, 19, 36, 55)\"\n          },\n          \"texto_consolidado_post_reforma\": {\n            \"type\": \"string\",\n            \"description\": \"Texto resultante del artículo objetivo tras aplicar esta reforma o fe de erratas\"\n          },\n          \"conceptos_verticales\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\"\n            },\n            \"description\": \"Códigos del eje vertical: EXONERACIONES, DEDUCCIONES, BASE_IMPONIBLE, TARIFAS, CREDITO_TRIBUTARIO, etc.\"\n          },\n          \"tiene_tabla_normativa\": {\n            \"type\": \"boolean\"\n          },\n          \"tablas_normativas\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"titulo_tabla\": { \"type\": \"string\" },\n                \"categoria_tabla\": { \"type\": \"string\", \"description\": \"progressive_rates, withholding_rates, inheritance, rimpe, dividends, ice, other\" },\n                \"markdown_tabla\": { \"type\": \"string\" }\n              },\n              \"required\": [\"titulo_tabla\", \"categoria_tabla\", \"markdown_tabla\"]\n            }\n          },\n          \"relaciones_detectadas\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"norma_citada\": { \"type\": \"string\" },\n                \"articulo_citado\": { \"type\": \"string\" },\n                \"tipo_relacion\": { \"type\": \"string\", \"description\": \"regulates, regulated_by, amends, repeals, cites, complements\" },\n                \"descripcion\": { \"type\": \"string\" }\n              },\n              \"required\": [\"norma_citada\", \"tipo_relacion\"]\n            }\n          },\n          \"observaciones\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"tipo_estructura\",\n          \"numero\",\n          \"encabezado\",\n          \"texto_completo_markdown\",\n          \"conceptos_verticales\",\n          \"tiene_tabla_normativa\",\n          \"observaciones\"\n        ]\n      }\n    }\n  },\n  \"required\": [\"articulos_detectados\"]\n}",
+        "options": {}
+      },
+      "id": "10000000-0000-4000-8000-000000000007",
+      "name": "6. Information Extractor (Gemini Jurídico)",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "10000000-0000-4000-8000-000000000008",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        220
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "yO7JQHUsNhKysnEX",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================================\n// PASO 7: Consolidador y Publicación Instantánea + Reformas Cronológicas\n// ============================================================================\nconst driveFile = $('2. Buscar PDF en Google Drive (01_PDF_Original)').first().json;\nconst firstChunk = $('5. Fragmentador Jurídico con Carpeta Espejo').first().json;\nconst allItems = $input.all();\nconst seenArticles = new Map();\nconst consolidated = [];\n\nfor (const item of allItems) {\n  const out = item.json.output || item.json;\n  const list = out.articulos_detectados || [];\n  for (const art of list) {\n    const key = `${(art.tipo_estructura || 'article').toLowerCase()}_${String(art.numero).trim().toUpperCase()}`;\n    if (!seenArticles.has(key)) {\n      seenArticles.set(key, true);\n      consolidated.push({\n        ordinal: consolidated.length + 1,\n        structure_type: art.tipo_estructura || 'article',\n        identifier: String(art.numero).trim(),\n        title: art.encabezado || `Art. ${art.numero}`,\n        parent_title: art.titulo_padre || null,\n        parent_chapter: art.capitulo_padre || null,\n        content: art.texto_completo_markdown,\n        valid_from: art.fecha_inicio_vigencia || null,\n        valid_until: art.fecha_fin_vigencia || null,\n        official_registry: art.registro_oficial_cita || null,\n        reforms_target_norm_code: art.reforma_norma_objetivo || null,\n        reforms_target_article_identifier: art.reforma_articulo_objetivo || null,\n        reformed_target_content: art.texto_consolidado_post_reforma || null,\n        vertical_concepts: art.conceptos_verticales || [],\n        has_normative_table: Boolean(art.tiene_tabla_normativa),\n        normative_tables: art.tablas_normativas || [],\n        detected_relations: art.relaciones_detectadas || [],\n        observations: art.observaciones || '',\n        review_status: 'approved'\n      });\n    }\n  }\n}\n\nlet normCode = 'LRTI';\nconst upperName = (driveFile.name || '').toUpperCase();\nif (upperName.includes('RLRTI') || upperName.includes('REGLAMENTO')) normCode = 'RLRTI';\nelse if (upperName.includes('CODIGO') || upperName.startsWith('CT')) normCode = 'CT';\nelse if (upperName.includes('NAC-') || upperName.includes('DGER')) normCode = driveFile.name.replace(/\\.pdf$/i, '');\nelse if (upperName.includes('LRET')) normCode = 'LRET';\n\nreturn [{\n  json: {\n    p_document_id: null,\n    p_norm_code: normCode,\n    p_version_title: `Publicado desde Registro Oficial (${driveFile.name})`,\n    p_published_on: consolidated[0]?.valid_from || '2004-11-17',\n    p_model: 'gemini-2.5-flash',\n    p_articles: consolidated,\n    p_google_drive_file_id: driveFile.id,\n    p_google_drive_path: firstChunk.google_drive_path,\n    p_storage_bucket: 'legal-documents',\n    p_storage_path: firstChunk.storage_path,\n    p_folder_category: firstChunk.folder_category,\n    p_file_name: driveFile.name,\n    p_sha256: driveFile.sha256Checksum || null,\n    p_file_size: driveFile.size ? Number(driveFile.size) : null,\n    p_source_url: driveFile.webViewLink || null\n  }\n}];"
+      },
+      "id": "10000000-0000-4000-8000-000000000009",
+      "name": "7. Consolidar y Enlazar Espejo (Drive + Storage)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://kqtjxkblebdcgrepfajh.supabase.co/rest/v1/rpc/ingest_extracted_norm_draft",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "10000000-0000-4000-8000-000000000010",
+      "name": "8. Guardar Borrador en Supabase (RPC)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        800,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "eum2gQIuarsJwBIp",
+          "name": "Apikey"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "1. Iniciar Ingesta Espejo (Google Drive)": {
+      "main": [
+        [
+          {
+            "node": "2. Buscar PDF en Google Drive (01_PDF_Original)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Buscar PDF en Google Drive (01_PDF_Original)": {
+      "main": [
+        [
+          {
+            "node": "3. Descargar PDF desde Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Descargar PDF desde Google Drive": {
+      "main": [
+        [
+          {
+            "node": "3b. Subir Copia Espejo a Supabase Storage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "4. Extraer Texto Base del PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Extraer Texto Base del PDF": {
+      "main": [
+        [
+          {
+            "node": "5. Fragmentador Jurídico con Carpeta Espejo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Fragmentador Jurídico con Carpeta Espejo": {
+      "main": [
+        [
+          {
+            "node": "6. Information Extractor (Gemini Jurídico)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "6. Information Extractor (Gemini Jurídico)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Information Extractor (Gemini Jurídico)": {
+      "main": [
+        [
+          {
+            "node": "7. Consolidar y Enlazar Espejo (Drive + Storage)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7. Consolidar y Enlazar Espejo (Drive + Storage)": {
+      "main": [
+        [
+          {
+            "node": "8. Guardar Borrador en Supabase (RPC)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

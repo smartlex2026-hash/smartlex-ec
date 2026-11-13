@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: smartlex-n8n
+    # CRÍTICO: Reinicia automáticamente n8n si ocurre un corte de red con Supabase
+    # o si el VPS de Hostinger se reinicia por mantenimiento.
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=n8n.smartlexec.cloud
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://n8n.smartlexec.cloud/
+      - GENERIC_TIMEZONE=America/Guayaquil
+      - TZ=America/Guayaquil
+
+      # CRÍTICO PARA PDFs GRANDES (ej. RLRTI 392 páginas):
+      # Guarda los binarios en disco en vez de saturar la memoria RAM de Node.js
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+      - NODE_OPTIONS=--max-old-space-size=2048
+
+      # Estabilidad de conexión Postgres con Supabase (evita caídas por conexiones inactivas)
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_SCHEMA=n8n_internal
+      - DB_POSTGRESDB_POOL_SIZE=5
+      - DB_POSTGRESDB_CONNECTION_TIMEOUT=30000
+
+      # Limpieza automática de ejecuciones antiguas para no llenar la base de datos
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=1000
+    volumes:
+      - n8n_data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  n8n_data:
+    external: false
