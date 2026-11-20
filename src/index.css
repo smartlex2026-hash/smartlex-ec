@@ -1,66 +1,152 @@
-/* SmartLex Ecuador — Chess.com Dark Slate Theme */
+/* SmartLex Ecuador — Minimalist Monochrome Theme (Light by Default + Dark Night Mode) */
 
-:root {
+:root,
+html.theme-light {
+  color-scheme: light;
+}
+
+html.theme-dark {
   color-scheme: dark;
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: #302E2B;
-  color: #FFFFFF;
+  background-color: #fafafa;
+  color: #09090b;
   margin: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.theme-dark body {
+  background-color: #0d0d0f;
+  color: #f4f4f5;
 }
 
 .font-heading {
-  font-family: 'Montserrat', sans-serif;
+  font-family: 'Inter', 'Montserrat', sans-serif;
 }
 
-/* Custom Chess.com style scrollbars */
+/* Custom sleek minimalist scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #21201D;
+  background: #f4f4f5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3C3A36;
+  background: #d4d4d8;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4E4C47;
+  background: #a1a1aa;
 }
 
-/* Chess.com tactile 3D button effect */
+html.theme-dark ::-webkit-scrollbar-track {
+  background: #0d0d0f;
+}
+
+html.theme-dark ::-webkit-scrollbar-thumb {
+  background: #26262b;
+  border-radius: 4px;
+}
+
+html.theme-dark ::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Automatic Light Mode adaptation for Portal monochromatic classes when html.theme-light is active */
+html.theme-light .bg-\[\#0d0d0f\] {
+  background-color: #fafafa !important;
+}
+
+html.theme-light .bg-\[\#121215\],
+html.theme-light .bg-\[\#121215\]\/70 {
+  background-color: #ffffff !important;
+}
+
+html.theme-light .bg-\[\#151518\],
+html.theme-light .bg-\[\#151518\]\/95 {
+  background-color: #f4f4f5 !important;
+}
+
+html.theme-light .bg-\[\#18181c\],
+html.theme-light .bg-\[\#1c1c21\] {
+  background-color: #f4f4f5 !important;
+}
+
+html.theme-light .bg-\[\#26262b\] {
+  background-color: #e4e4e7 !important;
+}
+
+html.theme-light .text-\[\#f4f4f5\],
+html.theme-light .text-\[\#e4e4e7\] {
+  color: #09090b !important;
+}
+
+html.theme-light .text-\[\#d4d4d8\] {
+  color: #27272a !important;
+}
+
+html.theme-light .text-\[\#a1a1aa\],
+html.theme-light .text-\[\#71717a\] {
+  color: #52525b !important;
+}
+
+html.theme-light .border-\[\#26262b\],
+html.theme-light .border-\[\#26262b\]\/60,
+html.theme-light .border-\[\#26262b\]\/80,
+html.theme-light .border-\[\#2e2e36\],
+html.theme-light .border-\[\#3f3f46\] {
+  border-color: #e4e4e7 !important;
+}
+
+html.theme-light .divide-\[\#26262b\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e4e4e7 !important;
+}
+
+/* Primary inverted buttons in Light Mode keep high contrast */
+html.theme-light .bg-\[\#f4f4f5\].text-\[\#0d0d0f\] {
+  background-color: #18181b !important;
+  color: #ffffff !important;
+}
+
+/* Minimalist primary & secondary buttons */
 .btn-chess-green {
-  background-color: #81B64C;
-  border-bottom: 4px solid #5D8C32;
-  color: #FFFFFF;
-  font-weight: 800;
-  transition: all 0.12s ease;
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  color: #ffffff;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+html.theme-dark .btn-chess-green {
+  background-color: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  color: #0d0d0f;
 }
 
 .btn-chess-green:hover {
-  background-color: #95C85F;
+  opacity: 0.92;
 }
 
 .btn-chess-green:active {
-  transform: translateY(2px);
-  border-bottom-width: 2px;
+  transform: translateY(1px);
 }
 
 .btn-chess-dark {
-  background-color: #3C3A36;
-  border-bottom: 3px solid #1C1B19;
-  color: #DFDFDE;
-  font-weight: 700;
-  transition: all 0.12s ease;
+  background-color: #f4f4f5;
+  border: 1px solid #d4d4d8;
+  color: #18181b;
+  font-weight: 600;
+  transition: all 0.15s ease;
 }
 
-.btn-chess-dark:hover {
-  background-color: #4A4843;
-  color: #FFFFFF;
+html.theme-dark .btn-chess-dark {
+  background-color: #1c1c21;
+  border: 1px solid #26262b;
+  color: #e4e4e7;
 }

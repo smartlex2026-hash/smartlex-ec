@@ -1,90 +1,259 @@
 {
-  "name": "SmartLex - Ingesta Jurídica v2.2 (Espejo Google Drive -> Supabase Storage + Gemini)",
+  "name": "SmartLex - Ingesta Juridica PDF y Extraccion IA",
   "nodes": [
     {
-      "parameters": {},
-      "id": "10000000-0000-4000-8000-000000000001",
-      "name": "1. Iniciar Ingesta Espejo (Google Drive)",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        -1040,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "resource": "fileFolder",
-        "queryString": "={{ $json.file_name || 'LRTI' }}",
-        "filter": {
-          "folderId": {
-            "__rl": true,
-            "value": "1-09b4Y5N7guKejiBG9_8PCU4MdJ7aft2",
-            "mode": "list",
-            "cachedResultName": "01_PDF_Original",
-            "cachedResultUrl": "https://drive.google.com/drive/folders/1-09b4Y5N7guKejiBG9_8PCU4MdJ7aft2"
-          },
-          "whatToSearch": "files"
-        },
-        "options": {
-          "fields": [
-            "id",
-            "name",
-            "mimeType",
-            "size",
-            "webViewLink",
-            "sha256Checksum",
-            "parents"
-          ]
-        }
-      },
-      "id": "10000000-0000-4000-8000-000000000002",
-      "name": "2. Buscar PDF en Google Drive (01_PDF_Original)",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
-      "position": [
-        -800,
-        0
-      ],
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "1iGsrTFHEHDjrBzP",
           "name": "Google Drive SmartLex"
         }
-      }
+      },
+      "disabled": false,
+      "id": "node-trigger-00-ro",
+      "name": "GDrive - 00_registros_oficiales",
+      "parameters": {
+        "authentication": "oAuth2",
+        "event": "fileCreated",
+        "folderToWatch": {
+          "mode": "id",
+          "value": "1S56kJ7IkCQRD4SdV1b7x9cOnCOPWVZ2p"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder"
+      },
+      "position": [
+        -1280,
+        260
+      ],
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1
     },
     {
+      "id": "node-prep-drive-queue",
+      "name": "Preparar Cola Drive",
       "parameters": {
-        "operation": "download",
-        "fileId": {
-          "__rl": true,
-          "value": "={{ $json.id }}",
-          "mode": "id"
+        "jsCode": "const items = $input.all() || [];\nconst extractDateScore = (name, createdTime) => {\n  const m = String(name || '').match(/(?:^|_)(\\d{4})(\\d{2})(\\d{2})(?:_|\\.|$)/);\n  if (m) return Number(`${m[1]}${m[2]}${m[3]}`);\n  const ts = Date.parse(createdTime || '');\n  return Number.isFinite(ts) ? ts : Number.MAX_SAFE_INTEGER;\n};\n\nconst pdfs = items.filter((item) => {\n  const j = item.json || {};\n  const mime = String(j.mimeType || '').toLowerCase();\n  const name = String(j.name || j.originalFilename || '').toLowerCase();\n  return mime === 'application/pdf' || name.endsWith('.pdf');\n});\n\npdfs.sort((a, b) => {\n  const ja = a.json || {};\n  const jb = b.json || {};\n  return extractDateScore(ja.name, ja.createdTime) - extractDateScore(jb.name, jb.createdTime);\n});\n\nreturn pdfs.map((item) => {\n  const j = item.json || {};\n  const fileName = j.name || j.originalFilename || 'documento.pdf';\n  const cleanFileName = fileName\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-zA-Z0-9._-]/g, '_');\n  const m = fileName.match(/(?:^|_)(\\d{4})(\\d{2})(\\d{2})(?:_|\\.|$)/);\n  const publishedOn = m ? `${m[1]}-${m[2]}-${m[3]}` : null;\n  return {\n    json: {\n      source_mode: 'gdrive',\n      is_webhook: false,\n      force_reingest: false,\n      google_drive_file_id: j.id,\n      file_name: fileName,\n      clean_file_name: cleanFileName,\n      file_size: j.size ? Number(j.size) : null,\n      folder_category: '00_registros_oficiales',\n      storage_bucket: 'legal-documents',\n      storage_path: `00_registros_oficiales/${cleanFileName}`,\n      google_drive_path: `01_PDF_Original/00_registros_oficiales/${fileName}`,\n      published_on: publishedOn,\n      norm_code: null,\n      version_title: null,\n      official_registry_cite: null,\n      pdf_signed_url: null\n    }\n  };\n});",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        -1040,
+        260
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "node-webhook-ingesta",
+      "name": "Webhook - Ingesta PDF",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {},
+        "path": "smartlex-ingesta-pdf",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson"
+      },
+      "position": [
+        -1280,
+        -40
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "624b93d1-0d18-4853-a951-8845487cc703"
+    },
+    {
+      "id": "node-prep-webhook-queue",
+      "name": "Preparar Cola Webhook",
+      "parameters": {
+        "jsCode": "const raw = $input.first()?.json || {};\nlet body = raw.body !== undefined ? raw.body : raw;\nif (typeof body === 'string') {\n  try { body = JSON.parse(body); } catch (e) {}\n}\n\nconst normalizeCleanName = (name) =>\n  String(name || 'documento.pdf')\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-zA-Z0-9._-]/g, '_');\n\nconst parseDateFromName = (name) => {\n  const m = String(name || '').match(/(?:^|_)(\\d{4})(\\d{2})(\\d{2})(?:_|\\.|$)/);\n  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;\n};\n\n// Si es un array de elementos directamente\nconst list = Array.isArray(body)\n  ? body\n  : (Array.isArray(body.google_drive_files) ? body.google_drive_files : (Array.isArray(body.google_drive_file_ids) ? body.google_drive_file_ids.map(id => ({ google_drive_file_id: id })) : null));\n\nif (list) {\n  return list.map((entry) => {\n    const fileId = entry.google_drive_file_id || entry.id;\n    const fileName = entry.file_name || entry.name || null;\n    const cleanFileName = normalizeCleanName(fileName || `${fileId}.pdf`);\n    const folderCategory = entry.folder_category || body.folder_category || '00_registros_oficiales';\n    const isDrive = Boolean(fileId || entry.source_mode === 'gdrive' || entry.source_mode === 'google_drive');\n    return {\n      json: {\n        source_mode: isDrive ? 'gdrive' : (entry.base64_pdf ? 'inline' : 'storage'),\n        is_webhook: true,\n        force_reingest: Boolean(entry.force_reingest ?? body.force_reingest),\n        google_drive_file_id: fileId,\n        file_name: fileName,\n        clean_file_name: cleanFileName,\n        file_size: entry.file_size ? Number(entry.file_size) : null,\n        folder_category: folderCategory,\n        storage_bucket: entry.storage_bucket || body.storage_bucket || 'legal-documents',\n        storage_path: entry.storage_path || (fileName ? `${folderCategory}/${cleanFileName}` : null),\n        google_drive_path: entry.google_drive_path || (fileName ? `01_PDF_Original/${folderCategory}/${fileName}` : null),\n        published_on: entry.published_on || parseDateFromName(fileName),\n        norm_code: entry.norm_code || null,\n        version_title: entry.version_title || null,\n        official_registry_cite: entry.official_registry_cite || null,\n        pdf_signed_url: entry.pdf_signed_url || null,\n        base64_pdf: entry.base64_pdf || null\n      }\n    };\n  });\n}\n\nif (body.google_drive_file_id || body.source_mode === 'google_drive' || body.source_mode === 'gdrive') {\n  const fileId = body.google_drive_file_id || body.id;\n  const fileName = body.file_name || null;\n  const cleanFileName = normalizeCleanName(fileName || `${fileId}.pdf`);\n  const folderCategory = body.folder_category || '00_registros_oficiales';\n  return [{\n    json: {\n      source_mode: 'gdrive',\n      is_webhook: true,\n      force_reingest: Boolean(body.force_reingest),\n      google_drive_file_id: fileId,\n      file_name: fileName,\n      clean_file_name: cleanFileName,\n      file_size: body.file_size ? Number(body.file_size) : null,\n      folder_category: folderCategory,\n      storage_bucket: body.storage_bucket || 'legal-documents',\n      storage_path: body.storage_path || (fileName ? `${folderCategory}/${cleanFileName}` : null),\n      google_drive_path: body.google_drive_path || (fileName ? `01_PDF_Original/${folderCategory}/${fileName}` : null),\n      published_on: body.published_on || parseDateFromName(fileName),\n      norm_code: body.norm_code || null,\n      version_title: body.version_title || null,\n      official_registry_cite: body.official_registry_cite || null,\n      pdf_signed_url: null\n    }\n  }];\n}\n\nconst fileName = body.file_name || 'documento.pdf';\nconst cleanFileName = normalizeCleanName(fileName);\nconst folderCategory = body.folder_category || '00_registros_oficiales';\nreturn [{\n  json: {\n    source_mode: body.base64_pdf ? 'inline' : 'storage',\n    is_webhook: true,\n    force_reingest: Boolean(body.force_reingest),\n    google_drive_file_id: body.google_drive_file_id || null,\n    file_name: fileName,\n    clean_file_name: cleanFileName,\n    file_size: body.file_size ? Number(body.file_size) : null,\n    folder_category: folderCategory,\n    storage_bucket: body.storage_bucket || 'legal-documents',\n    storage_path: body.storage_path || `${folderCategory}/${cleanFileName}`,\n    google_drive_path: body.google_drive_path || null,\n    published_on: body.published_on || parseDateFromName(fileName),\n    norm_code: body.norm_code || null,\n    version_title: body.version_title || null,\n    official_registry_cite: body.official_registry_cite || null,\n    pdf_signed_url: body.pdf_signed_url || null,\n    base64_pdf: body.base64_pdf || null\n  }\n}];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        -1040,
+        -40
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "node-loop-docs",
+      "name": "Loop Documentos 1x1",
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "position": [
+        -760,
+        100
+      ],
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3
+    },
+    {
+      "id": "node-if-source-drive",
+      "name": "¿Es Origen Drive?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-source-drive",
+              "leftValue": "={{ $('Loop Documentos 1x1').item.json.source_mode }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "gdrive"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
         },
         "options": {}
       },
-      "id": "10000000-0000-4000-8000-000000000003",
-      "name": "3. Descargar PDF desde Google Drive",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
       "position": [
-        -560,
-        0
+        -520,
+        220
       ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "eum2gQIuarsJwBIp",
+          "name": "Apikey"
+        }
+      },
+      "id": "node-check-duplicate-drive",
+      "name": "Verificar Duplicado Documento",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "GET",
+        "options": {},
+        "url": "=https://kqtjxkblebdcgrepfajh.supabase.co/rest/v1/documents?or=(google_drive_file_id.eq.{{ encodeURIComponent($('Loop Documentos 1x1').item.json.google_drive_file_id || 'none') }},storage_path.eq.{{ encodeURIComponent($('Loop Documentos 1x1').item.json.storage_path || 'none') }})&select=id,status,file_name&limit=1"
+      },
+      "position": [
+        -280,
+        340
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node-if-already-processed",
+      "name": "¿Ya Procesado Documento?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-already-processed",
+              "leftValue": "={{ Boolean($json.id && $json.status === 'processed' && !$('Loop Documentos 1x1').item.json.force_reingest) }}",
+              "operator": {
+                "singleValue": true,
+                "type": "boolean",
+                "operation": "true"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        -40,
+        340
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "id": "node-skip-duplicate",
+      "name": "Marcar Saltado por Duplicado",
+      "parameters": {
+        "jsCode": "const ctx = $('Loop Documentos 1x1').item.json || {};\nconst existing = $input.first()?.json || {};\nreturn [{\n  json: {\n    is_webhook: Boolean(ctx.is_webhook),\n    status: 'skipped_duplicate',\n    file_name: ctx.file_name || existing.file_name || null,\n    google_drive_file_id: ctx.google_drive_file_id,\n    document_id: existing.id || null\n  }\n}];",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        220,
+        480
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "1iGsrTFHEHDjrBzP",
           "name": "Google Drive SmartLex"
         }
-      }
+      },
+      "id": "node-download-gdrive",
+      "name": "Descargar PDF de Google Drive",
+      "parameters": {
+        "authentication": "oAuth2",
+        "fileId": {
+          "mode": "id",
+          "value": "={{ $('Loop Documentos 1x1').item.json.google_drive_file_id }}"
+        },
+        "operation": "download",
+        "options": {},
+        "resource": "file"
+      },
+      "position": [
+        220,
+        260
+      ],
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3
     },
     {
+      "id": "node-prep-drive-b64",
+      "name": "Preparar Drive + Base64",
       "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://kqtjxkblebdcgrepfajh.supabase.co/storage/v1/object/legal-documents/' + ($json.folder_category || '02_leyes') + '/' + $('2. Buscar PDF en Google Drive (01_PDF_Original)').item.json.name }}",
+        "jsCode": "const item = $input.first() || {};\nconst ctx = $('Loop Documentos 1x1').first()?.json || {};\nconst driveJson = item.json || {};\nconst binMeta = item.binary?.data || {};\n\nconst buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nlet sha256 = null;\ntry {\n  const crypto = require('crypto');\n  sha256 = crypto.createHash('sha256').update(buffer).digest('hex');\n} catch (_) {\n  sha256 = null;\n}\n\nconst fileName = driveJson.name || binMeta.fileName || ctx.file_name || 'documento.pdf';\nconst cleanFileName = fileName\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n  .replace(/[^a-zA-Z0-9._-]/g, '_');\nconst m = fileName.match(/(?:^|_)(\\d{4})(\\d{2})(\\d{2})(?:_|\\.|$)/);\nconst publishedOn = ctx.published_on || (m ? `${m[1]}-${m[2]}-${m[3]}` : null);\nconst folderCategory = ctx.folder_category || '00_registros_oficiales';\nconst storageBucket = ctx.storage_bucket || 'legal-documents';\nconst storagePath = `${folderCategory}/${cleanFileName}`;\n\nreturn [{\n  json: {\n    meta: {\n      is_webhook: Boolean(ctx.is_webhook),\n      source_mode: 'gdrive',\n      file_name: fileName,\n      clean_file_name: cleanFileName,\n      file_size: buffer.length,\n      sha256,\n      folder_category: folderCategory,\n      norm_code: ctx.norm_code || null,\n      version_title: ctx.version_title || null,\n      published_on: publishedOn,\n      official_registry_cite: ctx.official_registry_cite || null,\n      google_drive_file_id: ctx.google_drive_file_id || driveJson.id || null,\n      google_drive_path: ctx.google_drive_path || `01_PDF_Original/${folderCategory}/${fileName}`,\n      storage_bucket: storageBucket,\n      storage_path: storagePath\n    },\n    base64_pdf: buffer.toString('base64')\n  },\n  binary: item.binary\n}];",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        440,
+        260
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "eum2gQIuarsJwBIp",
+          "name": "Apikey"
+        }
+      },
+      "id": "node-upload-storage-mirror",
+      "name": "Subir Espejo a Supabase Storage",
+      "onError": "continueRegularOutput",
+      "parameters": {
         "authentication": "genericCredentialType",
+        "contentType": "binaryData",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
@@ -97,218 +266,644 @@
             }
           ]
         },
-        "sendBody": true,
-        "contentType": "binaryData",
         "inputDataFieldName": "data",
-        "options": {}
-      },
-      "id": "10000000-0000-4000-8000-000000000004",
-      "name": "3b. Subir Copia Espejo a Supabase Storage",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
-      "position": [
-        -320,
-        -180
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "eum2gQIuarsJwBIp",
-          "name": "Apikey"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "pdf",
-        "options": {}
-      },
-      "id": "10000000-0000-4000-8000-000000000005",
-      "name": "4. Extraer Texto Base del PDF",
-      "type": "n8n-nodes-base.extractFromFile",
-      "typeVersion": 1.1,
-      "position": [
-        -320,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// ============================================================================\n// PASO 5: Clasificación de Carpeta Espejo + Fragmentación Inteligente\n// ============================================================================\nconst driveFile = $('2. Buscar PDF en Google Drive (01_PDF_Original)').first().json;\nconst rawText = ($input.first().json.text || '').replace(/\\r\\n/g, '\\n');\n\n// Determinar la subcarpeta espejo según el nombre o ruta\nconst upperName = (driveFile.name || '').toUpperCase();\nlet folderCategory = '02_leyes';\nif (upperName.includes('REGISTRO') || upperName.startsWith('RO_') || upperName.startsWith('RS1_') || upperName.startsWith('RS_') || upperName.includes('HISTORICO')) folderCategory = '00_registros_oficiales';\nelse if (upperName.includes('CODIGO') || upperName.startsWith('CT')) folderCategory = '01_codigos';\nelse if (upperName.includes('RLRTI') || upperName.includes('REGLAMENTO')) folderCategory = '03_reglamentos';\nelse if (upperName.includes('LRET') || upperName.includes('REFORMA')) folderCategory = '04_leyes_reformas';\nelse if (upperName.includes('NAC-') || upperName.includes('RESOLUCION') || upperName.includes('DGER')) folderCategory = '05_resoluciones_sri';\nelse if (upperName.includes('CIRCULAR') || upperName.includes('DGECC')) folderCategory = '06_circulares_sri';\nelse if (upperName.includes('FORMULARIO') || upperName.includes('ANEXO')) folderCategory = '07_formularios_anexos';\n\nconst MAX_CHUNK_SIZE = 14000;\nconst boundaryRegex = /\\n(?=\\s*(?:T[ÍI]TULO\\s+[IVXLCDM0-9]+|CAP[ÍI]TULO\\s+[IVXLCDM0-9]+|DISPOSICIONES\\s+(?:GENERALES|TRANSITORIAS|REFORMATORIAS|DEROGATORIAS|FINALES)|Art(?:[íi]culo|\\.)\\s*\\d+\\s*(?:[-–—.:]|\\b)))/gi;\n\nconst splitPoints = [0];\nlet match;\nwhile ((match = boundaryRegex.exec(rawText)) !== null) {\n  if (match.index > 0) splitPoints.push(match.index);\n}\nsplitPoints.push(rawText.length);\n\nconst chunks = [];\nlet chunkStart = 0;\nlet currentTitle = 'SIN TÍTULO';\nlet currentChapter = 'SIN CAPÍTULO';\n\nfor (let i = 1; i < splitPoints.length; i++) {\n  const point = splitPoints[i];\n  if (point - chunkStart >= MAX_CHUNK_SIZE || i === splitPoints.length - 1) {\n    const endPos = i === splitPoints.length - 1 ? rawText.length : point;\n    const sliceText = rawText.slice(chunkStart, endPos).trim();\n\n    if (sliceText.length > 0) {\n      chunks.push({\n        google_drive_file_id: driveFile.id,\n        file_name: driveFile.name,\n        folder_category: folderCategory,\n        storage_path: `${folderCategory}/${driveFile.name}`,\n        google_drive_path: `01_PDF_Original/${folderCategory}/${driveFile.name}`,\n        sha256: driveFile.sha256Checksum || null,\n        file_size: driveFile.size ? Number(driveFile.size) : null,\n        source_url: driveFile.webViewLink || null,\n        chunk_index: chunks.length,\n        char_start: chunkStart,\n        char_end: endPos,\n        context_title_before: currentTitle,\n        context_chapter_before: currentChapter,\n        chunk_text: sliceText\n      });\n    }\n\n    const titles = [...sliceText.matchAll(/(?:^|\\n)\\s*(T[ÍI]TULO\\s+[^\\n]+)/gi)];\n    if (titles.length > 0) currentTitle = titles[titles.length - 1][1].trim();\n\n    const chapters = [...sliceText.matchAll(/(?:^|\\n)\\s*(CAP[ÍI]TULO\\s+[^\\n]+)/gi)];\n    if (chapters.length > 0) currentChapter = chapters[chapters.length - 1][1].trim();\n\n    chunkStart = endPos;\n  }\n}\n\nreturn chunks.map(c => ({ json: c }));"
-      },
-      "id": "10000000-0000-4000-8000-000000000006",
-      "name": "5. Fragmentador Jurídico con Carpeta Espejo",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -60,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "text": "={{ 'CONTEXTO HEREDADO DEL FRAGMENTO ANTERIOR:\\n- Carpeta Jerárquica: ' + $json.folder_category + '\\n- Título actual: ' + $json.context_title_before + '\\n- Capítulo actual: ' + $json.context_chapter_before + '\\n\\nINSTRUCCIONES DE EXTRACCIÓN JURÍDICA ECUATORIANA (MOTOR EVOLUTIVO REGISTRO OFICIAL):\\n1. REGLA DE FILTRADO TRIBUTARIO: Si el PDF corresponde a un Registro Oficial del Ecuador con múltiples actos estatales, filtra y extrae ÚNICAMENTE las leyes, fe de erratas, decretos ejecutivos, resoluciones del SRI o sentencias del Tribunal/Corte Constitucional en materia tributaria (Principio de Reserva de Ley: no hay impuesto sin ley).\\n2. MODELACIÓN UTL (5.-MODELACION-ARTUCULADO-DE-UNA-LEY): Respeta la estructura jerárquica Título -> Capítulo -> Artículo -> Párrafos/Incisos/Literales -> Disposiciones Transitorias -> Disposición Final.\\n3. ATENCIÓN CON ENCABEZADOS IRREGULARES Y CITAS INTERNAS: Reconoce encabezados aunque usen dos puntos (\"Art. 55:\") y NO separes citas internas de artículos derogados (ej. Art. 121 LRTI) como artículos independientes.\\n4. CLASIFICACIÓN VERTICAL: En conceptos_verticales asigna códigos exactos: [\"HECHO_GENERADOR\", \"SUJETO_ACTIVO\", \"SUJETO_PASIVO\", \"EXONERACIONES\", \"DEDUCCIONES\", \"BASE_IMPONIBLE\", \"TARIFAS\", \"TARIFA_IMPUESTO_RENTA\", \"TARIFA_CERO_IVA\", \"RETENCION_FUENTE\", \"CREDITO_TRIBUTARIO\"].\\n5. TABLAS NORMATIVAS (ej. Art. 36 LRTI / Resoluciones SRI 773 y 628): Incluye la tabla en Markdown dentro de texto_completo_markdown Y extráela estructurada en tablas_normativas.\\n6. TRAZABILIDAD DE REFORMAS CRONOLÓGICAS: Si el artículo o fe de erratas reforma un artículo de la Ley de Régimen Tributario Interno (LRTI) u otra norma tributaria, indica en reforma_norma_objetivo (ej. \"LRTI\"), reforma_articulo_objetivo (ej. \"36\", \"9\", \"55\"), texto_consolidado_post_reforma, fecha_inicio_vigencia (YYYY-MM-DD) y registro_oficial_cita.\\n\\nFRAGMENTO A PROCESAR (Chunk #' + $json.chunk_index + '):\\n' + $json.chunk_text }}",
-        "schemaType": "manual",
-        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"articulos_detectados\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"tipo_estructura\": {\n            \"type\": \"string\",\n            \"description\": \"article, transitory, final, reform\"\n          },\n          \"numero\": {\n            \"type\": \"string\",\n            \"description\": \"Número o identificador del artículo, ej: 1, 10, 36, 55, 121, DT-PRIMERA, DF-UNICA\"\n          },\n          \"encabezado\": {\n            \"type\": \"string\",\n            \"description\": \"Epígrafe o título del artículo si lo tiene\"\n          },\n          \"titulo_padre\": {\n            \"type\": \"string\"\n          },\n          \"capitulo_padre\": {\n            \"type\": \"string\"\n          },\n          \"texto_completo_markdown\": {\n            \"type\": \"string\",\n            \"description\": \"Texto literal íntegro del artículo en Markdown, incluyendo sus numerales, literales y tablas\"\n          },\n          \"fecha_inicio_vigencia\": {\n            \"type\": \"string\",\n            \"description\": \"Fecha YYYY-MM-DD de entrada en vigencia según el Registro Oficial\"\n          },\n          \"fecha_fin_vigencia\": {\n            \"type\": \"string\",\n            \"description\": \"Fecha YYYY-MM-DD de fin de vigencia si aplica (ej. tabla anual o derogatoria)\"\n          },\n          \"registro_oficial_cita\": {\n            \"type\": \"string\",\n            \"description\": \"Cita exacta del Registro Oficial, ej: Suplemento R.O. No. 463 de 17 de noviembre de 2004\"\n          },\n          \"reforma_norma_objetivo\": {\n            \"type\": \"string\",\n            \"description\": \"Código de la norma reformada si este artículo modifica otra norma (ej: LRTI)\"\n          },\n          \"reforma_articulo_objetivo\": {\n            \"type\": \"string\",\n            \"description\": \"Identificador del artículo reformado en la norma objetivo (ej: 2, 9, 19, 36, 55)\"\n          },\n          \"texto_consolidado_post_reforma\": {\n            \"type\": \"string\",\n            \"description\": \"Texto resultante del artículo objetivo tras aplicar esta reforma o fe de erratas\"\n          },\n          \"conceptos_verticales\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\"\n            },\n            \"description\": \"Códigos del eje vertical: EXONERACIONES, DEDUCCIONES, BASE_IMPONIBLE, TARIFAS, CREDITO_TRIBUTARIO, etc.\"\n          },\n          \"tiene_tabla_normativa\": {\n            \"type\": \"boolean\"\n          },\n          \"tablas_normativas\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"titulo_tabla\": { \"type\": \"string\" },\n                \"categoria_tabla\": { \"type\": \"string\", \"description\": \"progressive_rates, withholding_rates, inheritance, rimpe, dividends, ice, other\" },\n                \"markdown_tabla\": { \"type\": \"string\" }\n              },\n              \"required\": [\"titulo_tabla\", \"categoria_tabla\", \"markdown_tabla\"]\n            }\n          },\n          \"relaciones_detectadas\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"norma_citada\": { \"type\": \"string\" },\n                \"articulo_citado\": { \"type\": \"string\" },\n                \"tipo_relacion\": { \"type\": \"string\", \"description\": \"regulates, regulated_by, amends, repeals, cites, complements\" },\n                \"descripcion\": { \"type\": \"string\" }\n              },\n              \"required\": [\"norma_citada\", \"tipo_relacion\"]\n            }\n          },\n          \"observaciones\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"tipo_estructura\",\n          \"numero\",\n          \"encabezado\",\n          \"texto_completo_markdown\",\n          \"conceptos_verticales\",\n          \"tiene_tabla_normativa\",\n          \"observaciones\"\n        ]\n      }\n    }\n  },\n  \"required\": [\"articulos_detectados\"]\n}",
-        "options": {}
-      },
-      "id": "10000000-0000-4000-8000-000000000007",
-      "name": "6. Information Extractor (Gemini Jurídico)",
-      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
-      "typeVersion": 1.2,
-      "position": [
-        220,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "options": {
-          "temperature": 0.1
-        }
-      },
-      "id": "10000000-0000-4000-8000-000000000008",
-      "name": "Google Gemini Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.1,
-      "position": [
-        220,
-        220
-      ],
-      "credentials": {
-        "googlePalmApi": {
-          "id": "yO7JQHUsNhKysnEX",
-          "name": "Google Gemini(PaLM) Api account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// ============================================================================\n// PASO 7: Consolidador y Publicación Instantánea + Reformas Cronológicas\n// ============================================================================\nconst driveFile = $('2. Buscar PDF en Google Drive (01_PDF_Original)').first().json;\nconst firstChunk = $('5. Fragmentador Jurídico con Carpeta Espejo').first().json;\nconst allItems = $input.all();\nconst seenArticles = new Map();\nconst consolidated = [];\n\nfor (const item of allItems) {\n  const out = item.json.output || item.json;\n  const list = out.articulos_detectados || [];\n  for (const art of list) {\n    const key = `${(art.tipo_estructura || 'article').toLowerCase()}_${String(art.numero).trim().toUpperCase()}`;\n    if (!seenArticles.has(key)) {\n      seenArticles.set(key, true);\n      consolidated.push({\n        ordinal: consolidated.length + 1,\n        structure_type: art.tipo_estructura || 'article',\n        identifier: String(art.numero).trim(),\n        title: art.encabezado || `Art. ${art.numero}`,\n        parent_title: art.titulo_padre || null,\n        parent_chapter: art.capitulo_padre || null,\n        content: art.texto_completo_markdown,\n        valid_from: art.fecha_inicio_vigencia || null,\n        valid_until: art.fecha_fin_vigencia || null,\n        official_registry: art.registro_oficial_cita || null,\n        reforms_target_norm_code: art.reforma_norma_objetivo || null,\n        reforms_target_article_identifier: art.reforma_articulo_objetivo || null,\n        reformed_target_content: art.texto_consolidado_post_reforma || null,\n        vertical_concepts: art.conceptos_verticales || [],\n        has_normative_table: Boolean(art.tiene_tabla_normativa),\n        normative_tables: art.tablas_normativas || [],\n        detected_relations: art.relaciones_detectadas || [],\n        observations: art.observaciones || '',\n        review_status: 'approved'\n      });\n    }\n  }\n}\n\nlet normCode = 'LRTI';\nconst upperName = (driveFile.name || '').toUpperCase();\nif (upperName.includes('RLRTI') || upperName.includes('REGLAMENTO')) normCode = 'RLRTI';\nelse if (upperName.includes('CODIGO') || upperName.startsWith('CT')) normCode = 'CT';\nelse if (upperName.includes('NAC-') || upperName.includes('DGER')) normCode = driveFile.name.replace(/\\.pdf$/i, '');\nelse if (upperName.includes('LRET')) normCode = 'LRET';\n\nreturn [{\n  json: {\n    p_document_id: null,\n    p_norm_code: normCode,\n    p_version_title: `Publicado desde Registro Oficial (${driveFile.name})`,\n    p_published_on: consolidated[0]?.valid_from || '2004-11-17',\n    p_model: 'gemini-2.5-flash',\n    p_articles: consolidated,\n    p_google_drive_file_id: driveFile.id,\n    p_google_drive_path: firstChunk.google_drive_path,\n    p_storage_bucket: 'legal-documents',\n    p_storage_path: firstChunk.storage_path,\n    p_folder_category: firstChunk.folder_category,\n    p_file_name: driveFile.name,\n    p_sha256: driveFile.sha256Checksum || null,\n    p_file_size: driveFile.size ? Number(driveFile.size) : null,\n    p_source_url: driveFile.webViewLink || null\n  }\n}];"
-      },
-      "id": "10000000-0000-4000-8000-000000000009",
-      "name": "7. Consolidar y Enlazar Espejo (Drive + Storage)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        520,
-        0
-      ]
-    },
-    {
-      "parameters": {
         "method": "POST",
-        "url": "https://kqtjxkblebdcgrepfajh.supabase.co/rest/v1/rpc/ingest_extracted_norm_draft",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "url": "=https://kqtjxkblebdcgrepfajh.supabase.co/storage/v1/object/{{ $json.meta.storage_bucket }}/{{ $json.meta.storage_path }}"
+      },
+      "position": [
+        680,
+        260
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node-restore-drive-payload",
+      "name": "Restaurar Payload Drive",
+      "parameters": {
+        "jsCode": "const prev = $('Preparar Drive + Base64').first()?.json || {};\nconst mirrorResp = $input.first()?.json || {};\nreturn [{\n  json: {\n    meta: {\n      ...(prev.meta || {}),\n      storage_mirror_ok: !mirrorResp.error,\n      storage_mirror_key: mirrorResp.Key || prev.meta?.storage_path || null\n    },\n    base64_pdf: prev.base64_pdf || ''\n  }\n}];",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        900,
+        260
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "node-download-pdf",
+      "name": "Descargar PDF de Supabase Storage",
+      "parameters": {
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        },
+        "url": "={{ $('Loop Documentos 1x1').item.json.pdf_signed_url }}"
+      },
+      "position": [
+        -280,
+        80
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node-prep-web-b64",
+      "name": "Preparar Web + Base64",
+      "parameters": {
+        "jsCode": "const ctx = $('Loop Documentos 1x1').first()?.json || {};\nlet base64Pdf = ctx.base64_pdf || '';\nlet byteLength = ctx.file_size || null;\nlet sha256 = null;\n\nif (!base64Pdf) {\n  const buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\n  base64Pdf = buffer.toString('base64');\n  byteLength = byteLength || buffer.length;\n  try {\n    const crypto = require('crypto');\n    sha256 = crypto.createHash('sha256').update(buffer).digest('hex');\n  } catch (_) {\n    sha256 = null;\n  }\n}\n\nreturn [{\n  json: {\n    meta: {\n      is_webhook: Boolean(ctx.is_webhook),\n      source_mode: ctx.source_mode || 'storage',\n      file_name: ctx.file_name || 'documento.pdf',\n      clean_file_name: ctx.clean_file_name || 'documento.pdf',\n      file_size: byteLength,\n      sha256,\n      folder_category: ctx.folder_category || '00_registros_oficiales',\n      norm_code: ctx.norm_code || null,\n      version_title: ctx.version_title || null,\n      published_on: ctx.published_on || null,\n      official_registry_cite: ctx.official_registry_cite || null,\n      google_drive_file_id: ctx.google_drive_file_id || null,\n      google_drive_path: ctx.google_drive_path || null,\n      storage_bucket: ctx.storage_bucket || 'legal-documents',\n      storage_path: ctx.storage_path || null\n    },\n    base64_pdf: base64Pdf\n  }\n}];",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        440,
+        80
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "node-unify-meta-b64",
+      "name": "Unificar Meta Base64",
+      "parameters": {
+        "jsCode": "return $input.all();",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        1120,
+        160
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "H0xmQQxAUHHdox2P",
+          "name": "Gemini API Key"
+        }
+      },
+      "id": "node-gemini-extract",
+      "maxTries": 3,
+      "name": "Extraer Actos con Gemini (PDF Nativo)",
+      "parameters": {
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "genericAuthType": "httpQueryAuth",
+        "jsonBody": "={{\n  JSON.stringify({\n    contents: [\n      {\n        parts: [\n          {\n            inlineData: {\n              mimeType: \"application/pdf\",\n              data: $('Unificar Meta Base64').first().json.base64_pdf\n            }\n          },\n          {\n            text: $json.prompt_text\n          }\n        ]\n      }\n    ],\n    generationConfig: {\n      response_mime_type: \"application/json\",\n      temperature: 0.1,\n      maxOutputTokens: 65536,\n      thinkingConfig: {\n        thinkingBudget: 0\n      }\n    }\n  })\n}}",
+        "method": "POST",
+        "options": {
+          "timeout": 480000
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json) }}",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+      },
+      "position": [
+        2240,
+        220
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "node-code-consolidar",
+      "name": "Consolidar Actos y Registro Oficial",
+      "parameters": {
+        "jsCode": "const unified = $('Unificar Meta Base64').first()?.json || {};\nconst meta = unified.meta || {};\nconst blockCtx = $('Loop Actos 1x1').first()?.json || {};\nconst actMeta = blockCtx.act_meta || {};\nconst blockSpec = blockCtx.block_spec || {};\nconst resp = $input.first()?.json || {};\n\nif (resp.error) {\n  throw new Error(`Error API Gemini en bloque ${blockSpec.bloque_num || 1}: ${JSON.stringify(resp.error)}`);\n}\n\nconst candidate = resp.candidates?.[0];\nconst finishReason = candidate?.finishReason;\nlet rawText = candidate?.content?.parts?.[0]?.text || resp.text || '';\nif (!rawText) {\n  throw new Error(`Gemini no devolvió contenido en bloque ${blockSpec.bloque_num || 1} (finishReason=${finishReason || 'unknown'})`);\n}\n\nconst tryParseJsonWithRepair = (text, finishReason) => {\n  let clean = String(text || '').trim();\n  if (clean.startsWith('```')) {\n    clean = clean.replace(/^```(?:json)?\\s*/i, '').replace(/```\\s*$/i, '').trim();\n  }\n  clean = clean\n    .replace(/\\\\([“”«»])/g, '$1')\n    .replace(/\\\\([^\"\\\\/bfnrtu])/g, '$1');\n\n  try { return JSON.parse(clean); } catch (e1) {}\n  if (clean.endsWith('\\\\')) clean = clean.slice(0, -1);\n\n  let inString = false, escaped = false;\n  const stack = [];\n  for (let i = 0; i < clean.length; i++) {\n    const ch = clean[i];\n    if (escaped) { escaped = false; continue; }\n    if (ch === '\\\\' && inString) { escaped = true; continue; }\n    if (ch === '\"') { inString = !inString; continue; }\n    if (!inString) {\n      if (ch === '{') stack.push('}');\n      else if (ch === '[') stack.push(']');\n      else if (ch === '}' || ch === ']') {\n        if (stack.length && stack[stack.length - 1] === ch) stack.pop();\n      }\n    }\n  }\n\n  let repaired = clean;\n  if (inString) {\n    const lastNl = repaired.lastIndexOf('\\n');\n    if (lastNl !== -1 && lastNl > repaired.length - 200) {\n      repaired = repaired.slice(0, lastNl);\n    }\n    repaired += '\"';\n  }\n  const stackCopy = [...stack];\n  while (stackCopy.length > 0) repaired += '\\n' + stackCopy.pop();\n\n  try {\n    return JSON.parse(repaired);\n  } catch (errStack) {\n    const lastBrace = clean.lastIndexOf('}');\n    if (lastBrace !== -1) {\n      let sub = clean.slice(0, lastBrace + 1);\n      const subStack = [];\n      let inS = false, esc = false;\n      for (let i = 0; i < sub.length; i++) {\n        const c = sub[i];\n        if (esc) { esc = false; continue; }\n        if (c === '\\\\' && inS) { esc = true; continue; }\n        if (c === '\"') { inS = !inS; continue; }\n        if (!inS) {\n          if (c === '{') subStack.push('}');\n          else if (c === '[') subStack.push(']');\n          else if ((c === '}' || c === ']') && subStack.length && subStack[subStack.length - 1] === c) subStack.pop();\n        }\n      }\n      let subRep = sub;\n      if (inS) subRep += '\"';\n      while (subStack.length > 0) subRep += '\\n' + subStack.pop();\n      try { return JSON.parse(subRep); } catch (eSub) {}\n    }\n    throw new Error(`JSON inválido o truncado en bloque ${blockSpec.bloque_num || 1} (finishReason=${finishReason}): ${errStack.message}`);\n  }\n};\n\nconst parsed = tryParseJsonWithRepair(rawText, finishReason);\n\nconst roCite = blockCtx.ro_cite || parsed.registro_oficial_cita || meta.official_registry_cite || 'Registro Oficial';\nconst rawDate = blockCtx.ro_date || parsed.registro_oficial_fecha || meta.published_on;\nconst roDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(String(rawDate || ''))\n  ? String(rawDate)\n  : new Date().toISOString().split('T')[0];\n\nconst parseFiscalYear = (val, fallback) => {\n  if (typeof val === 'number' && Number.isInteger(val)) return val;\n  const s = String(val || '').trim();\n  const m = s.match(/\\b(19\\d\\d|20\\d\\d)\\b/);\n  if (m) return Number(m[1]);\n  const fb = Number(fallback);\n  return Number.isInteger(fb) ? fb : null;\n};\n\nconst parseDateIso = (val, fallback = null) => {\n  if (!val) return fallback;\n  const s = String(val).trim();\n  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return s;\n  const m = s.match(/(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})/);\n  if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;\n  return fallback;\n};\n\nconst parseNumeric = (v) => {\n  if (v === null || v === undefined || v === '') return null;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : null;\n  const s = String(v).trim();\n  if (!s || /adelante|infinito/i.test(s)) return null;\n  let clean = s.replace(/[$%\\s]/g, '');\n  if (/^\\d{1,3}(,\\d{3})+(\\.\\d+)?$/.test(clean)) clean = clean.replace(/,/g, '');\n  else if (/^\\d{1,3}(\\.\\d{3})+(,\\d+)?$/.test(clean)) clean = clean.replace(/\\./g, '').replace(',', '.');\n  else if (/^\\d+,\\d{1,4}$/.test(clean)) clean = clean.replace(',', '.');\n  const n = Number(clean);\n  return Number.isFinite(n) ? n : v;\n};\n\nconst normalizeNormCode = (code) => {\n  let c = String(code || '').trim().toUpperCase();\n  if (!c) return null;\n  const decMatch = c.match(/(?:DECRETO(?:\\s+EJECUTIVO)?|DEC|NO\\.?)\\s*[-_N°#]?\\s*(\\d+)/i);\n  if (decMatch && !c.includes('LEY') && !c.includes('RESOLUCI') && !c.includes('CIRCULAR')) {\n    return 'DE-' + decMatch[1];\n  }\n  if (c.startsWith('NO.-') && /^NO\\.-\\d+$/.test(c)) {\n    return 'DE-' + c.replace('NO.-', '');\n  }\n  if (c === 'RLRTI' || c === 'REGLAMENTO LRTI') return 'RALRTI';\n  if (c === 'CODIGO TRIBUTARIO' || c === 'CÓDIGO TRIBUTARIO') return 'CT';\n  if (c === 'LEY DE REGIMEN TRIBUTARIO INTERNO' || c === 'LEY DE RÉGIMEN TRIBUTARIO INTERNO') return 'LRTI';\n  return c.replace(/\\s+/g, '-');\n};\n\nconst normalizeTargetArtId = (rawId) => {\n  if (!rawId) return null;\n  let s = String(rawId).trim();\n  if (s.includes(',')) s = s.split(',')[0].trim();\n  s = s.replace(/^(?:art(?:[íi]culo|\\.)?\\s*)+/i, '').trim();\n  s = s.replace(/(?:\\.[a-zA-Z]+|\\s+(?:literal|inciso|numeral|ordinal|p[aá]rrafo)\\b.*)$/i, '').trim();\n  s = s.replace(/^[:.-]+|[:.-]+$/g, '').trim();\n  return s || null;\n};\n\nconst validTypes = new Set(['constitution','law','organic_law','regulation','decree','resolution','ordinance','circular','agreement','other']);\n\nlet acts = Array.isArray(parsed.actos_tributarios) ? parsed.actos_tributarios : [];\nconst act = acts[0] || {};\n\nconst normCode = actMeta.codigo_norma || normalizeNormCode(act.codigo_norma) || 'NORMA';\nconst rawNormType = String(actMeta.tipo_norma || act.tipo_norma || 'law').toLowerCase();\nconst normType = validTypes.has(rawNormType) ? rawNormType : 'law';\nconst tituloNorma = actMeta.titulo_norma || act.titulo_norma || normCode;\nconst isFeErratas = Boolean(actMeta.es_fe_erratas || act.es_fe_erratas) || /errata/i.test(`${tituloNorma} ${roCite}`);\nconst periodicity = String(actMeta.periodicidad_tributaria || act.periodicidad_tributaria || 'monthly').toLowerCase() === 'annual' ? 'annual' : 'monthly';\nconst expressValidFrom = parseDateIso(actMeta.vigencia_expresa_fecha || act.vigencia_expresa_fecha, roDate);\n\n// Unificar artículos de todos los elementos de actos_tributarios devueltos en este bloque\nconst rawArticles = [];\nif (acts.length > 0) {\n  for (const a of acts) {\n    if (Array.isArray(a.articulos)) rawArticles.push(...a.articulos);\n  }\n} else if (Array.isArray(parsed.articulos)) {\n  rawArticles.push(...parsed.articulos);\n}\n\nconst normalizeTablesList = (rawTables, artNum, finalTitle) => {\n  if (!Array.isArray(rawTables)) return [];\n  return rawTables.map((tbl, tblIdx) => {\n    const cols = Array.isArray(tbl.columns_schema)\n      ? tbl.columns_schema.map((c, ci) => typeof c === 'string'\n          ? { key: c.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || `col_${ci}`, type: 'text', label: c }\n          : c)\n      : [];\n    const rows = Array.isArray(tbl.rows_data)\n      ? tbl.rows_data.map((r) => {\n          if (Array.isArray(r) && cols.length) {\n            const obj = {};\n            cols.forEach((c, idx) => {\n              obj[c.key] = (c.type === 'currency' || c.type === 'percentage' || c.type === 'number') ? parseNumeric(r[idx]) : r[idx];\n            });\n            return obj;\n          }\n          if (r && typeof r === 'object') {\n            const out = {};\n            for (const [k, val] of Object.entries(r)) {\n              const numKeys = new Set(['fraccion_basica', 'exceso_hasta', 'impuesto_fraccion_basica', 'porcentaje_excedente']);\n              out[k] = numKeys.has(k) ? parseNumeric(val) : val;\n            }\n            return out;\n          }\n          return r;\n        })\n      : [];\n    const fiscalYr = parseFiscalYear(tbl.fiscal_year, roDate.slice(0, 4));\n    return {\n      code: tbl.code || `TBL_${normCode}_${String(artNum).replace(/[^A-Za-z0-9_]/g, '_')}_${fiscalYr || 'GEN'}${rawTables.length > 1 ? '_' + (tblIdx + 1) : ''}`,\n      titulo_tabla: tbl.titulo_tabla || `Tabla ${finalTitle}`,\n      descripcion: tbl.descripcion || `${tituloNorma} (${roCite})`,\n      categoria_tabla: tbl.categoria_tabla || 'other',\n      fiscal_year: fiscalYr,\n      valid_from: parseDateIso(tbl.valid_from, expressValidFrom),\n      valid_until: parseDateIso(tbl.valid_until, null),\n      markdown_tabla: tbl.markdown_tabla || null,\n      columns_schema: cols,\n      rows_data: rows\n    };\n  });\n};\n\nconst consolidatedArticles = [];\nconst seen = new Set();\n\nfor (const art of rawArticles) {\n  const rawNum = String(art.numero || consolidatedArticles.length + 1).trim();\n  const rawType = String(art.tipo_estructura || 'article').toLowerCase();\n\n  let structType = 'article';\n  if (rawType.includes('transitoria')) structType = 'transitory';\n  else if (rawType.includes('final')) structType = 'final';\n  else if (rawType.includes('reform') || rawType.includes('derogatoria')) structType = 'reform';\n  else if (rawType.includes('general')) structType = 'other';\n\n  const key = `${structType}_${rawNum.toLowerCase()}`;\n  if (seen.has(key)) continue;\n  seen.add(key);\n\n  const cleanHeader = String(art.encabezado || '')\n    .replace(/^(?:Art(?:[íi]culo|\\.)?\\s*[0-9A-Za-z.-]+\\s*[:.-]*|Disposici[óo]n\\s+(?:Final|Transitoria|General|Reformatoria|Derogatoria)\\s+[a-zA-Z0-9áéíóúÁÉÍÓÚ]+\\s*[:.-]*)\\s*/i, '')\n    .trim();\n\n  let finalTitle = '';\n  if (structType === 'transitory') finalTitle = `Disposición Transitoria ${rawNum}${cleanHeader ? ': ' + cleanHeader : ''}`;\n  else if (structType === 'final') finalTitle = `Disposición Final ${rawNum}${cleanHeader ? ': ' + cleanHeader : ''}`;\n  else if (structType === 'reform') finalTitle = `Disposición Reformatoria ${rawNum}${cleanHeader ? ': ' + cleanHeader : ''}`;\n  else if (structType === 'other') finalTitle = `Disposición General ${rawNum}${cleanHeader ? ': ' + cleanHeader : ''}`;\n  else finalTitle = cleanHeader ? `Art. ${rawNum}: ${cleanHeader}` : `Art. ${rawNum}`;\n\n  const normTables = normalizeTablesList(art.tablas_normativas, rawNum, finalTitle);\n  const targetNormCode = normalizeNormCode(art.reforma_norma_objetivo);\n  const targetArtId = normalizeTargetArtId(art.reforma_articulo_objetivo);\n\n  const extraReforms = Array.isArray(art.reformas_adicionales)\n    ? art.reformas_adicionales.map((er) => {\n        const erArtId = normalizeTargetArtId(er.reforma_articulo_objetivo || er.reforms_target_article_identifier);\n        return {\n          reforma_norma_objetivo: normalizeNormCode(er.reforma_norma_objetivo || er.reforms_target_norm_code || targetNormCode),\n          reforma_articulo_objetivo: erArtId,\n          reforma_tipo_cambio: er.reforma_tipo_cambio || er.reform_change_type || 'added',\n          reforma_titulo_consolidado: er.reforma_titulo_consolidado || er.reformed_target_title || `Art. ${erArtId}`,\n          texto_consolidado_post_reforma: er.texto_consolidado_post_reforma || er.reformed_target_content || '',\n          resumen_reforma: er.resumen_reforma || er.summary_change || art.resumen_reforma || null,\n          tablas_normativas: normalizeTablesList(er.tablas_normativas || er.normative_tables, erArtId || rawNum, er.reforma_titulo_consolidado || `Art. ${erArtId}`)\n        };\n      }).filter(er => er.reforma_norma_objetivo && er.reforma_articulo_objetivo && er.texto_consolidado_post_reforma)\n    : [];\n\n  // Auto-enriquecer conceptos verticales clave por contenido\n  const conceptsSet = new Set(Array.isArray(art.conceptos_verticales) ? art.conceptos_verticales : []);\n  const combinedText = `${finalTitle} ${art.titulo_padre || ''} ${art.capitulo_padre || ''} ${art.resumen_reforma || ''}`.toUpperCase();\n  if (combinedText.includes('SIMPLIFICADO') || combinedText.includes('RISE') || (targetNormCode === 'LRTI' && String(targetArtId || '').startsWith('97.'))) {\n    conceptsSet.add('RISE');\n  }\n  if (combinedText.includes('SALIDA DE DIVISAS') || combinedText.includes('ISD')) {\n    conceptsSet.add('ISD');\n  }\n  if (combinedText.includes('CONSUMOS ESPECIALES') || combinedText.includes('ICE')) {\n    conceptsSet.add('ICE');\n  }\n\n  consolidatedArticles.push({\n    structure_type: structType,\n    identifier: rawNum,\n    title: finalTitle,\n    parent_title: art.titulo_padre || tituloNorma || null,\n    parent_chapter: art.capitulo_padre || null,\n    content: art.texto_completo_markdown || art.contenido || '',\n    vertical_concepts: Array.from(conceptsSet),\n    has_normative_table: normTables.length > 0,\n    normative_tables: normTables,\n    detected_relations: Array.isArray(art.relaciones_detectadas) ? art.relaciones_detectadas : [],\n    normative_type: normType,\n    issuing_entity: actMeta.entidad_emisora || act.entidad_emisora || null,\n    tax_periodicity: periodicity,\n    is_fe_erratas: isFeErratas,\n    valid_from: expressValidFrom,\n    valid_until: null,\n    official_registry: roCite,\n    reform_source_cite: tituloNorma ? `${tituloNorma} (${roCite})` : `${normCode} (${roCite})`,\n    summary_change: art.resumen_reforma || null,\n    observations: `${roCite}`,\n    reforms_target_norm_code: targetNormCode,\n    reforms_target_norm_name: art.reforma_nombre_norma_objetivo || null,\n    reforms_target_article_identifier: targetArtId,\n    reform_change_type: art.reforma_tipo_cambio || null,\n    reformed_target_title: art.reforma_titulo_consolidado || null,\n    reformed_target_content: art.texto_consolidado_post_reforma || null,\n    reformas_adicionales: extraReforms,\n    review_status: 'approved'\n  });\n}\n\nconst versionTitle = tituloNorma.includes('Registro Oficial') ? tituloNorma : `${tituloNorma} (${roCite})`;\n\nreturn [{\n  json: {\n    _has_articles: consolidatedArticles.length > 0,\n    is_webhook: Boolean(meta.is_webhook),\n    file_name: meta.file_name || null,\n    google_drive_file_id: meta.google_drive_file_id || null,\n    norm_code: normCode,\n    block_num: blockSpec.bloque_num || 1,\n    total_blocks: blockSpec.total_bloques_acto || 1,\n    rpc_payload: {\n      p_document_id: null,\n      p_norm_code: normCode,\n      p_version_title: versionTitle,\n      p_published_on: roDate,\n      p_model: 'gemini-2.5-flash',\n      p_articles: consolidatedArticles,\n      p_google_drive_file_id: meta.google_drive_file_id || null,\n      p_google_drive_path: meta.google_drive_path || null,\n      p_storage_bucket: meta.storage_bucket || 'legal-documents',\n      p_storage_path: meta.storage_path || null,\n      p_folder_category: meta.folder_category || '00_registros_oficiales',\n      p_file_name: meta.file_name || null,\n      p_sha256: meta.sha256 || null,\n      p_file_size: meta.file_size || null,\n      p_source_url: null\n    }\n  }\n}];",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        2480,
+        220
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "node-if-has-articles",
+      "name": "¿Tiene Actos Tributarios?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-has-articles",
+              "leftValue": "={{ Boolean($json._has_articles) }}",
+              "operator": {
+                "singleValue": true,
+                "type": "boolean",
+                "operation": "true"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
         "options": {}
       },
-      "id": "10000000-0000-4000-8000-000000000010",
-      "name": "8. Guardar Borrador en Supabase (RPC)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
       "position": [
-        800,
-        0
+        1800,
+        160
       ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
       "credentials": {
         "httpHeaderAuth": {
           "id": "eum2gQIuarsJwBIp",
           "name": "Apikey"
         }
+      },
+      "id": "node-save-supabase",
+      "name": "Guardar Acto en Supabase (RPC)",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "jsonBody": "={{ JSON.stringify($json.rpc_payload) }}",
+        "method": "POST",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "https://kqtjxkblebdcgrepfajh.supabase.co/rest/v1/rpc/ingest_extracted_norm_draft"
+      },
+      "position": [
+        2720,
+        220
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node-summary-pdf",
+      "name": "Resumen PDF Procesado",
+      "parameters": {
+        "jsCode": "const loopItem = $('Loop Documentos 1x1').first()?.json || {};\nconst allActRuns = $input.all().map(i => i.json);\nreturn [{\n  json: {\n    is_webhook: Boolean(loopItem.is_webhook),\n    status: allActRuns.some(r => r.status === 'ok') ? 'ok' : (allActRuns[0]?.status || 'processed'),\n    file_name: loopItem.file_name || allActRuns[0]?.file_name || null,\n    google_drive_file_id: loopItem.google_drive_file_id || allActRuns[0]?.google_drive_file_id || null,\n    acts_count: allActRuns.length,\n    acts_results: allActRuns\n  }\n}];",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        2280,
+        -60
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "node-loop-actos",
+      "name": "Loop Actos 1x1",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2020,
+        60
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
       }
+    },
+    {
+      "id": "node-if-move-drive",
+      "name": "¿Mover en Drive?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2520,
+        -60
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-has-drive-id",
+              "leftValue": "={{ Boolean($json.google_drive_file_id || $('Loop Documentos 1x1').first()?.json.google_drive_file_id) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "version": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "node-move-drive",
+      "name": "Mover PDF a Procesados en Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2760,
+        -120
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1iGsrTFHEHDjrBzP",
+          "name": "Google Drive SmartLex"
+        }
+      },
+      "parameters": {
+        "resource": "file",
+        "operation": "move",
+        "fileId": {
+          "mode": "id",
+          "value": "={{ $json.google_drive_file_id || $('Loop Documentos 1x1').first()?.json.google_drive_file_id }}"
+        },
+        "driveId": {
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "mode": "id",
+          "value": "1NaCQYgRpFQQbKJxilQZ-6c6VBEPC8F62"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "H0xmQQxAUHHdox2P",
+          "name": "Gemini API Key"
+        }
+      },
+      "id": "node-gemini-planner",
+      "maxTries": 3,
+      "name": "Planificar Bloques con Gemini",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "jsonBody": "={{\n  JSON.stringify({\n    contents: [\n      {\n        parts: [\n          {\n            inlineData: {\n              mimeType: \"application/pdf\",\n              data: $json.base64_pdf\n            }\n          },\n          {\n            text: `Eres un jurista tributario ecuatoriano de élite y arquitecto de datos normativos de SmartLex Ecuador.\n\nCONTEXTO DEL ARCHIVO:\n- Nombre de archivo: ${$json.meta?.file_name || 'documento.pdf'}\n- Carpeta origen: ${$json.meta?.folder_category || '00_registros_oficiales'}\n- Código sugerido por administrador: ${$json.meta?.norm_code || 'AUTO-DETECTAR'}\n- Fecha R.O. preliminar: ${$json.meta?.published_on || 'detectar en el PDF'}\n\nTAREA (PASADA 1 — ESCÁNER Y PLANIFICADOR AUTOMÁTICO DE BLOQUES):\nAnaliza el índice, sumario y estructura completa del PDF.\n1. Filtra ESTRICTAMENTE su contenido y detecta ÚNICAMENTE los actos normativos en MATERIA TRIBUTARIA O ADUANERA-TRIBUTARIA del Ecuador (leyes, leyes orgánicas, códigos tributarios, reglamentos tributarios/RUC/LRTI, decretos ejecutivos tributarios, resoluciones o circulares del SRI/SENAE/CAE, sentencias constitucionales tributarias, fes de erratas tributarias). Ignora actos no tributarios.\n2. Para cada acto normativo tributario detectado, estima su cantidad total de artículos y disposiciones y DIVÍDELO AUTOMÁTICAMENTE EN BLOQUES DE EXTRACCIÓN siguiendo estas reglas estrictas:\n   - Si el acto es corto (20 artículos o menos), crea 1 ÚNICO bloque que abarque desde el inicio hasta el final.\n   - Si el acto es extenso (más de 20 artículos, como leyes reformatorias grandes, suplementos extensos, códigos o reglamentos), DIVÍDELO AUTOMÁTICAMENTE en bloques consecutivos y sin solapamientos de ENTRE 18 Y 25 ARTÍCULOS POR BLOQUE como máximo.\n   - REGLA ESPECIAL PARA NUEVOS IMPUESTOS, REGÍMENES O TABLAS (ej. Ley Reformatoria para la Equidad Tributaria R.O. 242):\n     * Cuando una sección o artículo agregue un Título/Capítulo entero con múltiples artículos nuevos a la LRTI (como la creación del RISE — Régimen Impositivo Simplificado Ecuatoriano, Arts. 97.1 a 97.15 de la LRTI), colócalo en un bloque específico e indica explícitamente en 'instruccion_foco' que se deben extraer todos los artículos agregados (97.1 al 97.15) con sus tablas.\n     * Cuando una sección cree el Impuesto a la Salida de Divisas (ISD), Impuesto a las Tierras Rurales o Impuesto a los Ingresos Extraordinarios, indícalo claramente en 'descripcion_bloque' y en 'instruccion_foco'.\n     * Cuando un bloque contenga la reforma al Art. 36 de la LRTI (Tabla de Impuesto a la Renta Personas Naturales y Tabla de Herencias), indícalo expresamente en 'instruccion_foco'.\n     * Coloca las Disposiciones Generales, Transitorias, Derogatorias y Finales en el último bloque del acto normativo para que jamás se omitan.\n\nDevuelve ÚNICAMENTE un objeto JSON válido con este esquema exacto:\n{\n  \"registro_oficial_cita\": \"Tercer Suplemento del Registro Oficial No. 242 de 29 de diciembre de 2007\",\n  \"registro_oficial_fecha\": \"2007-12-29\",\n  \"actos_detectados\": [\n    {\n      \"codigo_norma\": \"LEY-2007-242\",\n      \"titulo_norma\": \"Ley Reformatoria para la Equidad Tributaria del Ecuador\",\n      \"tipo_norma\": \"organic_law\",\n      \"entidad_emisora\": \"Asamblea Constituyente\",\n      \"es_fe_erratas\": false,\n      \"periodicidad_tributaria\": \"monthly\",\n      \"vigencia_expresa_fecha\": \"2007-12-29\",\n      \"total_articulos_estimado\": 195,\n      \"bloques\": [\n        {\n          \"bloque_num\": 1,\n          \"descripcion_bloque\": \"Título Primero: Reformas al Código Tributario (Arts. 1 al 25)\",\n          \"rango_inicio\": \"Art. 1\",\n          \"rango_fin\": \"Art. 25\",\n          \"instruccion_foco\": \"Extraer íntegramente desde el Art. 1 hasta el Art. 25 inclusive (Reformas al Código Tributario CT).\"\n        }\n      ]\n    }\n  ]\n}`\n          }\n        ]\n      }\n    ],\n    generationConfig: {\n      response_mime_type: \"application/json\",\n      temperature: 0.1,\n      maxOutputTokens: 16384,\n      thinkingConfig: {\n        thinkingBudget: 0\n      }\n    }\n  })\n}}",
+        "method": "POST",
+        "options": {
+          "timeout": 240000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+      },
+      "position": [
+        1340,
+        160
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "node-build-block-queue",
+      "name": "Generar Cola de Bloques",
+      "parameters": {
+        "jsCode": "const unified = $('Unificar Meta Base64').first()?.json || {};\nconst meta = unified.meta || {};\nconst resp = $input.first()?.json || {};\n\nif (resp.error) {\n  throw new Error(`Error API Gemini (Planificador): ${JSON.stringify(resp.error)}`);\n}\n\nconst candidate = resp.candidates?.[0];\nconst finishReason = candidate?.finishReason;\nlet rawText = candidate?.content?.parts?.[0]?.text || resp.text || '';\nif (!rawText) {\n  throw new Error(`Gemini Planificador no devolvió contenido (finishReason=${finishReason || 'unknown'})`);\n}\n\nconst tryParseJsonWithRepair = (text) => {\n  let clean = String(text || '').trim();\n  if (clean.startsWith('```')) {\n    clean = clean.replace(/^```(?:json)?\\s*/i, '').replace(/```\\s*$/i, '').trim();\n  }\n  clean = clean\n    .replace(/\\\\([“”«»])/g, '$1')\n    .replace(/\\\\([^\"\\\\/bfnrtu])/g, '$1');\n  try { return JSON.parse(clean); } catch (_) {}\n  if (clean.endsWith('\\\\')) clean = clean.slice(0, -1);\n  let inString = false, escaped = false;\n  const stack = [];\n  for (let i = 0; i < clean.length; i++) {\n    const ch = clean[i];\n    if (escaped) { escaped = false; continue; }\n    if (ch === '\\\\' && inString) { escaped = true; continue; }\n    if (ch === '\"') { inString = !inString; continue; }\n    if (!inString) {\n      if (ch === '{') stack.push('}');\n      else if (ch === '[') stack.push(']');\n      else if ((ch === '}' || ch === ']') && stack.length && stack[stack.length - 1] === ch) stack.pop();\n    }\n  }\n  let repaired = clean;\n  if (inString) repaired += '\"';\n  while (stack.length > 0) repaired += '\\n' + stack.pop();\n  return JSON.parse(repaired);\n};\n\nconst parsed = tryParseJsonWithRepair(rawText);\n\nconst roCite = parsed.registro_oficial_cita || parsed.registro_oficial_detectado || meta.official_registry_cite || 'Registro Oficial';\nconst rawDate = parsed.registro_oficial_fecha || meta.published_on;\nconst roDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(String(rawDate || ''))\n  ? String(rawDate)\n  : (/^\\d{4}-\\d{2}-\\d{2}$/.test(String(meta.published_on || '')) ? String(meta.published_on) : new Date().toISOString().split('T')[0]);\n\nconst normalizeNormCode = (code, title, roDateStr, fileName) => {\n  let c = String(code || '').trim().toUpperCase();\n  const t = String(title || '').toUpperCase();\n  const fn = String(fileName || '').toUpperCase();\n\n  if (fn.includes('20071229_242') || (t.includes('EQUIDAD TRIBUTARIA') && roDateStr.startsWith('2007'))) {\n    if (!c.startsWith('NAC-') && !c.startsWith('DE-')) return 'LEY-2007-242';\n  }\n  if (!c) return null;\n  const decMatch = c.match(/(?:DECRETO(?:\\s+EJECUTIVO)?|DEC|NO\\.?)\\s*[-_N°#]?\\s*(\\d+)/i);\n  if (decMatch && !c.includes('LEY') && !c.includes('RESOLUCI') && !c.includes('CIRCULAR')) {\n    return 'DE-' + decMatch[1];\n  }\n  if (c.startsWith('NO.-') && /^NO\\.-\\d+$/.test(c)) {\n    return 'DE-' + c.replace('NO.-', '');\n  }\n  if (c === 'RLRTI' || c === 'REGLAMENTO LRTI') return 'RALRTI';\n  if (c === 'CODIGO TRIBUTARIO' || c === 'CÓDIGO TRIBUTARIO') return 'CT';\n  if (c === 'LEY DE REGIMEN TRIBUTARIO INTERNO' || c === 'LEY DE RÉGIMEN TRIBUTARIO INTERNO') return 'LRTI';\n  return c.replace(/\\s+/g, '-');\n};\n\nconst acts = Array.isArray(parsed.actos_detectados) ? parsed.actos_detectados : [];\n\nif (!acts.length) {\n  return [{\n    json: {\n      _has_articles: false,\n      is_webhook: Boolean(meta.is_webhook),\n      status: 'no_tax_content',\n      file_name: meta.file_name || null,\n      google_drive_file_id: meta.google_drive_file_id || null,\n      ro_cite: roCite,\n      ro_date: roDate\n    }\n  }];\n}\n\nconst blockQueue = [];\n\nfor (let actIdx = 0; actIdx < acts.length; actIdx++) {\n  const act = acts[actIdx] || {};\n  let normCode = normalizeNormCode(act.codigo_norma, act.titulo_norma, roDate, meta.file_name);\n  if (meta.norm_code && meta.folder_category !== '00_registros_oficiales' && acts.length === 1) {\n    normCode = normalizeNormCode(meta.norm_code, act.titulo_norma, roDate, meta.file_name);\n  }\n  if (!normCode) normCode = `NORMA-${roDate.replace(/-/g, '')}-${actIdx + 1}`;\n\n  const rawBlocks = Array.isArray(act.bloques) && act.bloques.length > 0\n    ? act.bloques\n    : [{\n        bloque_num: 1,\n        descripcion_bloque: 'Extracción completa del acto normativo',\n        rango_inicio: 'Inicio',\n        rango_fin: 'Fin',\n        instruccion_foco: 'Extraer todos los artículos, disposiciones y tablas del acto normativo.'\n      }];\n\n  for (let bIdx = 0; bIdx < rawBlocks.length; bIdx++) {\n    const blk = rawBlocks[bIdx] || {};\n    const actMetaObj = {\n      codigo_norma: normCode,\n      titulo_norma: act.titulo_norma || normCode,\n      tipo_norma: act.tipo_norma || 'law',\n      entidad_emisora: act.entidad_emisora || null,\n      es_fe_erratas: Boolean(act.es_fe_erratas),\n      periodicidad_tributaria: act.periodicidad_tributaria || 'monthly',\n      vigencia_expresa_fecha: act.vigencia_expresa_fecha || roDate\n    };\n    const blockSpecObj = {\n      bloque_num: blk.bloque_num || (bIdx + 1),\n      total_bloques_acto: rawBlocks.length,\n      descripcion_bloque: blk.descripcion_bloque || `Bloque ${bIdx + 1} de ${rawBlocks.length}`,\n      rango_inicio: blk.rango_inicio || 'Inicio',\n      rango_fin: blk.rango_fin || 'Fin',\n      instruccion_foco: blk.instruccion_foco || 'Extraer todos los artículos y disposiciones de este bloque.'\n    };\n\n    const promptText = `Eres un jurista tributario ecuatoriano de élite y arquitecto de datos normativos de SmartLex Ecuador.\n\nCONTEXTO DEL DOCUMENTO Y BLOQUE ACTUAL (PASADA 2 — EXTRACCIÓN PROFUNDA POR BLOQUE):\n- Registro Oficial: ${roCite} (Fecha: ${roDate})\n- Acto Normativo Objetivo: ${actMetaObj.titulo_norma} (Código: ${actMetaObj.codigo_norma}, Tipo: ${actMetaObj.tipo_norma})\n- Entidad Emisora: ${actMetaObj.entidad_emisora || 'Detectar en PDF'}\n- BLOQUE ASIGNADO: Bloque ${blockSpecObj.bloque_num} de ${blockSpecObj.total_bloques_acto}\n- Descripción del Bloque: ${blockSpecObj.descripcion_bloque}\n- Rango estricto a extraer en esta llamada: Desde [${blockSpecObj.rango_inicio}] hasta [${blockSpecObj.rango_fin}]\n- Instrucción de foco: ${blockSpecObj.instruccion_foco}\n\nTAREA:\nExtrae ÚNICAMENTE y de forma 100 % ÍNTEGRA todos los artículos, disposiciones y tablas que pertenecen al BLOQUE ASIGNADO (${blockSpecObj.rango_inicio} a ${blockSpecObj.rango_fin}) del acto normativo ${actMetaObj.titulo_norma}.\nNo resumas ni omitas ningún artículo dentro de este rango. No extraigas artículos de otros bloques fuera de este rango.\n\nDevuelve ÚNICAMENTE un objeto JSON válido con este esquema exacto:\n{\n  \"registro_oficial_cita\": \"${roCite}\",\n  \"registro_oficial_fecha\": \"${roDate}\",\n  \"actos_tributarios\": [\n    {\n      \"codigo_norma\": \"${actMetaObj.codigo_norma}\",\n      \"titulo_norma\": \"${actMetaObj.titulo_norma}\",\n      \"tipo_norma\": \"${actMetaObj.tipo_norma}\",\n      \"entidad_emisora\": \"${actMetaObj.entidad_emisora || ''}\",\n      \"es_fe_erratas\": ${Boolean(actMetaObj.es_fe_erratas)},\n      \"periodicidad_tributaria\": \"${actMetaObj.periodicidad_tributaria || 'monthly'}\",\n      \"vigencia_expresa_fecha\": \"${actMetaObj.vigencia_expresa_fecha || roDate}\",\n      \"articulos\": [\n        {\n          \"numero\": \"90\",\n          \"tipo_estructura\": \"article\",\n          \"encabezado\": \"Reforma al Art. 36 de la Ley de Régimen Tributario Interno (Tarifa Impuesto a la Renta 2008 y Herencias)\",\n          \"titulo_padre\": \"TÍTULO SEGUNDO: REFORMAS A LA LEY DE RÉGIMEN TRIBUTARIO INTERNO\",\n          \"capitulo_padre\": \"CAPÍTULO I: IMPUESTO A LA RENTA\",\n          \"texto_completo_markdown\": \"...\",\n          \"conceptos_verticales\": [\"TARIFA_IMPUESTO_RENTA\", \"BASE_IMPONIBLE\"],\n          \"tablas_normativas\": [\n            {\n              \"code\": \"TBL_IR_PN_2008\",\n              \"titulo_tabla\": \"Tabla Impuesto a la Renta Personas Naturales y Sucesiones Indivisas (Ejercicio Fiscal 2008)\",\n              \"categoria_tabla\": \"progressive_rates\",\n              \"fiscal_year\": 2008,\n              \"valid_from\": \"2008-01-01\",\n              \"valid_until\": \"2009-01-01\",\n              \"markdown_tabla\": \"| Fracción Básica (USD) | Exceso Hasta (USD) | Impuesto Fracción Básica (USD) | % Impuesto Fracción Excedente |\\n| --- | --- | --- | --- |\\n| 0 | 7850 | 0 | 0% |\",\n              \"columns_schema\": [\n                {\"key\": \"fraccion_basica\", \"type\": \"currency\", \"label\": \"Fracción Básica (USD)\"},\n                {\"key\": \"exceso_hasta\", \"type\": \"currency\", \"label\": \"Exceso Hasta (USD)\"},\n                {\"key\": \"impuesto_fraccion_basica\", \"type\": \"currency\", \"label\": \"Impuesto Fracción Básica (USD)\"},\n                {\"key\": \"porcentaje_excedente\", \"type\": \"percentage\", \"label\": \"% Impuesto Fracción Excedente\"}\n              ],\n              \"rows_data\": [\n                {\"fraccion_basica\": 0, \"exceso_hasta\": 7850, \"impuesto_fraccion_basica\": 0, \"porcentaje_excedente\": 0}\n              ]\n            }\n          ],\n          \"reforma_norma_objetivo\": \"LRTI\",\n          \"reforma_nombre_norma_objetivo\": \"Ley de Régimen Tributario Interno\",\n          \"reforma_articulo_objetivo\": \"36\",\n          \"reforma_tipo_cambio\": \"modified\",\n          \"reforma_titulo_consolidado\": \"Art. 36.- Tarifa del impuesto a la renta de personas naturales y sucesiones indivisas\",\n          \"texto_consolidado_post_reforma\": \"Texto consolidado resultante del artículo reformado...\",\n          \"resumen_reforma\": \"Sustituye las tablas de los literales a) y d) del Art. 36 LRTI para el ejercicio económico 2008.\",\n          \"reformas_adicionales\": [],\n          \"relaciones_detectadas\": [\n            {\n              \"norma_citada\": \"LRTI\",\n              \"articulo_citado\": \"36\",\n              \"tipo_relacion\": \"amends\",\n              \"descripcion\": \"Reforma el Art. 36 de la LRTI\"\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}\n\nREGLAS OBLIGATORIAS:\n1. CODIGOS CANONICOS DE NORMAS OBJETIVO: Usa exactamente 'LRTI' para Ley de Régimen Tributario Interno, 'CT' para Código Tributario, 'RALRTI' para el Reglamento de Aplicación de la LRTI.\n2. IDENTIFICADOR UNICO EN 'reforma_articulo_objetivo': Pon SIEMPRE un único número de artículo limpio (ej. \"36\", \"10\", \"55\", \"97.1\"). NUNCA pongas sufijos de literales como \"36.a\" ni listas con comas como \"9, 10, 36\".\n3. ARTÍCULOS QUE AGREGAN UN TÍTULO COMPLETO O MÚLTIPLES ARTÍCULOS NUEVOS (CASO RISE Arts. 97.1 a 97.15 en LRTI o múltiples innumerados):\n   Si un artículo dentro de este bloque agrega varios artículos numerados o innumerados a la LRTI o al CT (por ejemplo, el artículo que incorpora el Título del Régimen Impositivo Simplificado RISE con los Arts. 97.1 al 97.15 en la LRTI), DEBES registrar cada uno de esos artículos agregados (97.1, 97.2, ..., 97.15) dentro del array \"reformas_adicionales\" con la estructura:\n   {\n     \"reforma_norma_objetivo\": \"LRTI\",\n     \"reforma_articulo_objetivo\": \"97.1\",\n     \"reforma_tipo_cambio\": \"added\",\n     \"reforma_titulo_consolidado\": \"Art. 97.1.- Régimen Impositivo Simplificado (RISE)...\",\n     \"texto_consolidado_post_reforma\": \"Texto íntegro del Art. 97.1...\",\n     \"resumen_reforma\": \"Agrega el Art. 97.1 del RISE a la LRTI\",\n     \"tablas_normativas\": []\n   }\n   (o bien extraer cada artículo 97.1 a 97.15 como entrada individual en 'articulos' apuntando a 'reforma_norma_objetivo': 'LRTI' y 'reforma_articulo_objetivo': '97.1', etc.).\n4. CONCEPTOS VERTICALES permitidos (usa todos los que correspondan de esta lista):\n   BANCARIZACION, BASE_IMPONIBLE, CREDITO_TRIBUTARIO_IVA, DEDUCCIONES, DIVIDENDOS, EXONERACIONES, GASTOS_PERSONALES, HECHO_GENERADOR, ICE, ISD, PRECIOS_TRANSFERENCIA, RETENCION_FUENTE, RIMPE_EMPRENDEDOR, RIMPE_NEGOCIO_POPULAR, RISE, SUJETO_ACTIVO, SUJETO_PASIVO, TARIFA_CERO_IVA, TARIFA_IMPUESTO_RENTA.\n   - Si el artículo trata sobre el RISE, incluye siempre \"RISE\" en 'conceptos_verticales'.\n   - Si el artículo trata sobre el Impuesto a la Salida de Divisas, incluye siempre \"ISD\" en 'conceptos_verticales'.\n   - Si el artículo trata sobre IVA tarifa 0%, incluye \"TARIFA_CERO_IVA\". Si trata sobre factor o crédito tributario de IVA, incluye \"CREDITO_TRIBUTARIO_IVA\".\n5. TABLAS NUMERICAS: En 'rows_data' usa números puros (sin símbolo de dólares ni porcentaje) y null en el último tramo abierto ('En adelante'). Para la tabla de Impuesto a la Renta Personas Naturales 2008 usa 'code': 'TBL_IR_PN_2008', 'categoria_tabla': 'progressive_rates', 'fiscal_year': 2008 y las claves fraccion_basica, exceso_hasta, impuesto_fraccion_basica, porcentaje_excedente. Para la tabla de Herencias 2008 usa 'code': 'TBL_IR_HERENCIAS_2008', 'categoria_tabla': 'inheritance', 'fiscal_year': 2008.`;\n\n    blockQueue.push({\n      json: {\n        _has_articles: true,\n        ro_cite: roCite,\n        ro_date: roDate,\n        act_index: actIdx + 1,\n        total_acts: acts.length,\n        act_meta: actMetaObj,\n        block_spec: blockSpecObj,\n        prompt_text: promptText\n      }\n    });\n  }\n}\n\nreturn blockQueue;",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        1580,
+        160
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
     }
   ],
   "connections": {
-    "1. Iniciar Ingesta Espejo (Google Drive)": {
+    "GDrive - 00_registros_oficiales": {
       "main": [
         [
           {
-            "node": "2. Buscar PDF en Google Drive (01_PDF_Original)",
+            "node": "Preparar Cola Drive",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "2. Buscar PDF en Google Drive (01_PDF_Original)": {
+    "Preparar Cola Drive": {
       "main": [
         [
           {
-            "node": "3. Descargar PDF desde Google Drive",
+            "node": "Loop Documentos 1x1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "3. Descargar PDF desde Google Drive": {
+    "Webhook - Ingesta PDF": {
       "main": [
         [
           {
-            "node": "3b. Subir Copia Espejo a Supabase Storage",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "4. Extraer Texto Base del PDF",
+            "node": "Preparar Cola Webhook",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "4. Extraer Texto Base del PDF": {
+    "Preparar Cola Webhook": {
       "main": [
         [
           {
-            "node": "5. Fragmentador Jurídico con Carpeta Espejo",
+            "node": "Loop Documentos 1x1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "5. Fragmentador Jurídico con Carpeta Espejo": {
+    "Loop Documentos 1x1": {
       "main": [
+        [],
         [
           {
-            "node": "6. Information Extractor (Gemini Jurídico)",
+            "node": "Verificar Duplicado Documento",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Google Gemini Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "6. Information Extractor (Gemini Jurídico)",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "6. Information Extractor (Gemini Jurídico)": {
+    "¿Es Origen Drive?": {
       "main": [
         [
           {
-            "node": "7. Consolidar y Enlazar Espejo (Drive + Storage)",
+            "node": "Descargar PDF de Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Descargar PDF de Supabase Storage",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "7. Consolidar y Enlazar Espejo (Drive + Storage)": {
+    "Marcar Saltado por Duplicado": {
       "main": [
         [
           {
-            "node": "8. Guardar Borrador en Supabase (RPC)",
+            "node": "Loop Documentos 1x1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar PDF de Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Preparar Drive + Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Drive + Base64": {
+      "main": [
+        [
+          {
+            "node": "Subir Espejo a Supabase Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir Espejo a Supabase Storage": {
+      "main": [
+        [
+          {
+            "node": "Restaurar Payload Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restaurar Payload Drive": {
+      "main": [
+        [
+          {
+            "node": "Unificar Meta Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar PDF de Supabase Storage": {
+      "main": [
+        [
+          {
+            "node": "Preparar Web + Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Web + Base64": {
+      "main": [
+        [
+          {
+            "node": "Unificar Meta Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unificar Meta Base64": {
+      "main": [
+        [
+          {
+            "node": "Planificar Bloques con Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Actos con Gemini (PDF Nativo)": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Actos y Registro Oficial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar Actos y Registro Oficial": {
+      "main": [
+        [
+          {
+            "node": "Guardar Acto en Supabase (RPC)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene Actos Tributarios?": {
+      "main": [
+        [
+          {
+            "node": "Loop Actos 1x1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Documentos 1x1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Acto en Supabase (RPC)": {
+      "main": [
+        [
+          {
+            "node": "Loop Actos 1x1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumen PDF Procesado": {
+      "main": [
+        [
+          {
+            "node": "¿Mover en Drive?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Actos 1x1": {
+      "main": [
+        [
+          {
+            "node": "Resumen PDF Procesado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer Actos con Gemini (PDF Nativo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Duplicado Documento": {
+      "main": [
+        [
+          {
+            "node": "¿Ya Procesado Documento?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Ya Procesado Documento?": {
+      "main": [
+        [
+          {
+            "node": "Marcar Saltado por Duplicado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Es Origen Drive?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Mover en Drive?": {
+      "main": [
+        [
+          {
+            "node": "Mover PDF a Procesados en Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Documentos 1x1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover PDF a Procesados en Drive": {
+      "main": [
+        [
+          {
+            "node": "Loop Documentos 1x1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Planificar Bloques con Gemini": {
+      "main": [
+        [
+          {
+            "node": "Generar Cola de Bloques",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Cola de Bloques": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene Actos Tributarios?",
             "type": "main",
             "index": 0
           }
@@ -317,6 +912,10 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
   }
 }

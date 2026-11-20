@@ -138,7 +138,22 @@ export const NormIngestionModal: React.FC<NormIngestionModalProps> = ({
 
       const result = await response.json().catch(() => ({ ok: response.ok }));
 
-      setStepMessage('3/3 ¡Ingesta completada! Norma y reformas publicadas instantáneamente.');
+      // Monitorizamos en Supabase que el documento finalice de procesarse sin congelar la interfaz
+      setStepMessage('3/3 Extrayendo actos y reformando normativa con IA...');
+      for (let attempt = 0; attempt < 45; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+        const { data: doc } = await supabase
+          .from('documents')
+          .select('id, status')
+          .eq('storage_path', storagePath)
+          .maybeSingle();
+
+        if (doc && doc.status === 'processed') {
+          break;
+        }
+      }
+
+      setStepMessage('¡Ingesta completada! Norma y reformas publicadas instantáneamente.');
       setResultSummary({
         normCode,
         normTitle,

@@ -1,119 +1,234 @@
 import React, { useState } from 'react';
 import { RubikCubeLogo } from '../common/RubikCubeLogo';
-import { ArrowRight, Menu, X, MessageCircle } from 'lucide-react';
+import { ArrowRight, Menu, X, Sun, Moon } from 'lucide-react';
 
 interface NavbarProps {
   onOpenRegister: () => void;
   onOpenLogin: () => void;
+  isDark: boolean;
+  onToggleTheme: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenRegister, onOpenLogin }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  onOpenRegister,
+  onOpenLogin,
+  isDark,
+  onToggleTheme
+}) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#0C0D14]/85 backdrop-blur-xl">
+    <header
+      className={`sticky top-0 z-50 w-full border-b backdrop-blur-xl transition-colors duration-300 ${
+        isDark
+          ? 'border-[#26262b] bg-[#0d0d0f]/90 text-[#f4f4f5]'
+          : 'border-[#e4e4e7] bg-white/90 text-[#09090b]'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Logotipo con el Cubo de Rubik 2x2 integrado */}
+        {/* Logotipo */}
         <div
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         >
-          <div className="relative flex items-center justify-center p-1.5 rounded-xl bg-white/[0.04] border border-white/10 shadow-sm group-hover:border-[#3ECF8E]/40 transition-all duration-300">
-            <RubikCubeLogo size={34} />
+          <div
+            className={`relative flex items-center justify-center p-1.5 rounded-xl border transition-all duration-200 ${
+              isDark
+                ? 'bg-[#151518] border-[#26262b] group-hover:border-[#3f3f46]'
+                : 'bg-[#f4f4f5] border-[#e4e4e7] group-hover:border-[#a1a1aa]'
+            }`}
+          >
+            <RubikCubeLogo size={32} />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-xl tracking-tight text-white font-heading">
+              <span
+                className={`font-extrabold text-xl tracking-tight font-heading ${
+                  isDark ? 'text-[#f4f4f5]' : 'text-[#09090b]'
+                }`}
+              >
                 SmartLex<span className="text-[#3ECF8E]">EC</span>
               </span>
-              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#3ECF8E]/15 text-[#3ECF8E] border border-[#3ECF8E]/30 uppercase tracking-wider">
+              <span
+                className={`px-1.5 py-0.5 text-[10px] font-bold rounded border uppercase tracking-wider ${
+                  isDark
+                    ? 'bg-[#151518] text-[#d4d4d8] border-[#26262b]'
+                    : 'bg-[#f4f4f5] text-[#3f3f46] border-[#d4d4d8]'
+                }`}
+              >
                 Ecuador
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">Ecosistema de Integración Legal</p>
+            <p className={`text-[11px] font-medium ${isDark ? 'text-[#a1a1aa]' : 'text-[#52525b]'}`}>
+              Ecosistema de Integración Legal
+            </p>
           </div>
         </div>
 
         {/* Enlaces de escritorio */}
         <nav className="hidden md:flex items-center gap-8">
-          <a href="#hero" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+          <a
+            href="#hero"
+            className={`text-sm font-medium transition-colors ${
+              isDark ? 'text-[#a1a1aa] hover:text-[#f4f4f5]' : 'text-[#52525b] hover:text-[#09090b]'
+            }`}
+          >
             Inicio
           </a>
-          <a href="#integracion" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+          <a
+            href="#integracion"
+            className={`text-sm font-medium transition-colors ${
+              isDark ? 'text-[#a1a1aa] hover:text-[#f4f4f5]' : 'text-[#52525b] hover:text-[#09090b]'
+            }`}
+          >
             Integración Legal
           </a>
-          <a href="#pilares" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+          <a
+            href="#pilares"
+            className={`text-sm font-medium transition-colors ${
+              isDark ? 'text-[#a1a1aa] hover:text-[#f4f4f5]' : 'text-[#52525b] hover:text-[#09090b]'
+            }`}
+          >
             Ecosistema
           </a>
-          <a href="#planes" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+          <a
+            href="#planes"
+            className={`text-sm font-medium transition-colors ${
+              isDark ? 'text-[#a1a1aa] hover:text-[#f4f4f5]' : 'text-[#52525b] hover:text-[#09090b]'
+            }`}
+          >
             Planes
           </a>
           <a
             href="https://chat.whatsapp.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-sm font-medium text-[#3ECF8E] hover:text-emerald-300 transition-colors"
+            className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${
+              isDark ? 'text-[#e4e4e7] hover:text-white' : 'text-[#18181b] hover:text-black'
+            }`}
           >
-            <span className="inline-block w-2 h-2 rounded-full bg-[#3ECF8E] animate-pulse" />
+            <span
+              className={`inline-block w-2 h-2 rounded-full ${
+                isDark ? 'bg-[#e4e4e7]' : 'bg-[#18181b]'
+              }`}
+            />
             Canal WhatsApp
           </a>
         </nav>
 
-        {/* Acciones de escritorio (Estilo Supabase) */}
+        {/* Acciones de escritorio + Botón de Modo Noche / Modo Claro */}
         <div className="hidden md:flex items-center gap-3">
           <button
+            type="button"
+            onClick={onToggleTheme}
+            title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
+            aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
+            className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
+              isDark
+                ? 'bg-[#151518] border-[#26262b] text-[#e4e4e7] hover:bg-[#1c1c21] hover:border-[#3f3f46]'
+                : 'bg-[#f4f4f5] border-[#e4e4e7] text-[#18181b] hover:bg-[#e4e4e7]'
+            }`}
+          >
+            {isDark ? (
+              <>
+                <Sun className="w-4 h-4 text-[#f4f4f5]" />
+                <span className="hidden lg:inline">Modo Claro</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-[#18181b]" />
+                <span className="hidden lg:inline">Modo Noche</span>
+              </>
+            )}
+          </button>
+
+          <button
             onClick={onOpenLogin}
-            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className={`px-4 py-2 text-sm font-semibold transition-colors cursor-pointer ${
+              isDark ? 'text-[#d4d4d8] hover:text-white' : 'text-[#3f3f46] hover:text-[#09090b]'
+            }`}
           >
             Iniciar Sesión
           </button>
           <button
             onClick={onOpenRegister}
-            className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-[#0C0D14] bg-[#3ECF8E] hover:bg-[#34D399] transition-all duration-200 shadow-[0_0_20px_rgba(62,207,142,0.35)] hover:shadow-[0_0_28px_rgba(62,207,142,0.55)] cursor-pointer"
+            className={`group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer shadow-sm ${
+              isDark
+                ? 'text-[#06140d] bg-[#3ECF8E] hover:bg-[#5ddba5]'
+                : 'text-white bg-[#18181b] hover:bg-[#27272a]'
+            }`}
           >
             <span>Crear Cuenta Gratis</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 text-[#0C0D14]" />
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
           </button>
         </div>
 
-        {/* Botón menú móvil */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60"
-        >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        {/* Controles móviles: Icono de Modo Noche + Menú */}
+        <div className="flex md:hidden items-center gap-2">
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
+            className={`p-2 rounded-lg border ${
+              isDark
+                ? 'bg-[#151518] border-[#26262b] text-[#f4f4f5]'
+                : 'bg-[#f4f4f5] border-[#e4e4e7] text-[#18181b]'
+            }`}
+          >
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className={`p-2 rounded-lg ${
+              isDark ? 'text-[#a1a1aa] hover:text-white' : 'text-[#52525b] hover:text-black'
+            }`}
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Menú desplegable móvil */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-white/10 bg-[#0C0D14]/95 px-4 pt-2 pb-6 space-y-4">
+        <div
+          className={`md:hidden border-b px-4 pt-2 pb-6 space-y-4 ${
+            isDark ? 'border-[#26262b] bg-[#0d0d0f]/95' : 'border-[#e4e4e7] bg-white/95'
+          }`}
+        >
           <div className="flex flex-col space-y-3 pt-2">
             <a
               href="#hero"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-slate-200 py-2 border-b border-white/5"
+              className={`text-base font-medium py-2 border-b ${
+                isDark ? 'text-[#e4e4e7] border-[#26262b]' : 'text-[#18181b] border-[#e4e4e7]'
+              }`}
             >
               Inicio
             </a>
             <a
               href="#integracion"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-slate-200 py-2 border-b border-white/5"
+              className={`text-base font-medium py-2 border-b ${
+                isDark ? 'text-[#e4e4e7] border-[#26262b]' : 'text-[#18181b] border-[#e4e4e7]'
+              }`}
             >
               Integración Legal
             </a>
             <a
               href="#pilares"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-slate-200 py-2 border-b border-white/5"
+              className={`text-base font-medium py-2 border-b ${
+                isDark ? 'text-[#e4e4e7] border-[#26262b]' : 'text-[#18181b] border-[#e4e4e7]'
+              }`}
             >
               Ecosistema
             </a>
             <a
               href="#planes"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-slate-200 py-2 border-b border-white/5"
+              className={`text-base font-medium py-2 border-b ${
+                isDark ? 'text-[#e4e4e7] border-[#26262b]' : 'text-[#18181b] border-[#e4e4e7]'
+              }`}
             >
               Planes
             </a>
@@ -124,7 +239,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRegister, onOpenLogin }) =
                 setMobileMenuOpen(false);
                 onOpenLogin();
               }}
-              className="w-full py-2.5 text-center text-sm font-medium text-slate-300 border border-slate-700 rounded-xl"
+              className={`w-full py-2.5 text-center text-sm font-semibold border rounded-xl ${
+                isDark
+                  ? 'text-[#e4e4e7] border-[#26262b] bg-[#151518]'
+                  : 'text-[#18181b] border-[#d4d4d8] bg-[#f4f4f5]'
+              }`}
             >
               Iniciar Sesión
             </button>
@@ -133,7 +252,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenRegister, onOpenLogin }) =
                 setMobileMenuOpen(false);
                 onOpenRegister();
               }}
-              className="w-full py-2.5 text-center text-sm font-bold text-[#0C0D14] bg-[#3ECF8E] rounded-xl shadow-[0_0_20px_rgba(62,207,142,0.4)]"
+              className={`w-full py-2.5 text-center text-sm font-bold rounded-xl ${
+                isDark ? 'text-[#0d0d0f] bg-[#f4f4f5]' : 'text-white bg-[#18181b]'
+              }`}
             >
               Crear Cuenta Gratis (Plan Free)
             </button>
