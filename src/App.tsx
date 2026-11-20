@@ -47,7 +47,8 @@ import {
   Flag,
   AlertCircle,
   Sun,
-  Moon
+  Moon,
+  Star
 } from 'lucide-react';
 
 // ============================================================================
@@ -195,7 +196,7 @@ export const LegalStatusButton: React.FC<{
         title="Artículo vigente sin reformas posteriores"
         className={`inline-flex items-center font-semibold tracking-wide bg-[#151518] border border-[#26262b] text-[#e4e4e7] select-none ${sizeClasses}`}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-[#e4e4e7] shrink-0" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#3ECF8E] shadow-[0_0_6px_rgba(62,207,142,0.85)] shrink-0" />
         <span>Vigente</span>
       </span>
     );
@@ -207,8 +208,11 @@ export const LegalStatusButton: React.FC<{
         title="Artículo vigente con reformas históricas registradas"
         className={`inline-flex items-center font-semibold tracking-wide bg-[#151518] border border-[#2e2e36] text-[#d4d4d8] select-none ${sizeClasses}`}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-[#a1a1aa] shrink-0" />
-        <span>Vigente · Reformado</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-[#3ECF8E] shadow-[0_0_6px_rgba(62,207,142,0.85)] shrink-0" />
+        <span>Vigente</span>
+        <span className="text-[#52525b]">·</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] shadow-[0_0_6px_rgba(245,158,11,0.85)] shrink-0" />
+        <span>Reformado</span>
       </span>
     );
   }
@@ -218,7 +222,7 @@ export const LegalStatusButton: React.FC<{
       title="Disposición derogada expresamente"
       className={`inline-flex items-center font-semibold tracking-wide bg-[#121215] border border-[#26262b] text-[#71717a] select-none ${sizeClasses}`}
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-[#52525b] shrink-0" />
+      <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] shadow-[0_0_6px_rgba(239,68,68,0.85)] shrink-0" />
       <span>Derogado</span>
     </span>
   );
@@ -380,8 +384,53 @@ const autoFormatRawTables = (text: string): string => {
 };
 
 // ============================================================================
-// VISOR DE TABLAS Y CONTENIDO MARKDOWN
+// VISOR DE TABLAS Y CONTENIDO MARKDOWN (CON JUSTIFICACIÓN A ANCHO COMPLETO)
 // ============================================================================
+const startsNewLegalParagraph = (prevLine: string, nextLine: string): boolean => {
+  const prev = prevLine.trim();
+  const next = nextLine.trim();
+  if (!prev || !next) return true;
+  if (
+    /^(?:(?:\d+(?:\.\d+)*|[a-zA-Z])[.)]\s+|[-•*]\s+|Nota:|Art(?:[íi]culo|\.)?\s+|DISPOSICI[ÓO]N|PRIMERA|SEGUNDA|TERCERA|CUARTA|QUINTA|SEXTA|S[ÉE]PTIMA|OCTAVA|NOVENA|D[ÉE]CIMA|\*\*)/i.test(
+      next
+    )
+  ) {
+    return true;
+  }
+  if (/[.:;”"!?]$/.test(prev)) {
+    return true;
+  }
+  return false;
+};
+
+const unwrapLegalParagraphLines = (rawLines: string[]): string[] => {
+  const paragraphs: string[] = [];
+  let current = '';
+
+  for (const raw of rawLines) {
+    const line = raw.trim();
+    if (!line) {
+      if (current) {
+        paragraphs.push(current);
+        current = '';
+      }
+      continue;
+    }
+    if (!current) {
+      current = line;
+    } else if (startsNewLegalParagraph(current, line)) {
+      paragraphs.push(current);
+      current = line;
+    } else {
+      current = `${current} ${line}`;
+    }
+  }
+  if (current) {
+    paragraphs.push(current);
+  }
+  return paragraphs;
+};
+
 const renderMarkdownContent = (content: string) => {
   if (!content) return null;
 
@@ -395,13 +444,18 @@ const renderMarkdownContent = (content: string) => {
 
   const flushParagraph = () => {
     if (currentParagraphLines.length > 0) {
-      const text = currentParagraphLines.join('\n').trim();
-      if (text) {
-        elements.push(
-          <p key={`p-${elements.length}`} className="text-xs leading-relaxed text-[#DFDFDE] mb-3 whitespace-pre-line">
-            {text}
-          </p>
-        );
+      const unwrapped = unwrapLegalParagraphLines(currentParagraphLines);
+      for (const paraText of unwrapped) {
+        if (paraText) {
+          elements.push(
+            <p
+              key={`p-${elements.length}`}
+              className="text-xs sm:text-[13px] leading-relaxed text-[#DFDFDE] mb-2.5 text-justify w-full"
+            >
+              {paraText}
+            </p>
+          );
+        }
       }
       currentParagraphLines = [];
     }
@@ -466,7 +520,7 @@ const renderMarkdownContent = (content: string) => {
   flushTable();
   flushParagraph();
 
-  return <div>{elements}</div>;
+  return <div className="w-full text-justify">{elements}</div>;
 };
 
 // ============================================================================
@@ -492,12 +546,14 @@ const parseDocForDiff = (rawContent: string): ParsedDocStructure => {
 
   const flushPara = () => {
     if (currentPara.length > 0) {
-      const text = currentPara.join('\n').trim();
-      if (text) {
-        if (/^Nota:/i.test(text)) {
-          notes.push(text);
-        } else {
-          paragraphs.push(text);
+      const unwrapped = unwrapLegalParagraphLines(currentPara);
+      for (const text of unwrapped) {
+        if (text) {
+          if (/^Nota:/i.test(text)) {
+            notes.push(text);
+          } else {
+            paragraphs.push(text);
+          }
         }
       }
       currentPara = [];
@@ -650,7 +706,7 @@ const renderDiffMarkdownContent = (currentContent: string, previousContent?: str
     <div className="space-y-3">
       {/* Texto normativo con resaltado diferencial respecto a la versión inmediata anterior */}
       {newBody || oldBody ? (
-        <div className="text-xs leading-relaxed text-[#DFDFDE] whitespace-pre-line">
+        <div className="text-xs leading-relaxed text-[#DFDFDE] whitespace-pre-line text-justify w-full">
           {bodySegments.map((seg, idx) => {
             if (seg.type === 'equal') {
               return <React.Fragment key={idx}>{seg.text}</React.Fragment>;
@@ -1635,9 +1691,58 @@ export default function App() {
   >('leyes');
   const [libraryRightView, setLibraryRightView] = useState<'cards' | 'ficha'>('cards');
   const [libraryPreviewTab, setLibraryPreviewTab] = useState<'summary' | 'tables' | 'reforms'>('summary');
-  const [openArticleSheets, setOpenArticleSheets] = useState<Record<string, boolean>>({
-    'Art. 1': true
+  const [openArticleSheets, setOpenArticleSheets] = useState<Record<string, boolean>>({});
+  const [openArticleSources, setOpenArticleSources] = useState<Record<string, boolean>>({});
+  const [pinnedNormMap, setPinnedNormMap] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = window.localStorage.getItem('smartlex_pinned_norms_v1');
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
   });
+
+  const isDefaultPrimaryNorm = (n: Norm): boolean => {
+    const code = (n.code || '').toUpperCase().trim();
+    const title = (n.title || '').toUpperCase().trim();
+    if (code === 'LRTI' || code === 'RLRTI' || code === 'RALRTI' || code === 'CT') return true;
+    if (
+      /^LEY\s+(?:ORG[ÁA]NICA\s+)?DE\s+R[ÉE]GIMEN\s+TRIBUTARIO\s+INTERNO/i.test(title) &&
+      !/REFORMATORIA/i.test(title)
+    ) {
+      return true;
+    }
+    if (
+      /^REGLAMENTO\s+(?:PARA\s+LA\s+APLICACI[ÓO]N\s+)?(?:DE\s+LA\s+|A\s+LA\s+)?LEY\s+DE\s+R[ÉE]GIMEN\s+TRIBUTARIO\s+INTERNO/i.test(
+        title
+      ) &&
+      !/REFORM/i.test(title)
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  const isNormPinned = (n: Norm): boolean => {
+    if (n.id in pinnedNormMap) {
+      return Boolean(pinnedNormMap[n.id]);
+    }
+    return isDefaultPrimaryNorm(n);
+  };
+
+  const handleTogglePinNorm = (n: Norm, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const nextVal = !isNormPinned(n);
+    setPinnedNormMap(prev => {
+      const updated = { ...prev, [n.id]: nextVal };
+      try {
+        window.localStorage.setItem('smartlex_pinned_norms_v1', JSON.stringify(updated));
+      } catch {
+        // Ignorar si localStorage no está disponible
+      }
+      return updated;
+    });
+  };
   const [popupCascadeGroupsOpen, setPopupCascadeGroupsOpen] = useState<Record<string, boolean>>({
     modificatorias: false,
     reglamentos: false,
@@ -2526,7 +2631,7 @@ export default function App() {
     }
 
     setSelectedArticleLabel(chosenLabel);
-    setOpenArticleSheets({ [chosenLabel]: true });
+    setOpenArticleSheets({});
   };
 
   const effectiveNormId =
@@ -3187,6 +3292,13 @@ export default function App() {
     setTimeout(() => setCopyFeedback(null), 2500);
   };
 
+  const handleGoToLibraryHome = () => {
+    setCurrentView('portal');
+    setActiveTab('reader');
+    setReaderSubView('library');
+    setLibraryRightView('cards');
+  };
+
   // ============================================================================
   // RENDER LANDING PAGE VIEW
   // ============================================================================
@@ -3196,6 +3308,7 @@ export default function App() {
         <LandingPage
           onOpenRegister={handleOpenRegister}
           onOpenLogin={handleOpenLogin}
+          onEnterLibrary={handleGoToLibraryHome}
           isDark={themeMode === 'dark'}
           onToggleTheme={() => setThemeMode(prev => (prev === 'dark' ? 'light' : 'dark'))}
           onSelectPlan={plan => {
@@ -3220,12 +3333,21 @@ export default function App() {
   // RENDER PORTAL / NORMATIVE READER VIEW
   // ============================================================================
   return (
-    <div className="min-h-screen flex flex-col bg-[#0d0d0f] text-[#f4f4f5] selection:bg-[#26262b] selection:text-white">
+    <div
+      className={`${
+        activeTab === 'reader' ? 'h-screen overflow-hidden' : 'min-h-screen'
+      } flex flex-col bg-[#0d0d0f] text-[#f4f4f5] selection:bg-[#26262b] selection:text-white`}
+    >
       {/* TOP HEADER BAR (MINIMALISTA MONOCROMÁTICO OSCURO) */}
-      <header className="h-14 bg-[#0d0d0f] border-b border-[#26262b] px-5 flex items-center justify-between sticky top-0 z-40">
-        {/* Brand Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center p-1 rounded-lg bg-[#151518] border border-[#26262b]">
+      <header className="h-14 shrink-0 bg-[#0d0d0f] border-b border-[#26262b] px-5 flex items-center justify-between sticky top-0 z-40">
+        {/* Brand Logo (clic para ir al inicio de la Biblioteca) */}
+        <button
+          type="button"
+          onClick={handleGoToLibraryHome}
+          title="Ir al inicio de la Biblioteca Normativa"
+          className="flex items-center gap-3 cursor-pointer text-left group"
+        >
+          <div className="flex items-center justify-center p-1 rounded-lg bg-[#151518] border border-[#26262b] group-hover:border-[#3ECF8E]/60 transition">
             <RubikCubeLogo size={26} />
           </div>
           <div>
@@ -3238,7 +3360,7 @@ export default function App() {
               </span>
             </div>
           </div>
-        </div>
+        </button>
 
         {/* Navigation Tabs */}
         <nav className="flex items-center gap-1 bg-[#151518] p-1 rounded-lg border border-[#26262b]">
@@ -3427,12 +3549,12 @@ export default function App() {
       {/* TAB 1: PANTALLA 1 (BIBLIOTECA EN ÁRBOL JERÁRQUICO) Y PANTALLA 2      */}
       {/* ==================================================================== */}
       {activeTab === 'reader' && (
-        <div className="flex-1 flex flex-col overflow-hidden h-[calc(100vh-3.5rem)] bg-[#0d0d0f]">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-[#0d0d0f]">
           {readerSubView === 'library' ? (
             /* ================================================================ */
             /* PANTALLA 1: BIBLIOTECA EN ÁRBOL JERÁRQUICO (SIN PALABRA "EBOOK") */
             /* ================================================================ */
-            <div className="flex-1 grid grid-cols-12 overflow-hidden">
+            <div className="flex-1 grid grid-cols-12 overflow-hidden min-h-0">
               {/* COLUMNA IZQUIERDA (Cols 1-4): ÁRBOL POR JERARQUÍAS (NORMATIVA Y TRIBUTOS) */}
               <aside className="col-span-12 md:col-span-4 lg:col-span-4 bg-[#121215] border-r border-[#26262b] flex flex-col overflow-hidden">
                 <div className="p-4 border-b border-[#26262b] space-y-3">
@@ -3826,6 +3948,14 @@ export default function App() {
                         );
                       })
                       .sort((a, b) => {
+                        const pinA = isNormPinned(a);
+                        const pinB = isNormPinned(b);
+                        if (pinA !== pinB) return pinA ? -1 : 1;
+
+                        const defA = isDefaultPrimaryNorm(a);
+                        const defB = isDefaultPrimaryNorm(b);
+                        if (defA !== defB) return defA ? -1 : 1;
+
                         const dateA = a.publication_date || '';
                         const dateB = b.publication_date || '';
                         if (dateA !== dateB) return dateB.localeCompare(dateA);
@@ -3881,6 +4011,7 @@ export default function App() {
                               const artCount = articlesByNormId.get(n.id) || 0;
                               const isResOrCirc =
                                 info.category === 'resoluciones' || info.category === 'circulares';
+                              const isPinned = isNormPinned(n);
                               return (
                                 <div
                                   key={n.id}
@@ -3892,10 +4023,34 @@ export default function App() {
                                     setLibraryPreviewTab('summary');
                                     setLibraryRightView('ficha');
                                   }}
-                                  className="group w-full bg-[#151518] hover:bg-[#18181c] border border-[#26262b] hover:border-[#3f3f46] rounded-2xl p-5 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4 cursor-pointer shadow-lg"
+                                  className={`group w-full bg-[#151518] hover:bg-[#18181c] border rounded-2xl p-5 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4 cursor-pointer shadow-lg ${
+                                    isPinned
+                                      ? 'border-[#3ECF8E]/45 hover:border-[#3ECF8E]/70'
+                                      : 'border-[#26262b] hover:border-[#3f3f46]'
+                                  }`}
                                 >
                                   <div className="space-y-1.5 min-w-0 flex-1">
                                     <div className="flex items-center gap-2 flex-wrap">
+                                      <button
+                                        type="button"
+                                        onClick={e => handleTogglePinNorm(n, e)}
+                                        title={
+                                          isPinned
+                                            ? 'Quitar de la parte superior'
+                                            : 'Fijar esta norma en la parte superior'
+                                        }
+                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-bold transition cursor-pointer ${
+                                          isPinned
+                                            ? 'bg-[#3ECF8E]/15 border-[#3ECF8E]/50 text-[#3ECF8E]'
+                                            : 'bg-[#1c1c21] border-[#2e2e36] text-[#71717a] hover:text-[#e4e4e7] hover:border-[#52525b]'
+                                        }`}
+                                      >
+                                        <Star
+                                          className="w-3 h-3"
+                                          fill={isPinned ? 'currentColor' : 'none'}
+                                        />
+                                        {isPinned && <span>Fijada</span>}
+                                      </button>
                                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#1c1c21] text-[#d4d4d8] border border-[#2e2e36]">
                                         {info.badge}
                                       </span>
@@ -4407,21 +4562,21 @@ export default function App() {
                   </div>
 
                   <button
-                    onClick={() => {
-                      const list = ebookNavMode === 'tax' ? taxFilteredArticles : currentArticles;
-                      const allOpen: Record<string, boolean> = {};
-                      list.forEach(a => {
-                        allOpen[a.label] = true;
-                      });
-                      setOpenArticleSheets(allOpen);
-                    }}
+                    onClick={() => setOpenArticleSheets({})}
                     className="px-2.5 py-1 rounded-lg bg-[#151518] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#a1a1aa] hover:text-[#f4f4f5] transition cursor-pointer"
                   >
                     Desplegar todos
                   </button>
 
                   <button
-                    onClick={() => setOpenArticleSheets({})}
+                    onClick={() => {
+                      const list = ebookNavMode === 'tax' ? taxFilteredArticles : currentArticles;
+                      const allCollapsed: Record<string, boolean> = {};
+                      list.forEach(a => {
+                        allCollapsed[a.label] = false;
+                      });
+                      setOpenArticleSheets(allCollapsed);
+                    }}
                     className="px-2.5 py-1 rounded-lg bg-[#151518] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#a1a1aa] hover:text-[#f4f4f5] transition cursor-pointer"
                   >
                     Colapsar todos
@@ -4610,7 +4765,7 @@ export default function App() {
                                       <div className="pl-2 space-y-0.5 pt-0.5">
                                         {chapNode.articles.map(art => {
                                           const isSelected = art.label === selectedArticleLabel;
-                                          const isSheetOpen = Boolean(openArticleSheets[art.label]);
+                                          const isSheetOpen = openArticleSheets[art.label] !== false;
                                           return (
                                             <button
                                               key={art.id}
@@ -4621,13 +4776,20 @@ export default function App() {
                                                   [art.label]: true
                                                 }));
                                                 setTimeout(() => {
+                                                  const container = document.getElementById(
+                                                    'document-sheets-scroll-container'
+                                                  );
                                                   const el = document.getElementById(
                                                     `article-sheet-${art.id}`
                                                   );
-                                                  if (el) {
-                                                    el.scrollIntoView({
-                                                      behavior: 'smooth',
-                                                      block: 'start'
+                                                  if (container && el) {
+                                                    const topPos =
+                                                      el.getBoundingClientRect().top -
+                                                      container.getBoundingClientRect().top +
+                                                      container.scrollTop;
+                                                    container.scrollTo({
+                                                      top: Math.max(0, topPos),
+                                                      behavior: 'smooth'
                                                     });
                                                   }
                                                 }, 40);
@@ -4675,13 +4837,20 @@ export default function App() {
                                             [art.label]: true
                                           }));
                                           setTimeout(() => {
+                                            const container = document.getElementById(
+                                              'document-sheets-scroll-container'
+                                            );
                                             const el = document.getElementById(
                                               `article-sheet-${art.id}`
                                             );
-                                            if (el) {
-                                              el.scrollIntoView({
-                                                behavior: 'smooth',
-                                                block: 'start'
+                                            if (container && el) {
+                                              const topPos =
+                                                el.getBoundingClientRect().top -
+                                                container.getBoundingClientRect().top +
+                                                container.scrollTop;
+                                              container.scrollTo({
+                                                top: Math.max(0, topPos),
+                                                behavior: 'smooth'
                                               });
                                             }
                                           }, 40);
@@ -4716,10 +4885,10 @@ export default function App() {
                   </div>
                 </aside>
 
-                {/* LIENZO DERECHO INDEPENDIENTE (Cols 5-12 o 4-12): ARTÍCULOS COMO HOJAS DESPLEGABLES CON TÍTULO STICKY AL HACER SCROLL */}
+                {/* LIENZO DERECHO INDEPENDIENTE (Cols 5-12 o 4-12): ARTÍCULOS UNIDOS Y DESPLEGADOS CON TÍTULO STICKY AL HACER SCROLL */}
                 <main
                   id="document-sheets-scroll-container"
-                  className="col-span-12 md:col-span-8 lg:col-span-9 bg-[#0d0d0f] overflow-y-auto p-5 lg:p-8 space-y-3 min-h-0"
+                  className="col-span-12 md:col-span-8 lg:col-span-9 bg-[#121215] overflow-y-auto p-0 min-h-0"
                 >
                   {loading ? (
                     <div className="p-12 text-center text-xs text-[#a1a1aa]">
@@ -4733,220 +4902,244 @@ export default function App() {
                     (() => {
                       const visibleArticles =
                         ebookNavMode === 'tax' ? taxFilteredArticles : currentArticles;
-                      return visibleArticles.map((art, artIdx) => {
-                        const isSheetOpen = Boolean(openArticleSheets[art.label]);
-                        const isActiveArt = art.label === selectedArticleLabel;
-                        const verCount = getArticleVersionsCount(art);
-                        const nextArt = visibleArticles[artIdx + 1] || null;
-                        const isLrti36 =
-                          art.label.trim().toUpperCase() === 'ART. 36' &&
-                          (!art.norms?.code || art.norms.code.toUpperCase() === 'LRTI');
-                        const displayContent =
-                          isLrti36 && !searchValidFrom && !searchValidTo
-                            ? ART_36_CLEAN_2009_CONTENT
-                            : art.content;
+                      return (
+                        <div className="bg-[#121215] divide-y divide-[#26262b]">
+                          {visibleArticles.map(art => {
+                            const isSheetOpen = openArticleSheets[art.label] !== false;
+                            const isSourceOpen = Boolean(openArticleSources[art.id]);
+                            const isActiveArt = art.label === selectedArticleLabel;
+                            const verCount = getArticleVersionsCount(art);
+                            const isLrti36 =
+                              art.label.trim().toUpperCase() === 'ART. 36' &&
+                              (!art.norms?.code || art.norms.code.toUpperCase() === 'LRTI');
+                            const displayContent =
+                              isLrti36 && !searchValidFrom && !searchValidTo
+                                ? ART_36_CLEAN_2009_CONTENT
+                                : art.content;
 
-                        return (
-                          <article
-                            id={`article-sheet-${art.id}`}
-                            key={art.id}
-                            className={`rounded-xl border transition-all ${
-                              isSheetOpen
-                                ? 'bg-[#121215] border-[#2e2e36] shadow-2xl'
-                                : isActiveArt
-                                  ? 'bg-[#151518] border-[#3f3f46]'
-                                  : 'bg-[#121215]/70 border-[#26262b] hover:border-[#3f3f46]'
-                            }`}
-                          >
-                            {/* ENCABEZADO DEL ARTÍCULO: STICKY TOP-0 MIENTRAS EL USUARIO HACE SCROLL EN LA HOJA ABIERTA */}
-                            <div
-                              className={`${
-                                isSheetOpen
-                                  ? 'sticky top-0 z-20 bg-[#151518]/95 backdrop-blur-md border-b border-[#26262b] rounded-t-xl shadow-md'
-                                  : ''
-                              } px-4 py-3.5 flex items-center justify-between gap-3 transition`}
-                            >
-                              {/* Botón izquierdo para desplegar / contraer el artículo como hoja */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const nextState = !isSheetOpen;
-                                  setSelectedArticleLabel(art.label);
-                                  setOpenArticleSheets(prev => ({
-                                    ...prev,
-                                    [art.label]: nextState
-                                  }));
-                                }}
-                                className="flex items-center gap-3 text-left flex-1 min-w-0 cursor-pointer"
+                            return (
+                              <article
+                                id={`article-sheet-${art.id}`}
+                                key={art.id}
+                                className={isActiveArt ? 'bg-[#151518]/60' : 'bg-[#121215]'}
                               >
-                                <div className="w-6 h-6 rounded-md bg-[#1c1c21] border border-[#2e2e36] flex items-center justify-center shrink-0">
-                                  {isSheetOpen ? (
-                                    <ChevronDown className="w-4 h-4 text-[#f4f4f5]" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4 text-[#a1a1aa]" />
-                                  )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-extrabold text-[#f4f4f5]">
-                                      {art.display_label || art.label}
-                                      {art.title ? ` — ${art.title}` : ''}
-                                    </span>
-                                    {art.is_innumerado && art.after_article && (
-                                      <span
-                                        title={`Código interno de orden: ${art.identifier || art.label}`}
-                                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#1c1c21] text-[#a1a1aa] border border-[#2e2e36]"
-                                      >
-                                        {art.innumerado_order || 1} tras Art. {art.after_article}
-                                      </span>
-                                    )}
-                                    <LegalStatusButton status={art.legal_status} size="sm" />
-                                  </div>
-                                  {(art.parent_title || art.parent_chapter) && (
-                                    <div className="text-[10px] text-[#71717a] truncate mt-0.5">
-                                      {[art.parent_title, art.parent_chapter]
-                                        .filter(Boolean)
-                                        .join(' • ')}
-                                    </div>
-                                  )}
-                                </div>
-                              </button>
-
-                              {/* COSTADO DERECHO DEL ARTÍCULO: RELOJ DE ARENA (⏳) PARA ABRIR EL POP-UP DE HISTÓRICO Y NORMATIVA CONEXA */}
-                              <div className="flex items-center gap-2 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    setSelectedArticleLabel(art.label);
-                                    setPopupCascadeGroupsOpen({
-                                      reglamentos: false,
-                                      resoluciones: false,
-                                      tablas: false
-                                    });
-                                    setIsHistoryModalOpen(true);
-                                  }}
-                                  title="Ver evolución temporal y normativa conexa jerárquica (Pop-up)"
-                                  className="px-3 py-1.5 rounded-lg bg-[#1c1c21] hover:bg-[#26262b] border border-[#3f3f46] text-[#f4f4f5] text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                                {/* ENCABEZADO DEL ARTÍCULO: STICKY TOP-0 AL RAS SUPERIOR SIN ESPACIOS NI SALTOS */}
+                                <div
+                                  className={`${
+                                    isSheetOpen
+                                      ? 'sticky top-0 z-20 bg-[#151518] border-b border-[#26262b]'
+                                      : 'bg-[#151518]/60 hover:bg-[#151518]'
+                                  } px-5 lg:px-7 py-3 flex items-center justify-between gap-3`}
                                 >
-                                  <Hourglass className="w-3.5 h-3.5 text-[#e4e4e7]" />
-                                  <span className="hidden sm:inline">Histórico</span>
-                                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#0d0d0f] text-[#d4d4d8] font-mono">
-                                    {verCount}
-                                  </span>
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* CUERPO DE LA HOJA DESPLEGABLE (SOLO VISIBLE CUANDO EL USUARIO DESPLIEGA EL ARTÍCULO) */}
-                            {isSheetOpen && (
-                              <div className="p-5 lg:p-6 space-y-5 bg-[#121215] rounded-b-xl">
-                                {/* Metadatos de vigencia del artículo */}
-                                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#26262b]/80 text-[11px] text-[#a1a1aa]">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="px-2 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[#d4d4d8]">
-                                      {periodicityLabel(art.tax_periodicity)}:{' '}
-                                      {formatValidityRange(
-                                        art.valid_from,
-                                        art.valid_to,
-                                        art.legal_status === 'derogado'
-                                      )}
-                                    </span>
-                                    {(art.official_registry || art.reform_source_cite) && (
-                                      <span className="text-[#a1a1aa]">
-                                        Fuente: {art.official_registry || art.reform_source_cite}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleCopyCitation(
-                                          `${art.norms?.code || 'LRTI'} ${art.label}${
-                                            art.title ? `: ${art.title}` : ''
-                                          }\n\n${displayContent}`
-                                        )
-                                      }
-                                      className="px-2 py-1 rounded bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#d4d4d8] flex items-center gap-1 cursor-pointer"
-                                    >
-                                      <Copy className="w-3 h-3" />
-                                      <span>Copiar texto</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenReportModal(art)}
-                                      className="px-2 py-1 rounded bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#a1a1aa] hover:text-[#f4f4f5] flex items-center gap-1 cursor-pointer"
-                                    >
-                                      <Flag className="w-3 h-3" />
-                                      <span>Reportar observación</span>
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Texto normativo vigente del artículo */}
-                                <div className="text-sm text-[#e4e4e7] leading-relaxed space-y-3 max-w-4xl">
-                                  {renderMarkdownContent(displayContent)}
-                                </div>
-
-                                {/* Pie de la Hoja: Botón para abrir Pop-up Histórico / Normativa Conexa y botón para pasar a la siguiente hoja */}
-                                <div className="pt-4 border-t border-[#26262b] flex flex-wrap items-center justify-between gap-3">
+                                  {/* Botón izquierdo para desplegar / contraer el artículo */}
                                   <button
                                     type="button"
                                     onClick={() => {
+                                      const nextState = !isSheetOpen;
                                       setSelectedArticleLabel(art.label);
-                                      setPopupCascadeGroupsOpen({
-                                        reglamentos: false,
-                                        resoluciones: false,
-                                        tablas: false
-                                      });
-                                      setIsHistoryModalOpen(true);
+                                      setOpenArticleSheets(prev => ({
+                                        ...prev,
+                                        [art.label]: nextState
+                                      }));
                                     }}
-                                    className="px-3.5 py-2 rounded-lg bg-[#18181c] hover:bg-[#1c1c21] border border-[#2e2e36] text-xs font-semibold text-[#f4f4f5] flex items-center gap-2 transition cursor-pointer"
+                                    className="flex items-center gap-3 text-left flex-1 min-w-0 cursor-pointer"
                                   >
-                                    <Hourglass className="w-3.5 h-3.5 text-[#d4d4d8]" />
-                                    <span>
-                                      Abrir Evolución Temporal ({verCount} versiones) y Normativa Conexa Colapsada
-                                    </span>
+                                    <div className="w-6 h-6 rounded-md bg-[#1c1c21] border border-[#2e2e36] flex items-center justify-center shrink-0">
+                                      {isSheetOpen ? (
+                                        <ChevronDown className="w-4 h-4 text-[#f4f4f5]" />
+                                      ) : (
+                                        <ChevronRight className="w-4 h-4 text-[#a1a1aa]" />
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-sm font-extrabold text-[#f4f4f5]">
+                                          {art.display_label || art.label}
+                                          {art.title ? ` — ${art.title}` : ''}
+                                        </span>
+                                        {art.is_innumerado && art.after_article && (
+                                          <span
+                                            title={`Código interno de orden: ${art.identifier || art.label}`}
+                                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#1c1c21] text-[#a1a1aa] border border-[#2e2e36]"
+                                          >
+                                            {art.innumerado_order || 1} tras Art. {art.after_article}
+                                          </span>
+                                        )}
+                                        <LegalStatusButton status={art.legal_status} size="sm" />
+                                      </div>
+                                      {(art.parent_title || art.parent_chapter) && (
+                                        <div className="text-[10px] text-[#71717a] truncate mt-0.5">
+                                          {[art.parent_title, art.parent_chapter]
+                                            .filter(Boolean)
+                                            .join(' • ')}
+                                        </div>
+                                      )}
+                                    </div>
                                   </button>
 
-                                  {nextArt && (
+                                  {/* COSTADO DERECHO DEL ARTÍCULO: BOTÓN FUENTE Y BOTÓN HISTÓRICO (⏳) */}
+                                  <div className="flex items-center gap-2 shrink-0">
                                     <button
                                       type="button"
-                                      onClick={() => {
-                                        setSelectedArticleLabel(nextArt.label);
-                                        setOpenArticleSheets(prev => ({
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        const nextSourceState = !isSourceOpen;
+                                        if (nextSourceState && !isSheetOpen) {
+                                          setSelectedArticleLabel(art.label);
+                                          setOpenArticleSheets(prev => ({
+                                            ...prev,
+                                            [art.label]: true
+                                          }));
+                                        }
+                                        setOpenArticleSources(prev => ({
                                           ...prev,
-                                          [nextArt.label]: true
+                                          [art.id]: nextSourceState
                                         }));
-                                        setTimeout(() => {
-                                          const el = document.getElementById(
-                                            `article-sheet-${nextArt.id}`
-                                          );
-                                          if (el) {
-                                            el.scrollIntoView({
-                                              behavior: 'smooth',
-                                              block: 'start'
-                                            });
-                                          }
-                                        }, 50);
                                       }}
-                                      className="px-3.5 py-2 rounded-lg bg-[#f4f4f5] hover:bg-white text-[#0d0d0f] text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                                      title="Desplegar u ocultar fuente, vigencia y opciones del artículo"
+                                      className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm ${
+                                        isSourceOpen
+                                          ? 'bg-[#26262b] border-[#3ECF8E]/60 text-[#3ECF8E]'
+                                          : 'bg-[#1c1c21] hover:bg-[#26262b] border-[#3f3f46] text-[#d4d4d8] hover:text-[#f4f4f5]'
+                                      }`}
                                     >
-                                      <span>
-                                        Desplegar siguiente hoja: {nextArt.label}
-                                        {nextArt.title ? ` (${nextArt.title.slice(0, 32)}...)` : ''}
-                                      </span>
-                                      <ChevronDown className="w-3.5 h-3.5" />
+                                      <FileText className="w-3.5 h-3.5" />
+                                      <span>Fuente</span>
                                     </button>
-                                  )}
+
+                                    <button
+                                      type="button"
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        setSelectedArticleLabel(art.label);
+                                        setPopupCascadeGroupsOpen({
+                                          reglamentos: false,
+                                          resoluciones: false,
+                                          tablas: false
+                                        });
+                                        setIsHistoryModalOpen(true);
+                                      }}
+                                      title="Ver evolución temporal y normativa conexa jerárquica (Pop-up)"
+                                      className="px-3 py-1.5 rounded-lg bg-[#1c1c21] hover:bg-[#26262b] border border-[#3f3f46] text-[#f4f4f5] text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                                    >
+                                      <Hourglass className="w-3.5 h-3.5 text-[#e4e4e7]" />
+                                      <span className="hidden sm:inline">Histórico</span>
+                                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#0d0d0f] text-[#d4d4d8] font-mono">
+                                        {verCount}
+                                      </span>
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </article>
-                        );
-                      });
+
+                                {/* CUERPO DEL ARTÍCULO (VISIBLE POR DEFECTO SALVO QUE EL USUARIO LO COLAPSE) */}
+                                {isSheetOpen && (
+                                  <div className="px-5 lg:px-7 py-4 space-y-3 bg-[#121215]">
+                                    {/* Metadatos de vigencia y fuente del artículo (solo se despliegan al pulsar el botón "Fuente") */}
+                                    {isSourceOpen &&
+                                      (() => {
+                                        const cleanLawFromCite = art.reform_source_cite
+                                          ? art.reform_source_cite
+                                              .replace(
+                                                /\s*\((?:[^)]*(?:R\.?\s*O\.?|Registro\s+Oficial|Suplemento|Art(?:s|\.|ículo|ículos)?|\.pdf)[^)]*)\)/gi,
+                                                ''
+                                              )
+                                              .replace(
+                                                /\s*(?:[-—•,]|:\s*)\s*Art(?:s|\.|ículo|ículos)?\s+\d+[^,)]*$/i,
+                                                ''
+                                              )
+                                              .trim()
+                                          : '';
+                                        const matchedLaw = findReformTargetNormAndArticle(
+                                          art.reform_source_cite,
+                                          art.official_registry,
+                                          art.norm_id,
+                                          [art.id]
+                                        );
+                                        const matchedLawClean = matchedLaw?.norm?.title
+                                          ? matchedLaw.norm.title
+                                              .replace(
+                                                /\s*\((?:[^)]*(?:R\.?\s*O\.?|Registro\s+Oficial|Suplemento)[^)]*)\)/gi,
+                                                ''
+                                              )
+                                              .trim()
+                                          : '';
+                                        const rawLawName = cleanLawFromCite || matchedLawClean;
+                                        const showLawName =
+                                          Boolean(rawLawName) &&
+                                          rawLawName.toLowerCase() !==
+                                            (art.official_registry || '').trim().toLowerCase();
+
+                                        return (
+                                          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#26262b]/80 text-[11px] text-[#a1a1aa]">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="px-2 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[#d4d4d8]">
+                                                {periodicityLabel(art.tax_periodicity)}:{' '}
+                                                {formatValidityRange(
+                                                  art.valid_from,
+                                                  art.valid_to,
+                                                  art.legal_status === 'derogado'
+                                                )}
+                                              </span>
+                                              {art.official_registry && (
+                                                <span className="text-[#a1a1aa]">
+                                                  Fuente: {art.official_registry}
+                                                </span>
+                                              )}
+                                              {showLawName && (
+                                                <>
+                                                  {art.official_registry && (
+                                                    <span className="text-[#52525b]">•</span>
+                                                  )}
+                                                  <span className="text-[#d4d4d8] font-medium">
+                                                    {art.legal_status === 'vigente_reformado' ||
+                                                    art.legal_status === 'derogado'
+                                                      ? 'Ley modificatoria: '
+                                                      : 'Norma: '}
+                                                    {rawLawName}
+                                                  </span>
+                                                </>
+                                              )}
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  handleCopyCitation(
+                                                    `${art.norms?.code || 'LRTI'} ${art.label}${
+                                                      art.title ? `: ${art.title}` : ''
+                                                    }\n\n${displayContent}`
+                                                  )
+                                                }
+                                                className="px-2 py-1 rounded bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#d4d4d8] flex items-center gap-1 cursor-pointer"
+                                              >
+                                                <Copy className="w-3 h-3" />
+                                                <span>Copiar texto</span>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleOpenReportModal(art)}
+                                                className="px-2 py-1 rounded bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#a1a1aa] hover:text-[#f4f4f5] flex items-center gap-1 cursor-pointer"
+                                              >
+                                                <Flag className="w-3 h-3" />
+                                                <span>Reportar observación</span>
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })()}
+
+                                    {/* Texto normativo vigente del artículo */}
+                                    <div className="text-sm text-[#e4e4e7] leading-relaxed space-y-3 w-full text-justify">
+                                      {renderMarkdownContent(displayContent)}
+                                    </div>
+                                  </div>
+                                )}
+                              </article>
+                            );
+                          })}
+                        </div>
+                      );
                     })()
                   )}
                 </main>

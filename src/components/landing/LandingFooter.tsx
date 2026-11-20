@@ -4,9 +4,10 @@ import { MessageCircle, ShieldCheck } from 'lucide-react';
 
 interface LandingFooterProps {
   isDark: boolean;
+  onEnterLibrary?: () => void;
 }
 
-export const LandingFooter: React.FC<LandingFooterProps> = ({ isDark }) => {
+export const LandingFooter: React.FC<LandingFooterProps> = ({ isDark, onEnterLibrary }) => {
   return (
     <footer
       className={`border-t py-14 px-4 sm:px-6 lg:px-8 transition-colors ${
@@ -18,7 +19,12 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ isDark }) => {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
         {/* Columna 1: Marca y Propuesta */}
         <div className="space-y-4 md:col-span-1">
-          <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => onEnterLibrary && onEnterLibrary()}
+            title="Ir al inicio de la Biblioteca Normativa"
+            className="flex items-center gap-2.5 cursor-pointer text-left"
+          >
             <div
               className={`flex items-center justify-center p-1 rounded-lg border ${
                 isDark ? 'bg-[#151518] border-[#26262b]' : 'bg-white border-[#d4d4d8]'
@@ -31,9 +37,9 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ isDark }) => {
                 isDark ? 'text-[#f4f4f5]' : 'text-[#09090b]'
               }`}
             >
-              SmartLex<span className={isDark ? 'text-[#a1a1aa]' : 'text-[#52525b]'}>EC</span>
+              SmartLex<span className="text-[#3ECF8E]">EC</span>
             </span>
-          </div>
+          </button>
           <p className="text-xs leading-relaxed">
             Ecosistema de integración normativa para asistentes, contadores y juristas en Ecuador. Estructura unificada con trazabilidad histórica de reformas.
           </p>

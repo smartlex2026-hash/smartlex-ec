@@ -13,6 +13,7 @@ interface LandingPageProps {
   onSelectPlan: (planCode: 'free' | 'premium' | 'professional') => void;
   isDark?: boolean;
   onToggleTheme?: () => void;
+  onEnterLibrary?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -20,7 +21,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenLogin,
   onSelectPlan,
   isDark = false,
-  onToggleTheme = () => {}
+  onToggleTheme = () => {},
+  onEnterLibrary
 }) => {
   const scrollToShowcase = () => {
     const el = document.getElementById('integracion');
@@ -46,6 +48,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         onOpenLogin={onOpenLogin}
         isDark={isDark}
         onToggleTheme={onToggleTheme}
+        onEnterLibrary={onEnterLibrary}
       />
 
       {/* 3. Área Hero principal */}
@@ -67,7 +70,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </main>
 
       {/* 7. Pie de Página */}
-      <LandingFooter isDark={isDark} />
+      <LandingFooter isDark={isDark} onEnterLibrary={onEnterLibrary} />
     </div>
   );
 };

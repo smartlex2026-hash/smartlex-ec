@@ -28,8 +28,8 @@ html.theme-dark body {
 
 /* Custom sleek minimalist scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -37,8 +37,9 @@ html.theme-dark body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4d4d8;
-  border-radius: 4px;
+  background: #c4c4cc;
+  border-radius: 5px;
+  border: 2px solid #f4f4f5;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -46,71 +47,130 @@ html.theme-dark body {
 }
 
 html.theme-dark ::-webkit-scrollbar-track {
-  background: #0d0d0f;
+  background: #121215;
 }
 
 html.theme-dark ::-webkit-scrollbar-thumb {
-  background: #26262b;
-  border-radius: 4px;
+  background: #3f3f46;
+  border-radius: 5px;
+  border: 2px solid #121215;
 }
 
 html.theme-dark ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: #52525b;
 }
 
 /* Automatic Light Mode adaptation for Portal monochromatic classes when html.theme-light is active */
-html.theme-light .bg-\[\#0d0d0f\] {
+html.theme-light .bg-\[\#0d0d0f\],
+html.theme-light .bg-\[\#302E2B\] {
   background-color: #fafafa !important;
 }
 
 html.theme-light .bg-\[\#121215\],
-html.theme-light .bg-\[\#121215\]\/70 {
+html.theme-light .bg-\[\#121215\]\/70,
+html.theme-light .bg-\[\#21201D\],
+html.theme-light .bg-\[\#262522\] {
   background-color: #ffffff !important;
 }
 
 html.theme-light .bg-\[\#151518\],
-html.theme-light .bg-\[\#151518\]\/95 {
+html.theme-light .bg-\[\#151518\]\/95,
+html.theme-light .bg-\[\#151518\]\/70,
+html.theme-light .bg-\[\#151518\]\/60,
+html.theme-light .bg-\[\#16161a\],
+html.theme-light .bg-\[\#1a1a1f\],
+html.theme-light .bg-\[\#1B1A17\],
+html.theme-light .bg-\[\#1C1B18\] {
   background-color: #f4f4f5 !important;
 }
 
 html.theme-light .bg-\[\#18181c\],
-html.theme-light .bg-\[\#1c1c21\] {
+html.theme-light .bg-\[\#1c1c21\],
+html.theme-light .bg-\[\#27272d\],
+html.theme-light .bg-\[\#2A2926\] {
   background-color: #f4f4f5 !important;
 }
 
-html.theme-light .bg-\[\#26262b\] {
+html.theme-light .bg-\[\#26262b\],
+html.theme-light .bg-\[\#32323a\],
+html.theme-light .bg-\[\#35332F\],
+html.theme-light .bg-\[\#383632\] {
   background-color: #e4e4e7 !important;
 }
 
 html.theme-light .text-\[\#f4f4f5\],
-html.theme-light .text-\[\#e4e4e7\] {
-  color: #09090b !important;
+html.theme-light .text-\[\#e4e4e7\],
+html.theme-light .text-\[\#DFDFDE\],
+html.theme-light .text-\[\#E5E3DF\] {
+  color: #000000 !important;
 }
 
-html.theme-light .text-\[\#d4d4d8\] {
-  color: #27272a !important;
+html.theme-light .text-\[\#d4d4d8\],
+html.theme-light .text-\[\#BAB8B5\] {
+  color: #111113 !important;
 }
 
 html.theme-light .text-\[\#a1a1aa\],
-html.theme-light .text-\[\#71717a\] {
-  color: #52525b !important;
+html.theme-light .text-\[\#71717a\],
+html.theme-light .text-\[\#9E9C98\] {
+  color: #3f3f46 !important;
 }
 
 html.theme-light .border-\[\#26262b\],
 html.theme-light .border-\[\#26262b\]\/60,
 html.theme-light .border-\[\#26262b\]\/80,
 html.theme-light .border-\[\#2e2e36\],
-html.theme-light .border-\[\#3f3f46\] {
+html.theme-light .border-\[\#3f3f46\],
+html.theme-light .border-\[\#3C3A36\],
+html.theme-light .border-\[\#3C3A36\]\/60 {
   border-color: #e4e4e7 !important;
 }
 
-html.theme-light .divide-\[\#26262b\] > :not([hidden]) ~ :not([hidden]) {
+html.theme-light .divide-\[\#26262b\] > :not([hidden]) ~ :not([hidden]),
+html.theme-light .divide-\[\#3C3A36\] > :not([hidden]) ~ :not([hidden]) {
   border-color: #e4e4e7 !important;
+}
+
+/* Efectos hover delicados y suaves en Modo Claro (evita que los botones se oscurezcan a negro) */
+html.theme-light .hover\:bg-\[\#151518\]:hover,
+html.theme-light .hover\:bg-\[\#18181c\]:hover,
+html.theme-light .hover\:bg-\[\#1a1a1f\]:hover,
+html.theme-light .hover\:bg-\[\#1c1c21\]:hover,
+html.theme-light .hover\:bg-\[\#262522\]:hover,
+html.theme-light .hover\:bg-\[\#302E2B\]:hover {
+  background-color: #eef0f4 !important;
+}
+
+html.theme-light .hover\:bg-\[\#26262b\]:hover,
+html.theme-light .hover\:bg-\[\#32323a\]:hover,
+html.theme-light .hover\:bg-\[\#35332F\]:hover,
+html.theme-light .hover\:bg-\[\#383632\]:hover,
+html.theme-light .hover\:bg-\[\#3C3A36\]:hover,
+html.theme-light .hover\:bg-\[\#3C3A36\]\/60:hover {
+  background-color: #e4e7ec !important;
+}
+
+html.theme-light .hover\:text-\[\#f4f4f5\]:hover,
+html.theme-light .hover\:text-\[\#e4e4e7\]:hover,
+html.theme-light .hover\:text-\[\#d4d4d8\]:hover,
+html.theme-light .hover\:text-white:hover,
+html.theme-light .group:hover .group-hover\:text-white {
+  color: #000000 !important;
+}
+
+html.theme-light .hover\:border-\[\#3f3f46\]:hover,
+html.theme-light .hover\:border-\[\#52525b\]:hover {
+  border-color: #cbd5e1 !important;
 }
 
 /* Primary inverted buttons in Light Mode keep high contrast */
 html.theme-light .bg-\[\#f4f4f5\].text-\[\#0d0d0f\] {
   background-color: #18181b !important;
+  color: #ffffff !important;
+}
+
+html.theme-light .bg-\[\#f4f4f5\].text-\[\#0d0d0f\]:hover {
+  background-color: #27272a !important;
   color: #ffffff !important;
 }
 

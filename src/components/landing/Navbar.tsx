@@ -7,13 +7,15 @@ interface NavbarProps {
   onOpenLogin: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  onEnterLibrary?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenRegister,
   onOpenLogin,
   isDark,
-  onToggleTheme
+  onToggleTheme,
+  onEnterLibrary
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -26,10 +28,18 @@ export const Navbar: React.FC<NavbarProps> = ({
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Logotipo */}
-        <div
-          className="flex items-center gap-3 cursor-pointer group"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        {/* Logotipo (clic para ir directo a la Biblioteca) */}
+        <button
+          type="button"
+          title="Ir al inicio de la Biblioteca Normativa"
+          className="flex items-center gap-3 cursor-pointer group text-left"
+          onClick={() => {
+            if (onEnterLibrary) {
+              onEnterLibrary();
+            } else {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
         >
           <div
             className={`relative flex items-center justify-center p-1.5 rounded-xl border transition-all duration-200 ${
@@ -63,7 +73,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               Ecosistema de Integración Legal
             </p>
           </div>
-        </div>
+        </button>
 
         {/* Enlaces de escritorio */}
         <nav className="hidden md:flex items-center gap-8">
