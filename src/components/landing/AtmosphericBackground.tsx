@@ -6,33 +6,24 @@ interface AtmosphericBackgroundProps {
 
 export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ isDark }) => {
   return (
-    <div
-      className={`fixed inset-0 pointer-events-none -z-20 overflow-hidden transition-colors duration-300 ${
-        isDark ? 'bg-[#0d0d0f]' : 'bg-[#fafafa]'
-      }`}
-    >
-      {/* Malla geométrica minimalista monocromática */}
+    <div className="fixed inset-0 pointer-events-none -z-20 overflow-hidden transition-colors duration-300 bg-[var(--color-fondo)]">
+      {/* Cuadrícula arquitectónica muy tenue en la franja superior */}
       <div
-        className={`absolute inset-0 bg-[size:36px_36px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_65%,transparent_100%)] ${
+        className={`absolute inset-0 bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_55%_at_50%_0%,#000_60%,transparent_100%)] ${
           isDark
-            ? 'bg-[linear-gradient(to_right,#ffffff06_1px,transparent_1px),linear-gradient(to_bottom,#ffffff06_1px,transparent_1px)] opacity-80'
-            : 'bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] opacity-70'
+            ? 'bg-[linear-gradient(to_right,rgba(243,244,246,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(243,244,246,0.035)_1px,transparent_1px)]'
+            : 'bg-[linear-gradient(to_right,rgba(42,45,51,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(42,45,51,0.04)_1px,transparent_1px)]'
         }`}
       />
 
-      {/* Luz cenital monocromática sutil */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 -z-10 w-[1000px] max-w-[120vw] h-[460px] pointer-events-none">
+      {/* Matiz cenital discreto acorde a la paleta plomo y esmeralda */}
+      <div className="absolute top-0 inset-x-0 h-[380px] pointer-events-none">
         <div
-          className={`absolute inset-0 blur-[120px] rounded-full transform -translate-y-1/3 ${
+          className={`mx-auto max-w-5xl h-full blur-[110px] transform -translate-y-1/2 rounded-full ${
             isDark
-              ? 'bg-gradient-to-b from-white/[0.05] via-zinc-500/[0.03] to-transparent'
-              : 'bg-gradient-to-b from-zinc-300/40 via-zinc-200/20 to-transparent'
+              ? 'bg-[radial-gradient(ellipse_at_top,rgba(52,211,153,0.08),rgba(42,45,51,0.18)_55%,transparent_80%)]'
+              : 'bg-[radial-gradient(ellipse_at_top,rgba(4,120,87,0.05),rgba(220,224,230,0.35)_55%,transparent_80%)]'
           }`}
-        />
-        <div
-          className={`absolute top-0 left-1/2 -translate-x-1/2 w-3/5 h-[1px] bg-gradient-to-r from-transparent ${
-            isDark ? 'via-white/20' : 'via-zinc-400/40'
-          } to-transparent`}
         />
       </div>
     </div>

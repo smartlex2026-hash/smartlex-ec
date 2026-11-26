@@ -6,8 +6,9 @@ SUPABASEPASS.txt
 *.pem
 *.key
 
-# Archivos comprimidos pesados de diseño
+# Archivos comprimidos pesados de diseño y normativa local (PDFs)
 stitch_legal_tax.zip
+docs_normativa/
 
 # Dependencias y compilación
 node_modules/

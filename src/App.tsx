@@ -48,7 +48,10 @@ import {
   AlertCircle,
   Sun,
   Moon,
-  Star
+  Star,
+  Menu,
+  SlidersHorizontal,
+  LogOut
 } from 'lucide-react';
 
 // ============================================================================
@@ -114,7 +117,20 @@ interface NormStructure {
   is_fe_erratas_replaced?: boolean;
   validity_display_label?: string | null;
   manual_validity_override?: boolean;
+  // Jerarquía de sub-elementos (literal / numeral / párrafo) y control de diff
+  sub_kind?: string | null;
+  sub_code?: string | null;
+  display_marker?: string | null;
+  article_identifier?: string | null;
+  changed_in_this_version?: boolean;
+  superseded_duplicate?: boolean;
+  obsolete_subelement?: boolean;
+  table_diff_mode?: string | null;
 }
+
+const SUB_ELEMENT_TYPES = new Set(['literal', 'numeral', 'paragraph', 'item']);
+const isSubElementType = (structureType?: string | null): boolean =>
+  Boolean(structureType && SUB_ELEMENT_TYPES.has(structureType));
 
 // ============================================================================
 // VIGENCIA TRIBUTARIA (ART. 11 CÓDIGO TRIBUTARIO)
@@ -174,6 +190,14 @@ interface NormativeTable {
   columns_schema: Array<{ key: string; label: string; type: string }>;
   rows_data: Array<Record<string, any>>;
   notes: string | null;
+  is_active?: boolean;
+  article_structure_id?: string | null;
+  sub_identifier?: string | null;
+  table_diff_mode?: string | null;
+  emitter_norm_id?: string | null;
+  emitter_norm_code?: string | null;
+  emitter_norm_title?: string | null;
+  emitter_structure_id?: string | null;
 }
 
 // ============================================================================
@@ -194,9 +218,9 @@ export const LegalStatusButton: React.FC<{
     return (
       <span
         title="Artículo vigente sin reformas posteriores"
-        className={`inline-flex items-center font-semibold tracking-wide bg-[#151518] border border-[#26262b] text-[#e4e4e7] select-none ${sizeClasses}`}
+        className={`inline-flex items-center font-semibold tracking-wide bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[var(--color-texto)] select-none ${sizeClasses}`}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-[#3ECF8E] shadow-[0_0_6px_rgba(62,207,142,0.85)] shrink-0" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-secundario)] shadow-[0_0_6px_rgba(62,207,142,0.85)] shrink-0" />
         <span>Vigente</span>
       </span>
     );
@@ -206,12 +230,12 @@ export const LegalStatusButton: React.FC<{
     return (
       <span
         title="Artículo vigente con reformas históricas registradas"
-        className={`inline-flex items-center font-semibold tracking-wide bg-[#151518] border border-[#2e2e36] text-[#d4d4d8] select-none ${sizeClasses}`}
+        className={`inline-flex items-center font-semibold tracking-wide bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[var(--color-texto)] select-none ${sizeClasses}`}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-[#3ECF8E] shadow-[0_0_6px_rgba(62,207,142,0.85)] shrink-0" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-secundario)] shadow-[0_0_6px_rgba(62,207,142,0.85)] shrink-0" />
         <span>Vigente</span>
-        <span className="text-[#52525b]">·</span>
-        <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] shadow-[0_0_6px_rgba(245,158,11,0.85)] shrink-0" />
+        <span className="text-[var(--color-texto-secundario)]">·</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-aviso)] shadow-[0_0_6px_rgba(245,158,11,0.85)] shrink-0" />
         <span>Reformado</span>
       </span>
     );
@@ -220,9 +244,9 @@ export const LegalStatusButton: React.FC<{
   return (
     <span
       title="Disposición derogada expresamente"
-      className={`inline-flex items-center font-semibold tracking-wide bg-[#121215] border border-[#26262b] text-[#71717a] select-none ${sizeClasses}`}
+      className={`inline-flex items-center font-semibold tracking-wide bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[var(--color-texto-secundario)] select-none ${sizeClasses}`}
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] shadow-[0_0_6px_rgba(239,68,68,0.85)] shrink-0" />
+      <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-error)] shadow-[0_0_6px_rgba(239,68,68,0.85)] shrink-0" />
       <span>Derogado</span>
     </span>
   );
@@ -259,7 +283,7 @@ export const AdminValidityEditor: React.FC<{
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className={`inline-flex items-center gap-1 rounded-md border border-[#F7C631]/40 bg-[#241F14] hover:bg-[#30291A] text-[#F7C631] font-bold transition cursor-pointer ${
+        className={`inline-flex items-center gap-1 rounded-md border border-[var(--color-aviso-borde)] bg-[var(--color-aviso-fondo)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-aviso)] font-bold transition cursor-pointer ${
           compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-0.5 text-[11px]'
         }`}
         title="Editar fechas de vigencia manualmente (Administrador)"
@@ -271,23 +295,23 @@ export const AdminValidityEditor: React.FC<{
   }
 
   return (
-    <div className="mt-1.5 w-full rounded-lg border border-[#F7C631]/45 bg-[#1B1A17] p-2 flex flex-wrap items-end gap-2 text-[10px]">
+    <div className="mt-1.5 w-full rounded-lg border border-[var(--color-aviso-borde)] bg-[var(--color-superficie-secundaria)] p-2 flex flex-wrap items-end gap-2 text-[10px]">
       <div>
-        <label className="block text-[#9E9C98] font-semibold mb-0.5">Desde</label>
+        <label className="block text-[var(--color-texto-secundario)] font-semibold mb-0.5">Desde</label>
         <input
           type="date"
           value={fromVal}
           onChange={e => setFromVal(e.target.value)}
-          className="bg-[#262522] border border-[#3C3A36] rounded px-1.5 py-0.5 text-white font-mono focus:outline-none focus:border-[#3ECF8E]"
+          className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded px-1.5 py-0.5 text-[var(--color-texto)] font-mono focus:outline-none focus:border-[var(--color-secundario)]"
         />
       </div>
       <div>
-        <label className="block text-[#9E9C98] font-semibold mb-0.5">Hasta (vacío = Presente)</label>
+        <label className="block text-[var(--color-texto-secundario)] font-semibold mb-0.5">Hasta (vacío = Presente)</label>
         <input
           type="date"
           value={toVal}
           onChange={e => setToVal(e.target.value)}
-          className="bg-[#262522] border border-[#3C3A36] rounded px-1.5 py-0.5 text-white font-mono focus:outline-none focus:border-[#3ECF8E]"
+          className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded px-1.5 py-0.5 text-[var(--color-texto)] font-mono focus:outline-none focus:border-[var(--color-secundario)]"
         />
       </div>
       <div className="flex items-center gap-1.5">
@@ -295,7 +319,7 @@ export const AdminValidityEditor: React.FC<{
           <button
             type="button"
             onClick={() => setToVal('')}
-            className="px-2 py-1 rounded bg-[#2A2926] hover:bg-[#383632] text-[#BAB8B5] border border-[#3C3A36] font-semibold cursor-pointer"
+            className="px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)] font-semibold cursor-pointer"
           >
             Sin fin
           </button>
@@ -309,7 +333,7 @@ export const AdminValidityEditor: React.FC<{
             setSaving(false);
             if (ok) setEditing(false);
           }}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#3ECF8E] hover:bg-[#34b87c] text-[#06140d] disabled:opacity-60 text-white font-bold cursor-pointer"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] disabled:opacity-60 font-bold cursor-pointer"
         >
           <Check className="w-3 h-3" />
           <span>{saving ? 'Guardando...' : 'Guardar'}</span>
@@ -322,7 +346,7 @@ export const AdminValidityEditor: React.FC<{
             setToVal(initialTo || '');
             setEditing(false);
           }}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#2A2926] hover:bg-[#383632] text-[#BAB8B5] border border-[#3C3A36] font-semibold cursor-pointer"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)] font-semibold cursor-pointer"
         >
           <X className="w-3 h-3" />
           <span>Cancelar</span>
@@ -335,9 +359,34 @@ export const AdminValidityEditor: React.FC<{
 // ============================================================================
 // AUTO-FORMATEADOR DE TABLAS TRIBUTARIAS EN TEXTO PLANO
 // ============================================================================
+const normalizeLoosePipeTables = (text: string): string => {
+  if (!text || !text.includes('|')) return text;
+  const rawLines = text.split('\n');
+  const hasPipe = (s: string) => {
+    const t = s.trim();
+    return t.includes('|') && !t.startsWith('//');
+  };
+  return rawLines
+    .map((line, idx) => {
+      const t = line.trim();
+      if (!t.includes('|')) return line;
+      const isSeparator = /^\|?[\s\-:]+(?:\|[\s\-:]+)+\|?$/.test(t);
+      const prevHasPipe = idx > 0 && hasPipe(rawLines[idx - 1]);
+      const nextHasPipe = idx < rawLines.length - 1 && hasPipe(rawLines[idx + 1]);
+      if (isSeparator || prevHasPipe || nextHasPipe) {
+        let normalized = t;
+        if (!normalized.startsWith('|')) normalized = `| ${normalized}`;
+        if (!normalized.endsWith('|')) normalized = `${normalized} |`;
+        return normalized;
+      }
+      return line;
+    })
+    .join('\n');
+};
+
 const autoFormatRawTables = (text: string): string => {
   if (!text) return '';
-  const lines = text.split('\n');
+  const lines = normalizeLoosePipeTables(text).split('\n');
   const result: string[] = [];
   let inRawTable = false;
   let rawTableRows: string[][] = [];
@@ -431,6 +480,94 @@ const unwrapLegalParagraphLines = (rawLines: string[]): string[] => {
   return paragraphs;
 };
 
+const getAdaptiveCellClass = (text: unknown, isHeader = false) => {
+  const str = String(text ?? '').trim();
+  if (isHeader) {
+    return str.length > 26
+      ? 'min-w-[130px] max-w-[260px] whitespace-normal break-words leading-snug'
+      : 'whitespace-nowrap';
+  }
+  if (str.length > 48) {
+    return 'min-w-[180px] max-w-[340px] whitespace-normal break-words leading-relaxed';
+  }
+  if (str.length > 28) {
+    return 'min-w-[130px] max-w-[240px] whitespace-normal break-words leading-snug';
+  }
+  return 'whitespace-nowrap';
+};
+
+const CollapsibleMarkdownTable: React.FC<{
+  headers: string[];
+  rows: string[][];
+  caption?: string;
+  defaultOpen?: boolean;
+}> = ({ headers, rows, caption, defaultOpen = true }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const cleanCaption = caption ? caption.replace(/^\*\*|\*\*$/g, '').trim() : '';
+
+  return (
+    <div className="my-3.5 w-full flex justify-center">
+      <div className="w-fit max-w-full rounded-xl border border-[var(--color-borde)] bg-[var(--color-superficie)] shadow-md overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)]">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-[var(--color-primario)]/15 text-[var(--color-primario)] text-[10px] font-bold uppercase tracking-wider shrink-0">
+              Tabla
+            </span>
+            <span className="text-[11px] font-bold text-[var(--color-texto)] truncate max-w-[420px]">
+              {cleanCaption || `${rows.length} ${rows.length === 1 ? 'fila' : 'filas'} · ${headers.length} col.`}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsOpen(prev => !prev)}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-[var(--color-primario)] hover:bg-[var(--color-primario)]/10 transition shrink-0 cursor-pointer"
+            title={isOpen ? 'Colapsar tabla' : 'Desplegar tabla'}
+          >
+            <span>{isOpen ? 'Colapsar' : 'Desplegar'}</span>
+            <svg
+              className={`w-3.5 h-3.5 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        </div>
+        {isOpen && (
+          <div className="overflow-x-auto max-w-full">
+            <table className="w-auto max-w-full text-left text-xs">
+              {headers.length > 0 && (
+                <thead className="bg-[var(--color-superficie-secundaria)]/70 text-[var(--color-secundario)] uppercase text-[11px] font-extrabold border-b border-[var(--color-borde)]">
+                  <tr>
+                    {headers.map((h, i) => (
+                      <th key={i} className={`py-2.5 px-3 ${getAdaptiveCellClass(h, true)}`}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+              )}
+              <tbody className="divide-y divide-[var(--color-borde)] bg-[var(--color-superficie)]">
+                {rows.map((row, rIdx) => (
+                  <tr key={rIdx} className="hover:bg-[var(--color-superficie-hover)] transition">
+                    {row.map((cell, cIdx) => (
+                      <td key={cIdx} className={`py-2 px-3 text-[var(--color-texto)] font-medium ${getAdaptiveCellClass(cell)}`}>
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const renderMarkdownContent = (content: string) => {
   if (!content) return null;
 
@@ -440,6 +577,7 @@ const renderMarkdownContent = (content: string) => {
   let inTable = false;
   let tableHeader: string[] = [];
   let tableRows: string[][] = [];
+  let tableCaption = '';
   let currentParagraphLines: string[] = [];
 
   const flushParagraph = () => {
@@ -450,7 +588,7 @@ const renderMarkdownContent = (content: string) => {
           elements.push(
             <p
               key={`p-${elements.length}`}
-              className="text-xs sm:text-[13px] leading-relaxed text-[#DFDFDE] mb-2.5 text-justify w-full"
+              className="text-xs sm:text-[13px] leading-relaxed text-[var(--color-texto)] mb-2.5 text-justify w-full"
             >
               {paraText}
             </p>
@@ -464,40 +602,44 @@ const renderMarkdownContent = (content: string) => {
   const flushTable = () => {
     if (inTable && (tableHeader.length > 0 || tableRows.length > 0)) {
       elements.push(
-        <div key={`tbl-${elements.length}`} className="overflow-x-auto my-3 rounded-xl border border-[#3C3A36] bg-[#21201D] shadow-md">
-          <table className="w-full text-left text-xs">
-            {tableHeader.length > 0 && (
-              <thead className="bg-[#1B1A17] text-[#3ECF8E] uppercase text-[11px] font-extrabold border-b border-[#3C3A36]">
-                <tr>
-                  {tableHeader.map((h, i) => (
-                    <th key={i} className="py-2.5 px-3 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-            )}
-            <tbody className="divide-y divide-[#3C3A36] bg-[#262522]">
-              {tableRows.map((row, rIdx) => (
-                <tr key={rIdx} className="hover:bg-[#302E2B] transition">
-                  {row.map((cell, cIdx) => (
-                    <td key={cIdx} className="py-2 px-3 text-[#DFDFDE] font-medium whitespace-nowrap">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CollapsibleMarkdownTable
+          key={`tbl-${elements.length}`}
+          headers={tableHeader}
+          rows={tableRows}
+          caption={tableCaption || undefined}
+          defaultOpen={true}
+        />
       );
       inTable = false;
       tableHeader = [];
       tableRows = [];
+      tableCaption = '';
     }
   };
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (line.startsWith('|') && line.endsWith('|')) {
+      if (!inTable) {
+        // Si la última línea no vacía antes de la tabla es un título corto en negrita o rótulo de tabla, úsala como título colapsable
+        while (
+          currentParagraphLines.length > 0 &&
+          currentParagraphLines[currentParagraphLines.length - 1].trim() === ''
+        ) {
+          currentParagraphLines.pop();
+        }
+        if (currentParagraphLines.length > 0) {
+          const candidate = currentParagraphLines[currentParagraphLines.length - 1].trim();
+          const isTableTitle =
+            candidate.length <= 160 &&
+            ((candidate.startsWith('**') && candidate.endsWith('**')) ||
+              /^(TABLA|CUADRO|ANEXO)\b/i.test(candidate));
+          if (isTableTitle) {
+            tableCaption = candidate.replace(/^\*\*|\*\*$/g, '').trim();
+            currentParagraphLines.pop();
+          }
+        }
+      }
       flushParagraph();
       if (/^\|[\s\-:|]+\|$/.test(line)) {
         continue;
@@ -526,9 +668,16 @@ const renderMarkdownContent = (content: string) => {
 // ============================================================================
 // COMPARADOR DIFERENCIAL ENTRE VERSIONES ADYACENTES (v_k vs v_{k-1})
 // ============================================================================
+interface ParsedTableData {
+  header: string[];
+  rows: string[][];
+}
+
 interface ParsedDocStructure {
   paragraphs: string[];
-  tables: { header: string[]; rows: string[][] }[];
+  tables: ParsedTableData[];
+  /** Fragmentos de texto intercalados antes/entre/después de cada tabla: textChunks.length === tables.length + 1 */
+  textChunks: string[];
   notes: string[];
 }
 
@@ -536,13 +685,15 @@ const parseDocForDiff = (rawContent: string): ParsedDocStructure => {
   const formatted = autoFormatRawTables(rawContent || '');
   const lines = formatted.split('\n');
   const paragraphs: string[] = [];
-  const tables: { header: string[]; rows: string[][] }[] = [];
+  const tables: ParsedTableData[] = [];
+  const textChunks: string[] = [];
   const notes: string[] = [];
 
   let inTable = false;
   let tableHeader: string[] = [];
   let tableRows: string[][] = [];
   let currentPara: string[] = [];
+  let currentChunkParas: string[] = [];
 
   const flushPara = () => {
     if (currentPara.length > 0) {
@@ -553,6 +704,7 @@ const parseDocForDiff = (rawContent: string): ParsedDocStructure => {
             notes.push(text);
           } else {
             paragraphs.push(text);
+            currentChunkParas.push(text);
           }
         }
       }
@@ -562,6 +714,8 @@ const parseDocForDiff = (rawContent: string): ParsedDocStructure => {
 
   const flushTbl = () => {
     if (inTable && (tableHeader.length > 0 || tableRows.length > 0)) {
+      textChunks.push(currentChunkParas.join('\n\n'));
+      currentChunkParas = [];
       tables.push({ header: tableHeader, rows: tableRows });
       inTable = false;
       tableHeader = [];
@@ -599,8 +753,9 @@ const parseDocForDiff = (rawContent: string): ParsedDocStructure => {
   }
   flushTbl();
   flushPara();
+  textChunks.push(currentChunkParas.join('\n\n'));
 
-  return { paragraphs, tables, notes };
+  return { paragraphs, tables, textChunks, notes };
 };
 
 type DiffSegment = { type: 'equal' | 'added' | 'removed'; text: string };
@@ -689,7 +844,240 @@ const computeWordDiff = (oldText: string, newText: string): DiffSegment[] => {
   return merged;
 };
 
-const renderDiffMarkdownContent = (currentContent: string, previousContent?: string | null) => {
+const renderWordDiffBlock = (oldText: string, newText: string, keyPrefix: string) => {
+  if (!oldText && !newText) return null;
+  const bodySegments = computeWordDiff(oldText || '', newText || '');
+  return (
+    <div key={keyPrefix} className="text-xs leading-relaxed text-[var(--color-texto)] whitespace-pre-line text-justify w-full">
+      {bodySegments.map((seg, idx) => {
+        if (seg.type === 'equal') {
+          return <React.Fragment key={idx}>{seg.text}</React.Fragment>;
+        }
+        if (seg.type === 'removed') {
+          return (
+            <span
+              key={idx}
+              className="text-[var(--color-error)] line-through decoration-[var(--color-error)] decoration-1 mx-0.5"
+              title="Texto eliminado respecto a la versión inmediata anterior"
+            >
+              {seg.text}
+            </span>
+          );
+        }
+        return (
+          <span
+            key={idx}
+            className="text-[var(--color-exito)] mx-0.5"
+            title="Texto incrementado respecto a la versión inmediata anterior"
+          >
+            {seg.text}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
+const renderSolidColoredTable = (
+  tbl: ParsedTableData,
+  tone: 'removed' | 'added' | 'neutral',
+  badgeLabel: string | null,
+  key: string
+) => {
+  const borderClass =
+    tone === 'removed'
+      ? 'border-[var(--color-error-borde)]'
+      : tone === 'added'
+        ? 'border-[var(--color-exito-borde)]'
+        : 'border-[var(--color-borde)]';
+  const headTextClass =
+    tone === 'removed'
+      ? 'text-[var(--color-error)]'
+      : tone === 'added'
+        ? 'text-[var(--color-exito)]'
+        : 'text-[var(--color-secundario)]';
+  const cellTextClass =
+    tone === 'removed'
+      ? 'text-[var(--color-error)]'
+      : tone === 'added'
+        ? 'text-[var(--color-exito)]'
+        : 'text-[var(--color-texto)]';
+  const badgeClass =
+    tone === 'removed'
+      ? 'bg-[var(--color-error-fondo)] text-[var(--color-error)] border-b border-[var(--color-error-borde)]'
+      : tone === 'added'
+        ? 'bg-[var(--color-exito-fondo)] text-[var(--color-exito)] border-b border-[var(--color-exito-borde)]'
+        : 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border-b border-[var(--color-borde)]';
+
+  return (
+    <div key={key} className="my-2.5 w-full flex justify-center">
+      <div className={`w-fit max-w-full overflow-x-auto rounded-xl border ${borderClass} bg-[var(--color-superficie)] shadow-md`}>
+        {badgeLabel && (
+          <div className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${badgeClass}`}>
+            {badgeLabel}
+          </div>
+        )}
+        <table className="w-auto max-w-full text-left text-xs">
+        {tbl.header.length > 0 && (
+          <thead className={`bg-[var(--color-superficie-secundaria)] ${headTextClass} uppercase text-[11px] font-extrabold border-b border-[var(--color-borde)]`}>
+            <tr>
+              {tbl.header.map((h, i) => (
+                <th key={i} className={`py-2 px-3 ${getAdaptiveCellClass(h, true)}`}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+        )}
+        <tbody className="divide-y divide-[var(--color-borde)] bg-[var(--color-superficie)]">
+          {tbl.rows.map((row, rIdx) => (
+            <tr key={rIdx} className="hover:bg-[var(--color-superficie-hover)] transition">
+              {row.map((cell, cIdx) => (
+                <td key={cIdx} className={`py-2 px-3 ${cellTextClass} font-medium ${getAdaptiveCellClass(cell)}`}>
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const renderTableDiffBlock = (
+  currTbl: ParsedTableData | undefined,
+  prevTbl: ParsedTableData | undefined,
+  key: string,
+  forcedFullReplace = false
+) => {
+  if (!currTbl && prevTbl) {
+    return renderSolidColoredTable(prevTbl, 'removed', 'Tabla anterior eliminada / derogada', `${key}-removed`);
+  }
+  if (currTbl && !prevTbl) {
+    return renderSolidColoredTable(currTbl, 'added', 'Nueva tabla incorporada en esta versión', `${key}-added`);
+  }
+  if (!currTbl || !prevTbl) return null;
+
+  // Comprobar si la tabla es 100% idéntica
+  const sameHeader =
+    currTbl.header.length === prevTbl.header.length &&
+    currTbl.header.every((h, idx) => h.trim() === (prevTbl.header[idx] || '').trim());
+  const sameRows =
+    currTbl.rows.length === prevTbl.rows.length &&
+    currTbl.rows.every(
+      (row, rIdx) =>
+        row.length === (prevTbl.rows[rIdx]?.length || 0) &&
+        row.every((cell, cIdx) => cell.trim() === (prevTbl.rows[rIdx]?.[cIdx] || '').trim())
+    );
+
+  if (sameHeader && sameRows) {
+    return renderSolidColoredTable(currTbl, 'neutral', null, `${key}-same`);
+  }
+
+  // Evaluar si la reforma sustituye la tabla completa (cambio de estructura/tramos o >= 50% de filas cambiadas)
+  const rowCountChanged = currTbl.rows.length !== prevTbl.rows.length;
+  const colCountChanged = currTbl.header.length !== prevTbl.header.length;
+  let changedRows = 0;
+  const totalRows = Math.max(currTbl.rows.length, prevTbl.rows.length, 1);
+  for (let r = 0; r < totalRows; r++) {
+    const cRow = currTbl.rows[r];
+    const pRow = prevTbl.rows[r];
+    if (!cRow || !pRow || cRow.length !== pRow.length || cRow.some((c, ci) => c.trim() !== (pRow[ci] || '').trim())) {
+      changedRows++;
+    }
+  }
+  const changedRowRatio = changedRows / totalRows;
+  const isFullTableReplace = forcedFullReplace || rowCountChanged || colCountChanged || changedRowRatio >= 0.5;
+
+  if (isFullTableReplace) {
+    return (
+      <div key={key} className="space-y-2 my-3">
+        {renderSolidColoredTable(prevTbl, 'removed', 'Tabla anterior sustituida', `${key}-prev-full`)}
+        {renderSolidColoredTable(currTbl, 'added', 'Nueva tabla vigente en esta versión', `${key}-curr-full`)}
+      </div>
+    );
+  }
+
+  // Cambio puntual en celdas o encabezados: comparación celda a celda (rojo tachado + verde)
+  return (
+    <div key={key} className="my-3 w-full flex justify-center">
+      <div className="w-fit max-w-full overflow-x-auto rounded-xl border border-[var(--color-borde)] bg-[var(--color-superficie)] shadow-md">
+        <table className="w-auto max-w-full text-left text-xs">
+        {currTbl.header.length > 0 && (
+          <thead className="bg-[var(--color-superficie-secundaria)] text-[var(--color-secundario)] uppercase text-[11px] font-extrabold border-b border-[var(--color-borde)]">
+            <tr>
+              {currTbl.header.map((h, i) => {
+                const prevH = prevTbl.header[i];
+                const hChanged = prevH !== undefined && prevH.trim() !== h.trim();
+                return (
+                  <th key={i} className={`py-2.5 px-3 ${getAdaptiveCellClass(h, true)}`}>
+                    {hChanged ? (
+                      <span className="inline-flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[var(--color-error)] line-through decoration-[var(--color-error)] decoration-1 text-[10px]">
+                          {prevH}
+                        </span>
+                        <span className="text-[var(--color-exito)]">{h}</span>
+                      </span>
+                    ) : (
+                      h
+                    )}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+        )}
+        <tbody className="divide-y divide-[var(--color-borde)] bg-[var(--color-superficie)]">
+          {currTbl.rows.map((row, rIdx) => {
+            const prevRow = prevTbl?.rows?.[rIdx];
+            return (
+              <tr key={rIdx} className="hover:bg-[var(--color-superficie-hover)] transition">
+                {row.map((cell, cIdx) => {
+                  const prevCell = prevRow?.[cIdx];
+                  const cellChanged = prevCell !== undefined && prevCell.trim() !== cell.trim();
+                  const rowAdded = !prevRow;
+                  return (
+                    <td key={cIdx} className={`py-2 px-3 text-[var(--color-texto)] font-medium ${getAdaptiveCellClass(cell)}`}>
+                      {cellChanged ? (
+                        <span className="inline-flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className="text-[var(--color-error)] line-through decoration-[var(--color-error)] decoration-1 text-[11px]"
+                            title="Valor eliminado de la versión inmediata anterior"
+                          >
+                            {prevCell}
+                          </span>
+                          <span
+                            className="text-[var(--color-exito)]"
+                            title="Nuevo valor incrementado en esta versión"
+                          >
+                            {cell}
+                          </span>
+                        </span>
+                      ) : rowAdded ? (
+                        <span className="text-[var(--color-exito)]">{cell}</span>
+                      ) : (
+                        cell
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const renderDiffMarkdownContent = (
+  currentContent: string,
+  previousContent?: string | null,
+  tableDiffMode?: string | null
+) => {
   if (!currentContent) return null;
   if (!previousContent || currentContent.trim() === previousContent.trim()) {
     return renderMarkdownContent(currentContent);
@@ -697,107 +1085,44 @@ const renderDiffMarkdownContent = (currentContent: string, previousContent?: str
 
   const currDoc = parseDocForDiff(currentContent);
   const prevDoc = parseDocForDiff(previousContent);
+  const forcedFullReplace = tableDiffMode === 'full_replace';
+  const maxTables = Math.max(currDoc.tables.length, prevDoc.tables.length);
 
-  const oldBody = prevDoc.paragraphs.join('\n\n');
-  const newBody = currDoc.paragraphs.join('\n\n');
-  const bodySegments = computeWordDiff(oldBody, newBody);
+  // Sin tablas en ninguna de las dos versiones: diff de texto directo
+  if (maxTables === 0) {
+    return (
+      <div className="space-y-3">
+        {renderWordDiffBlock(prevDoc.paragraphs.join('\n\n'), currDoc.paragraphs.join('\n\n'), 'body-only')}
+        {currDoc.notes.map((note, nIdx) => (
+          <p key={`note-${nIdx}`} className="text-[11px] leading-relaxed text-[var(--color-texto-secundario)] italic border-t border-[var(--color-borde)] pt-2">
+            {note}
+          </p>
+        ))}
+      </div>
+    );
+  }
+
+  // Con tablas: renderizar cada fragmento de texto y cada tabla en su posición exacta
+  const nodes: React.ReactNode[] = [];
+  for (let i = 0; i <= maxTables; i++) {
+    const currChunk = currDoc.textChunks[i] || '';
+    const prevChunk = prevDoc.textChunks[i] || '';
+    if (currChunk || prevChunk) {
+      nodes.push(renderWordDiffBlock(prevChunk, currChunk, `chunk-${i}`));
+    }
+    if (i < maxTables) {
+      const currTbl = currDoc.tables[i];
+      const prevTbl = prevDoc.tables[i];
+      const tblNode = renderTableDiffBlock(currTbl, prevTbl, `diff-tbl-${i}`, forcedFullReplace);
+      if (tblNode) nodes.push(tblNode);
+    }
+  }
 
   return (
     <div className="space-y-3">
-      {/* Texto normativo con resaltado diferencial respecto a la versión inmediata anterior */}
-      {newBody || oldBody ? (
-        <div className="text-xs leading-relaxed text-[#DFDFDE] whitespace-pre-line text-justify w-full">
-          {bodySegments.map((seg, idx) => {
-            if (seg.type === 'equal') {
-              return <React.Fragment key={idx}>{seg.text}</React.Fragment>;
-            }
-            if (seg.type === 'removed') {
-              return (
-                <span
-                  key={idx}
-                  className="text-[#EF4444] line-through decoration-[#EF4444] decoration-1 mx-0.5"
-                  title="Texto eliminado respecto a la versión inmediata anterior"
-                >
-                  {seg.text}
-                </span>
-              );
-            }
-            return (
-              <span
-                key={idx}
-                className="text-[#15803D] dark:text-[#22C55E] mx-0.5"
-                title="Texto incrementado respecto a la versión inmediata anterior"
-              >
-                {seg.text}
-              </span>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {/* Tablas progresivas con comparación celda a celda frente a la versión inmediata anterior */}
-      {currDoc.tables.map((tbl, tIdx) => {
-        const prevTbl = prevDoc.tables[tIdx];
-        return (
-          <div key={`diff-tbl-${tIdx}`} className="overflow-x-auto my-3 rounded-xl border border-[#3C3A36] bg-[#21201D] shadow-md">
-            <table className="w-full text-left text-xs">
-              {tbl.header.length > 0 && (
-                <thead className="bg-[#1B1A17] text-[#3ECF8E] uppercase text-[11px] font-extrabold border-b border-[#3C3A36]">
-                  <tr>
-                    {tbl.header.map((h, i) => (
-                      <th key={i} className="py-2.5 px-3 whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-              )}
-              <tbody className="divide-y divide-[#3C3A36] bg-[#262522]">
-                {tbl.rows.map((row, rIdx) => {
-                  const prevRow = prevTbl?.rows?.[rIdx];
-                  return (
-                    <tr key={rIdx} className="hover:bg-[#302E2B] transition">
-                      {row.map((cell, cIdx) => {
-                        const prevCell = prevRow?.[cIdx];
-                        const cellChanged = prevTbl && prevCell !== undefined && prevCell.trim() !== cell.trim();
-                        const rowAdded = prevTbl && !prevRow;
-                        return (
-                          <td key={cIdx} className="py-2 px-3 text-[#DFDFDE] font-medium whitespace-nowrap">
-                            {cellChanged ? (
-                              <span className="inline-flex items-center gap-1.5 flex-wrap">
-                                <span
-                                  className="text-[#EF4444] line-through decoration-[#EF4444] decoration-1 text-[11px]"
-                                  title="Valor eliminado de la versión inmediata anterior"
-                                >
-                                  {prevCell}
-                                </span>
-                                <span
-                                  className="text-[#15803D] dark:text-[#22C55E]"
-                                  title="Nuevo valor incrementado en esta versión"
-                                >
-                                  {cell}
-                                </span>
-                              </span>
-                            ) : rowAdded ? (
-                              <span className="text-[#15803D] dark:text-[#22C55E]">
-                                {cell}
-                              </span>
-                            ) : (
-                              cell
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        );
-      })}
-
-      {/* Notas de trazabilidad de la versión */}
+      {nodes}
       {currDoc.notes.map((note, nIdx) => (
-        <p key={`note-${nIdx}`} className="text-[11px] leading-relaxed text-[#9E9C98] italic border-t border-[#3C3A36]/60 pt-2">
+        <p key={`note-${nIdx}`} className="text-[11px] leading-relaxed text-[var(--color-texto-secundario)] italic border-t border-[var(--color-borde)] pt-2">
           {note}
         </p>
       ))}
@@ -809,22 +1134,22 @@ const renderDiffMarkdownContent = (currentContent: string, previousContent?: str
 // CATEGORÍAS TRIBUTARIAS Y ORDENACIÓN NATURAL DE ARTÍCULOS
 // ============================================================================
 const CONCEPT_CATEGORIES: Record<string, { label: string; badgeClass: string }> = {
-  exemption: { label: 'Exoneraciones', badgeClass: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400' },
-  deduction: { label: 'Deducciones', badgeClass: 'bg-purple-500/15 border-purple-500/40 text-purple-400' },
-  tax_base: { label: 'Base Imponible', badgeClass: 'bg-amber-500/15 border-amber-500/40 text-amber-400' },
-  rate: { label: 'Tarifas y Porcentajes', badgeClass: 'bg-yellow-500/15 border-yellow-500/40 text-yellow-400' },
-  withholding: { label: 'Retenciones en la Fuente', badgeClass: 'bg-orange-500/15 border-orange-500/40 text-orange-400' },
-  taxable_event: { label: 'Hecho Generador', badgeClass: 'bg-blue-500/15 border-blue-500/40 text-blue-400' },
-  general: { label: 'Conceptos Generales', badgeClass: 'bg-[#3ECF8E]/15 border-[#3ECF8E]/40 text-[#3ECF8E]' },
-  other: { label: 'Regímenes y Otros', badgeClass: 'bg-cyan-500/15 border-cyan-500/40 text-cyan-400' }
+  exemption: { label: 'Exoneraciones', badgeClass: 'bg-[var(--color-exito-fondo)] border-[var(--color-exito-borde)] text-[var(--color-exito-texto)]' },
+  deduction: { label: 'Deducciones', badgeClass: 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde-fuerte)] text-[var(--color-texto)]' },
+  tax_base: { label: 'Base Imponible', badgeClass: 'bg-[var(--color-aviso-fondo)] border-[var(--color-aviso-borde)] text-[var(--color-aviso)]' },
+  rate: { label: 'Tarifas y Porcentajes', badgeClass: 'bg-[var(--color-aviso-fondo)] border-[var(--color-aviso-borde)] text-[var(--color-aviso)]' },
+  withholding: { label: 'Retenciones en la Fuente', badgeClass: 'bg-[var(--color-info-fondo)] border-[var(--color-info-borde)] text-[var(--color-info)]' },
+  taxable_event: { label: 'Hecho Generador', badgeClass: 'bg-[var(--color-info-fondo)] border-[var(--color-info-borde)] text-[var(--color-info)]' },
+  general: { label: 'Conceptos Generales', badgeClass: 'bg-[var(--color-secundario-suave)] border-[var(--color-secundario-borde)] text-[var(--color-exito-texto)]' },
+  other: { label: 'Regímenes y Otros', badgeClass: 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde)] text-[var(--color-texto-secundario)]' }
 };
 
 const FEEDBACK_TYPE_META: Record<string, { label: string; badge: string; icon: string }> = {
-  errata: { label: 'Errata o texto', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/40', icon: '✏️' },
-  missing_content: { label: 'Falta literal/inciso', badge: 'bg-red-500/20 text-red-400 border-red-500/40', icon: '📄' },
-  table_error: { label: 'Discrepancia en cifras/tabla', badge: 'bg-orange-500/20 text-orange-400 border-orange-500/40', icon: '📊' },
-  outdated_reform: { label: 'Reforma desactualizada', badge: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40', icon: '⏳' },
-  suggestion: { label: 'Sugerencia de mejora', badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', icon: '💡' }
+  errata: { label: 'Errata o texto', badge: 'bg-[var(--color-aviso-fondo)] text-[var(--color-aviso)] border-[var(--color-aviso-borde)]', icon: '✏️' },
+  missing_content: { label: 'Falta literal/inciso', badge: 'bg-[var(--color-error-fondo)] text-[var(--color-error)] border-[var(--color-error-borde)]', icon: '📄' },
+  table_error: { label: 'Discrepancia en cifras/tabla', badge: 'bg-[var(--color-aviso-fondo)] text-[var(--color-aviso)] border-[var(--color-aviso-borde)]', icon: '📊' },
+  outdated_reform: { label: 'Reforma desactualizada', badge: 'bg-[var(--color-aviso-fondo)] text-[var(--color-aviso)] border-[var(--color-aviso-borde)]', icon: '⏳' },
+  suggestion: { label: 'Sugerencia de mejora', badge: 'bg-[var(--color-exito-fondo)] text-[var(--color-exito-texto)] border-[var(--color-exito-borde)]', icon: '💡' }
 };
 
 const sortLegalStructures = (a: NormStructure, b: NormStructure): number => {
@@ -903,63 +1228,63 @@ export const TAX_SCOPES: Record<TaxScopeCode, TaxScopeConfig> = {
     code: 'ALL',
     name: 'Todos los Impuestos',
     shortName: 'Todos',
-    badgeBg: 'bg-[#1c1c21]',
-    badgeText: 'text-[#e4e4e7]',
-    badgeBorder: 'border-[#26262b]',
+    badgeBg: 'bg-[var(--color-superficie-secundaria)]',
+    badgeText: 'text-[var(--color-texto)]',
+    badgeBorder: 'border-[var(--color-borde)]',
     description: 'Normativa completa sin discriminación de tributo'
   },
   RENTA: {
     code: 'RENTA',
     name: 'Impuesto a la Renta',
     shortName: 'Renta',
-    badgeBg: 'bg-[#151518]',
-    badgeText: 'text-[#d4d4d8]',
-    badgeBorder: 'border-[#26262b]',
+    badgeBg: 'bg-[var(--color-superficie-secundaria)]',
+    badgeText: 'text-[var(--color-texto)]',
+    badgeBorder: 'border-[var(--color-borde)]',
     description: 'Arts. 1 al 51: Personas naturales, sociedades, deducciones y tarifas'
   },
   IVA: {
     code: 'IVA',
     name: 'Impuesto al Valor Agregado',
     shortName: 'IVA',
-    badgeBg: 'bg-[#151518]',
-    badgeText: 'text-[#d4d4d8]',
-    badgeBorder: 'border-[#26262b]',
+    badgeBg: 'bg-[var(--color-superficie-secundaria)]',
+    badgeText: 'text-[var(--color-texto)]',
+    badgeBorder: 'border-[var(--color-borde)]',
     description: 'Arts. 52 al 74: Transferencias, importaciones, tarifas y crédito fiscal'
   },
   ICE: {
     code: 'ICE',
     name: 'Impuesto a los Consumos Especiales',
     shortName: 'ICE',
-    badgeBg: 'bg-[#151518]',
-    badgeText: 'text-[#d4d4d8]',
-    badgeBorder: 'border-[#26262b]',
+    badgeBg: 'bg-[var(--color-superficie-secundaria)]',
+    badgeText: 'text-[var(--color-texto)]',
+    badgeBorder: 'border-[var(--color-borde)]',
     description: 'Arts. 75 al 88: Bienes y servicios gravados con ICE, base y tarifas'
   },
   ISD: {
     code: 'ISD',
     name: 'Impuesto a la Salida de Divisas',
     shortName: 'ISD',
-    badgeBg: 'bg-[#151518]',
-    badgeText: 'text-[#d4d4d8]',
-    badgeBorder: 'border-[#26262b]',
+    badgeBg: 'bg-[var(--color-superficie-secundaria)]',
+    badgeText: 'text-[var(--color-texto)]',
+    badgeBorder: 'border-[var(--color-borde)]',
     description: 'Régimen del Impuesto a la Salida de Divisas (ISD) y transferencias al exterior'
   },
   RISE: {
     code: 'RISE',
     name: 'Régimen Impositivo Simplificado (RISE)',
     shortName: 'RISE',
-    badgeBg: 'bg-[#151518]',
-    badgeText: 'text-[#d4d4d8]',
-    badgeBorder: 'border-[#26262b]',
+    badgeBg: 'bg-[var(--color-superficie-secundaria)]',
+    badgeText: 'text-[var(--color-texto)]',
+    badgeBorder: 'border-[var(--color-borde)]',
     description: 'Arts. 97.1 al 97.15 LRTI: Régimen Impositivo Simplificado Ecuatoriano'
   },
   GENERAL: {
     code: 'GENERAL',
     name: 'Régimen General y Disposiciones',
     shortName: 'General',
-    badgeBg: 'bg-[#151518]',
-    badgeText: 'text-[#a1a1aa]',
-    badgeBorder: 'border-[#26262b]',
+    badgeBg: 'bg-[var(--color-superficie-secundaria)]',
+    badgeText: 'text-[var(--color-texto-secundario)]',
+    badgeBorder: 'border-[var(--color-borde)]',
     description: 'Disposiciones transitorias, generales, reformatorias y Código Tributario'
   }
 };
@@ -1025,6 +1350,225 @@ export interface SecondaryCascadeItem {
   childItems?: SecondaryCascadeItem[];
 }
 
+const TABLE_TAX_GROUPS: Array<{
+  key: string;
+  label: string;
+  shortDesc: string;
+  accent: string;
+}> = [
+  {
+    key: 'impuesto_renta',
+    label: 'Impuesto a la Renta',
+    shortDesc: 'Personas Naturales y Herencias/Legados/Donaciones ancladas arriba, más demás tablas de Impuesto a la Renta.',
+    accent: 'text-[var(--color-secundario)]'
+  },
+  {
+    key: 'rimpe',
+    label: 'RIMPE',
+    shortDesc: 'Régimen Simplificado para Emprendedores y Negocios Populares (vigente).',
+    accent: 'text-[var(--color-info)]'
+  },
+  {
+    key: 'rise',
+    label: 'RISE (Derogado)',
+    shortDesc: 'Cuotas históricas del antiguo Régimen Impositivo Simplificado (derogado 01/01/2022).',
+    accent: 'text-[var(--color-texto-secundario)]'
+  },
+  {
+    key: 'ice',
+    label: 'Impuesto a los Consumos Especiales (ICE)',
+    shortDesc: 'Grupos I al V (ad valorem, mixta, específica), bebidas alcohólicas y perfumes.',
+    accent: 'text-[var(--color-aviso)]'
+  },
+  {
+    key: 'iva',
+    label: 'Impuesto al Valor Agregado (IVA)',
+    shortDesc: 'Tarifas, calendarios de declaración y vencimientos del IVA.',
+    accent: 'text-[var(--color-info)]'
+  },
+  {
+    key: 'ambientales',
+    label: 'Impuestos Ambientales (IRBP)',
+    shortDesc: 'Conversión de botellas plásticas PET no retornables y plazos del Anexo IBP.',
+    accent: 'text-[var(--color-secundario)]'
+  },
+  {
+    key: 'contribuciones',
+    label: 'Contribuciones Temporales y Especiales',
+    shortDesc: 'Patrimonio, bancos y cooperativas, solidaridad y regularización de activos.',
+    accent: 'text-[var(--color-error)]'
+  },
+  {
+    key: 'otras_tablas',
+    label: 'Otras Tablas',
+    shortDesc: 'Tablas generales y regulatorias que no forman parte de los tributos anteriores.',
+    accent: 'text-[var(--color-texto-secundario)]'
+  }
+];
+
+const classifyTableTaxGroup = (tbl: NormativeTable): { group: string; pinRank: number } => {
+  const code = (tbl.table_code || '').toUpperCase();
+  const cat = (tbl.category || '').toLowerCase();
+  const titleOnly = (tbl.title || '').toLowerCase();
+  const text = `${tbl.title || ''} ${tbl.subtitle || ''}`.toLowerCase();
+
+  if (
+    cat === 'inheritance' ||
+    code.includes('HERENCIA') ||
+    code.includes('_HLD_') ||
+    /herencia|legado|donaci[oó]n/.test(titleOnly)
+  ) {
+    return { group: 'impuesto_renta', pinRank: 2 };
+  }
+  if (
+    code.startsWith('TBL_IR_PN_') ||
+    (cat === 'progressive_rates' &&
+      /personas\s+naturales/.test(titleOnly) &&
+      !/patrimonio|contribuci[oó]n|vencimiento|plazo|fecha/.test(titleOnly))
+  ) {
+    return { group: 'impuesto_renta', pinRank: 1 };
+  }
+  if (code.includes('RISE') || /\brise\b|cuotas mensuales para actividades|categor[ií]as de pago del rise/.test(text)) {
+    return { group: 'rise', pinRank: 9 };
+  }
+  if (cat === 'rimpe' || code.includes('RIMPE') || /\b(rimpe|negocios populares)\b/.test(text)) {
+    return { group: 'rimpe', pinRank: 9 };
+  }
+  if (
+    /IRBP|BOTELLAS|_IBP\b|PLASTICA|IACV/.test(code) ||
+    /botellas?\s+pl[aá]sticas|anexo\s+ibp|impuesto\s+redimible|impuesto\s+ambiental|contaminaci[oó]n\s+vehicular/.test(text)
+  ) {
+    return { group: 'ambientales', pinRank: 9 };
+  }
+  if (
+    cat === 'ice' ||
+    code.startsWith('TBL_ICE') ||
+    /\bice\b|consumos\s+especiales|tarifa\s+ad\s+valorem|tarifa\s+mixta|bebidas\s+alcoh[oó]licas|perfumes/.test(text)
+  ) {
+    return { group: 'ice', pinRank: 9 };
+  }
+  if (code.includes('_IVA_') || /\biva\b|valor\s+agregado/.test(text)) {
+    return { group: 'iva', pinRank: 9 };
+  }
+  if (
+    /CONTRIB|CTS_|REGULARIZACION_ACTIVOS/.test(code) ||
+    /contribuci[oó]n\s+(temporal|solidaria|[uú]nica)|regularizaci[oó]n\s+de\s+activos/.test(text)
+  ) {
+    return { group: 'contribuciones', pinRank: 9 };
+  }
+  if (
+    cat === 'dividends' ||
+    cat === 'withholding_rates' ||
+    /^TBL_IR_|PAGO_CUENTA_UTILIDADES|CARGAS_FAMILIARES|DEDUCCION_ADICIONAL|CREDITO_TRIBUTARIO|RDEP|BANANO|COEF_PRESUNTIVA|DECL_PATRIMONIAL/.test(code) ||
+    /impuesto\s+a\s+la\s+renta|utilidades\s+no\s+distribuidas|cargas\s+familiares|canastas?\s+familiares|deducci[oó]n\s+adicional|enajenaci[oó]n\s+de\s+acciones|retenci[oó]n\s+en\s+la\s+fuente|cr[eé]dito\s+tributario|anexo\s+rdep|cajas\s+equivalentes|determinaci[oó]n\s+presuntiva/.test(text)
+  ) {
+    return { group: 'impuesto_renta', pinRank: 3 };
+  }
+  return { group: 'otras_tablas', pinRank: 9 };
+};
+
+const getTableSeriesMeta = (tbl: NormativeTable): { seriesKey: string; displayLabel: string } => {
+  const code = (tbl.table_code || '').toUpperCase();
+  const cat = (tbl.category || '').toLowerCase();
+  const titleOnly = (tbl.title || '').toLowerCase();
+
+  if (
+    cat === 'inheritance' ||
+    code.includes('HERENCIA') ||
+    code.includes('_HLD_') ||
+    /herencia|legado|donaci[oó]n/.test(titleOnly)
+  ) {
+    return {
+      seriesKey: 'series_ir_herencias',
+      displayLabel: 'Tabla Impuesto a la Renta por Herencias, Legados y Donaciones'
+    };
+  }
+  if (
+    code.startsWith('TBL_IR_PN_') ||
+    (cat === 'progressive_rates' &&
+      /personas\s+naturales/.test(titleOnly) &&
+      !/patrimonio|contribuci[oó]n|vencimiento|plazo|fecha/.test(titleOnly))
+  ) {
+    return {
+      seriesKey: 'series_ir_personas_naturales',
+      displayLabel: 'Tabla Impuesto a la Renta Personas Naturales y Sucesiones Indivisas'
+    };
+  }
+  if (code.startsWith('TBL_ICE_TARIFAS')) {
+    return { seriesKey: 'series_ice_tarifas', displayLabel: 'Tarifas Específicas del ICE' };
+  }
+  if (code.startsWith('TBL_ICE_PERFUMES')) {
+    return { seriesKey: 'series_ice_perfumes', displayLabel: 'ICE — Perfumes y Aguas de Tocador' };
+  }
+  if (code.startsWith('TBL_ICE_EXENCION') || code.startsWith('TBL_ICE_BEBIDAS_ALCOHOLICAS')) {
+    return { seriesKey: 'series_ice_alcohol', displayLabel: 'ICE — Exención Bebidas Alcohólicas' };
+  }
+  if (/^TBL_ICE_GRUPO_?I(?!I|V)/.test(code) || code === 'TBL_ICE_GRUPO1_2008') {
+    return { seriesKey: 'series_ice_g1', displayLabel: 'ICE — Grupo I Tarifa Ad Valorem' };
+  }
+  if (/^TBL_ICE_GRUPO_?II(?!I)/.test(code) || code === 'TBL_ICE_GRUPO2_AERONAVES_2008') {
+    return { seriesKey: 'series_ice_g2', displayLabel: 'ICE — Grupo II Tarifa Ad Valorem' };
+  }
+  if (/^TBL_ICE_GRUPO_?III/.test(code)) {
+    return { seriesKey: 'series_ice_g3', displayLabel: 'ICE — Grupo III Tarifa Ad Valorem' };
+  }
+  if (/^TBL_ICE_GRUPO_?IV/.test(code)) {
+    return { seriesKey: 'series_ice_g4', displayLabel: 'ICE — Grupo IV Tarifa Mixta' };
+  }
+  if (/^TBL_ICE_GRUPO_?V/.test(code)) {
+    return { seriesKey: 'series_ice_g5', displayLabel: 'ICE — Grupo V Tarifa Específica' };
+  }
+  if (/IRBP_CONVERSION|CONVERSION_BOTELLAS|BOTELLAS_PET/.test(code)) {
+    return { seriesKey: 'series_irbp_conversion', displayLabel: 'Conversión de Botellas Plásticas No Retornables (IRBP)' };
+  }
+  if (/TBL_IR_(ACCIONES|ENAJENACION_ACCIONES)/.test(code)) {
+    return { seriesKey: 'series_ir_acciones', displayLabel: 'Impuesto a la Renta Único — Enajenación de Acciones' };
+  }
+  const riseMatch = code.match(/^TBL_RISE_([A-Z_]+?)(?:_\d{4})?$/);
+  if (riseMatch) {
+    return {
+      seriesKey: `series_rise_${riseMatch[1].toLowerCase()}`,
+      displayLabel: `RISE — ${riseMatch[1].replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`
+    };
+  }
+  return {
+    seriesKey: `single_${tbl.id}`,
+    displayLabel: tbl.title || tbl.table_code
+  };
+};
+
+const getTableDisplayGrid = (tbl: NormativeTable): { headers: string[]; rows: string[][] } => {
+  const schemaCols = Array.isArray(tbl.columns_schema) ? tbl.columns_schema : [];
+  const rawRows = Array.isArray(tbl.rows_data) ? tbl.rows_data : [];
+  if (schemaCols.length > 0 && rawRows.length > 0) {
+    return {
+      headers: schemaCols.map(c => c.label || c.key || ''),
+      rows: rawRows.map(r => schemaCols.map(c => String(r?.[c.key] ?? '—')))
+    };
+  }
+  const md = String((tbl as any).markdown_content || '');
+  const lines = md.split('\n').map(l => l.trim()).filter(l => l.startsWith('|') && l.endsWith('|') && !/^\|[\s\-:|]+\|$/.test(l));
+  if (lines.length === 0) return { headers: [], rows: [] };
+  const parseLine = (line: string) => line.split('|').slice(1, -1).map(c => c.trim());
+  return {
+    headers: parseLine(lines[0]),
+    rows: lines.slice(1).map(parseLine)
+  };
+};
+
+const buildTableMarkdownText = (tbl: NormativeTable): string => {
+  const { headers, rows } = getTableDisplayGrid(tbl);
+  if (headers.length === 0) return '';
+  const sep = `| ${headers.map(() => '---').join(' | ')} |`;
+  const lines = [
+    `**${tbl.title || tbl.table_code}**`,
+    `| ${headers.join(' | ')} |`,
+    sep,
+    ...rows.map(r => `| ${r.join(' | ')} |`)
+  ];
+  return lines.join('\n');
+};
+
 export const getSecondaryCascadeForArticle = (
   art: NormStructure | null | undefined,
   dbRelations: any[],
@@ -1033,6 +1577,7 @@ export const getSecondaryCascadeForArticle = (
   if (!art) return [];
 
   const targetIds = allVersionIds && allVersionIds.length > 0 ? allVersionIds : [art.id];
+  const isLrtiNorm = !art.norms?.code || art.norms.code.toUpperCase() === 'LRTI';
   const artNumMatch = art.label?.match(/\d+/);
   const artNum = artNumMatch ? parseInt(artNumMatch[0], 10) : 0;
 
@@ -1101,8 +1646,12 @@ export const getSecondaryCascadeForArticle = (
         : isCircular
           ? 'Fe de Erratas / Circular Oficial'
           : isModifyingLaw
-            ? 'Ley Modificatoria / Reformatoria'
-            : 'Reglamento / Norma Concordante',
+            ? normTypeLower === 'code'
+              ? 'Código Vinculado / Supletorio'
+              : 'Ley Modificatoria / Reformatoria'
+            : normTypeLower === 'decree' || normCodeUpper.startsWith('DE-') || normCodeUpper.startsWith('DECRETO-EJECUTIVO')
+              ? 'Decreto Ejecutivo Vinculado'
+              : 'Reglamento / Norma Concordante',
       normId: normObj?.id,
       normName: normObj?.title || normObj?.name || 'Norma Conectada en Registro Oficial',
       normCode: normObj?.code || 'RO',
@@ -1135,7 +1684,7 @@ export const getSecondaryCascadeForArticle = (
   }
 
   // 2. Concordancias normativas oficiales por jerarquía (Reglamento + Resoluciones SRI con su propia línea de tiempo)
-  if (artNum === 36) {
+  if (isLrtiNorm && artNum === 36) {
     const presetArt36: SecondaryCascadeItem[] = [
       {
         id: 'cascade-ralrti-art73',
@@ -1253,7 +1802,7 @@ export const getSecondaryCascadeForArticle = (
     return [...presetArt36, ...mappedDbItems.filter(m => !m.normCode.includes('1467'))];
   }
 
-  if (mappedDbItems.length > 0) {
+  if (mappedDbItems.length > 0 || !isLrtiNorm) {
     return mappedDbItems;
   }
 
@@ -1409,93 +1958,9 @@ export interface HistoricalArticleVersion {
   manual_validity_override?: boolean;
   raw_valid_from?: string | null;
   raw_valid_to?: string | null;
+  table_diff_mode?: string | null;
+  changed_in_this_version?: boolean;
 }
-
-const ART_36_CLEAN_2008_CONTENT = `Art. 36.- Tarifa del impuesto a la renta de personas naturales y sucesiones indivisas:
-
-a) Para liquidar el impuesto a la renta de las personas naturales y de las sucesiones indivisas, se aplicará a la base imponible las tarifas contenidas en la siguiente tabla de ingresos (Ejercicio Fiscal 2008 — Ley Reformatoria para la Equidad Tributaria, R.O. 3S-242):
-
-| Fracción Básica (USD) | Exceso Hasta (USD) | Impuesto Fracción Básica (USD) | % Impuesto Fracción Excedente |
-| :--- | :--- | :--- | :--- |
-| 0,00 | 7.850,00 | 0,00 | 0% |
-| 7.850,00 | 10.000,00 | 0,00 | 5% |
-| 10.000,00 | 12.500,00 | 108,00 | 10% |
-| 12.500,00 | 15.000,00 | 358,00 | 12% |
-| 15.000,00 | 30.000,00 | 658,00 | 15% |
-| 30.000,00 | 45.000,00 | 2.908,00 | 20% |
-| 45.000,00 | 60.000,00 | 5.908,00 | 25% |
-| 60.000,00 | 79.800,00 | 9.658,00 | 30% |
-| 79.800,00 | En adelante | 15.598,00 | 35% |
-
-Los rangos de la tabla precedente serán actualizados conforme la variación anual del Índice de Precios al Consumidor de Área Urbana dictado por el INEC al 30 de noviembre de cada año. El ajuste incluirá la modificación del impuesto sobre la fracción básica de cada rango. La tabla así actualizada tendrá vigencia para el siguiente año.
-
-b) Ingresos de personas naturales no residentes.- Los ingresos obtenidos por personas naturales que no tengan residencia en el país, por servicios ocasionalmente prestados en el Ecuador, pagarán la tarifa única del veinticinco por ciento (25%) sobre la totalidad del ingreso percibido.
-
-c) Los organizadores de loterías, rifas, apuestas y similares, con excepción de los organizados por parte de la Junta de Beneficencia de Guayaquil y Fe y Alegría, deberán pagar la tarifa única del 25% sobre sus utilidades; los beneficiarios de premios de loterías, rifas, apuestas y similares pagarán el impuesto único del 15% sobre el valor de cada premio recibido en dinero o en especie que sobrepase una fracción básica no gravada de Impuesto a la Renta de personas naturales y sucesiones indivisas, debiendo los organizadores actuar como agentes de retención de este impuesto.
-
-d) Los beneficiarios de ingresos provenientes de herencias, legados o donaciones pagarán el impuesto, de conformidad con el reglamento, aplicando a la base imponible las tarifas contenidas en la siguiente tabla (Ejercicio Fiscal 2008 — R.O. 3S-242):
-
-| Fracción Básica (USD) | Exceso Hasta (USD) | Impuesto Fracción Básica (USD) | % Impuesto Fracción Exenta |
-| :--- | :--- | :--- | :--- |
-| 0,00 | 50.000,00 | 0,00 | 0% |
-| 50.000,00 | 100.000,00 | 0,00 | 5% |
-| 100.000,00 | 200.000,00 | 2.500,00 | 10% |
-| 200.000,00 | 300.000,00 | 12.500,00 | 15% |
-| 300.000,00 | 400.000,00 | 27.500,00 | 20% |
-| 400.000,00 | 500.000,00 | 47.500,00 | 25% |
-| 500.000,00 | 600.000,00 | 72.500,00 | 30% |
-| 600.000,00 | En adelante | 102.500,00 | 35% |
-
-Los rangos de la tabla precedente serán actualizados conforme la variación anual del Índice de Precios al Consumidor de Área Urbana dictado por el INEC al 30 de noviembre de cada año.
-
-En el caso de que los beneficiarios de herencias y legados se encuentren dentro del primer grado de consanguinidad con el causante, las tarifas de la tabla precedente serán reducidas a la mitad. No habrá lugar a este impuesto cuando la donación sea en beneficio de los hijos del donante que sean menores de edad o con discapacidad, debidamente justificada.
-
-Se presumirá donación, salvo prueba en contrario, incluso en la transferencia realizada con intervención de terceros cuando los bienes y derechos han sido de propiedad de los donantes hasta dentro de los cinco años anteriores; en este caso los impuestos municipales pagados por la transferencia serán considerados créditos tributarios para determinar este impuesto.
-
-El. impuesto en el caso de herencias, legados y donaciones será retenido por quien entregue el bien o derecho, o por el notario o registrador de la propiedad, según corresponda, previo a la inscripción o protocolización del acto.`;
-
-const ART_36_CLEAN_2009_CONTENT = `Art. 36.- Tarifa del impuesto a la renta de personas naturales y sucesiones indivisas:
-
-a) Para liquidar el impuesto a la renta de las personas naturales y de las sucesiones indivisas, se aplicará a la base imponible las tarifas contenidas en la siguiente tabla de ingresos (Ejercicio Fiscal 2009 — Resolución NAC-DGER2008-1467, R.O. 2S-491):
-
-| Fracción Básica (USD) | Exceso Hasta (USD) | Impuesto Fracción Básica (USD) | % Impuesto Fracción Excedente |
-| :--- | :--- | :--- | :--- |
-| 0,00 | 8.570,00 | 0,00 | 0% |
-| 8.570,00 | 10.910,00 | 0,00 | 5% |
-| 10.910,00 | 13.640,00 | 117,00 | 10% |
-| 13.640,00 | 16.370,00 | 390,00 | 12% |
-| 16.370,00 | 32.740,00 | 718,00 | 15% |
-| 32.740,00 | 49.110,00 | 3.173,00 | 20% |
-| 49.110,00 | 65.480,00 | 6.447,00 | 25% |
-| 65.480,00 | 87.170,00 | 10.540,00 | 30% |
-| 87.170,00 | En adelante | 17.047,00 | 35% |
-
-Los rangos de la tabla precedente serán actualizados conforme la variación anual del Índice de Precios al Consumidor de Área Urbana dictado por el INEC al 30 de noviembre de cada año. El ajuste incluirá la modificación del impuesto sobre la fracción básica de cada rango. La tabla así actualizada tendrá vigencia para el siguiente año.
-
-b) Ingresos de personas naturales no residentes.- Los ingresos obtenidos por personas naturales que no tengan residencia en el país, por servicios ocasionalmente prestados en el Ecuador, pagarán la tarifa única del veinticinco por ciento (25%) sobre la totalidad del ingreso percibido.
-
-c) Los organizadores de loterías, rifas, apuestas y similares, con excepción de los organizados por parte de la Junta de Beneficencia de Guayaquil y Fe y Alegría, deberán pagar la tarifa única del 25% sobre sus utilidades; los beneficiarios de premios de loterías, rifas, apuestas y similares pagarán el impuesto único del 15% sobre el valor de cada premio recibido en dinero o en especie que sobrepase una fracción básica no gravada de Impuesto a la Renta de personas naturales y sucesiones indivisas, debiendo los organizadores actuar como agentes de retención de este impuesto.
-
-d) Los beneficiarios de ingresos provenientes de herencias, legados o donaciones pagarán el impuesto, de conformidad con el reglamento, aplicando a la base imponible las tarifas contenidas en la siguiente tabla (Ejercicio Fiscal 2009 — Reforma R.O. Suplemento 392 y Resolución NAC-DGER2008-1467, R.O. 2S-491):
-
-| Fracción Básica (USD) | Exceso Hasta (USD) | Impuesto Fracción Básica (USD) | % Impuesto Fracción Excedente |
-| :--- | :--- | :--- | :--- |
-| 0,00 | 54.820,00 | 0,00 | 0% |
-| 54.820,00 | 109.650,00 | 0,00 | 5% |
-| 109.650,00 | 219.300,00 | 2.742,00 | 10% |
-| 219.300,00 | 328.950,00 | 13.707,00 | 15% |
-| 328.950,00 | 438.590,00 | 30.154,00 | 20% |
-| 438.590,00 | 548.240,00 | 52.082,00 | 25% |
-| 548.240,00 | 657.890,00 | 79.495,00 | 30% |
-| 657.890,00 | En adelante | 112.390,00 | 35% |
-
-Los rangos de la tabla precedente serán actualizados conforme la variación anual del Índice de Precios al Consumidor de Área Urbana dictado por el INEC al 30 de noviembre de cada año.
-
-En el caso de que los beneficiarios de herencias y legados se encuentren dentro del primer grado de consanguinidad con el causante, las tarifas de la tabla precedente serán reducidas a la mitad. No habrá lugar a este impuesto cuando la donación sea en beneficio de los hijos del donante que sean menores de edad o con discapacidad, debidamente justificada.
-
-Se presumirá donación, salvo prueba en contrario, incluso en la transferencia realizada con intervención de terceros cuando los bienes y derechos han sido de propiedad de los donantes hasta dentro de los cinco años anteriores; en este caso los impuestos municipales pagados por la transferencia serán considerados créditos tributarios para determinar este impuesto.
-
-El impuesto en el caso de herencias, legados y donaciones será retenido por quien entregue el bien o derecho, o por el notario o registrador de la propiedad, según corresponda, previo a la inscripción o protocolización del acto.`;
 
 export const getHistoricalVersionsForArticle = (
   art: NormStructure | null | undefined,
@@ -1503,18 +1968,15 @@ export const getHistoricalVersionsForArticle = (
 ): HistoricalArticleVersion[] => {
   if (!art) return [];
 
-  const isLrtiArt36 =
-    art.label?.trim().toUpperCase() === 'ART. 36' &&
-    (!art.norms?.code || art.norms.code.toUpperCase() === 'LRTI');
-
   // 1. PRIORIDAD ABSOLUTA: Versiones reales del Registro Oficial almacenadas en Supabase
   //    Orden cronológico estricto del más reciente al más antiguo:
   //    1) Fecha de vigencia (valid_from, Art. 11 CT o editada por el administrador)
   //    2) Fecha de publicación en Registro Oficial (ro_published_on)
   //    3) Estado vigente actual, longitud de contenido y número de versión
-  if (dbVersions.length > 1) {
+  const cleanDbVersions = dbVersions.filter(v => !v.superseded_duplicate && !v.obsolete_subelement);
+  if (cleanDbVersions.length > 1) {
     const seenReforms = new Set<string>();
-    const sortedCandidates = [...dbVersions].sort((a, b) => {
+    const sortedCandidates = [...cleanDbVersions].sort((a, b) => {
       const da = a.valid_from || '';
       const db = b.valid_from || '';
       if (da !== db) return db.localeCompare(da);
@@ -1542,31 +2004,15 @@ export const getHistoricalVersionsForArticle = (
     return uniqueDbVersions.map((v, idx) => {
       const parsedYear = v.valid_from ? Number(v.valid_from.slice(0, 4)) : 2006 - idx;
       const year = isNaN(parsedYear) ? 2006 - idx : parsedYear;
-      let cite = v.reform_source_cite || (v.is_current ? 'Texto Vigente Consolidado' : `Reforma v${v.version_number}`);
+      const cite = v.reform_source_cite || (v.is_current ? 'Texto Vigente Consolidado' : `Reforma v${v.version_number}`);
       const roDate = v.ro_published_on || null;
-      let ro = v.official_registry || (roDate ? `Registro Oficial (${roDate})` : 'Registro Oficial');
-      let content = v.content;
-      let summary =
+      const ro = v.official_registry || (roDate ? `Registro Oficial (${roDate})` : 'Registro Oficial');
+      const content = v.content;
+      const summary =
         v.summary_change ||
         (v.is_current
           ? 'Texto consolidado vigente tras las reformas del Registro Oficial.'
           : `Redacción vigente desde ${v.valid_from || 'origen'} hasta ${v.valid_to || 'su reforma'}.`);
-
-      // Normalización integral de las tablas 2008 y 2009 para el Art. 36 de la LRTI
-      if (isLrtiArt36 && v.valid_from === '2008-01-01') {
-        content = ART_36_CLEAN_2008_CONTENT;
-        cite = 'Ley Reformatoria para la Equidad Tributaria del Ecuador (Arts. 91 a 94)';
-        ro = 'Tercer Suplemento del Registro Oficial No. 242 de 29 de diciembre de 2007';
-        summary =
-          'Reforma integral de los literales a), b), c) y d): establece la tabla de Impuesto a la Renta 2008 con nuevos tramos progresivos hasta el 35% (fracción básica exenta USD 7.850) y sustituye la tarifa única del 5% de herencias por la nueva tabla progresiva de Herencias, Legados y Donaciones 2008 (0% a 35%, fracción básica exenta USD 50.000).';
-      } else if (isLrtiArt36 && v.valid_from === '2009-01-01') {
-        content = ART_36_CLEAN_2009_CONTENT;
-        cite =
-          'Ley Orgánica Reformatoria e Interpretativa a la LRTI (R.O. 392) + Resolución NAC-DGER2008-1467 (R.O. 2S-491)';
-        ro = 'Suplemento R.O. No. 392 (30-jul-2008) y Segundo Suplemento R.O. No. 491 (18-dic-2008)';
-        summary =
-          'En la tabla del literal d) (Herencias, Legados y Donaciones) se sustituye el encabezado "% IMPUESTO FRACCIÓN EXENTA" por "% IMPUESTO FRACCIÓN EXCEDENTE" (R.O. 392) y se actualizan oficialmente las dos tablas para el ejercicio fiscal 2009 mediante Resolución NAC-DGER2008-1467 (Personas Naturales: fracción exenta USD 8.570; Herencias: fracción exenta USD 54.820).';
-      }
 
       return {
         id: v.id,
@@ -1587,7 +2033,9 @@ export const getHistoricalVersionsForArticle = (
         validity_display_label: v.validity_display_label || null,
         manual_validity_override: v.manual_validity_override,
         raw_valid_from: v.valid_from,
-        raw_valid_to: v.valid_to
+        raw_valid_to: v.valid_to,
+        table_diff_mode: v.table_diff_mode || null,
+        changed_in_this_version: v.changed_in_this_version
       };
     });
   }
@@ -1614,7 +2062,9 @@ export const getHistoricalVersionsForArticle = (
       validity_display_label: art.validity_display_label || null,
       manual_validity_override: art.manual_validity_override,
       raw_valid_from: art.valid_from,
-      raw_valid_to: art.valid_to
+      raw_valid_to: art.valid_to,
+      table_diff_mode: art.table_diff_mode || null,
+      changed_in_this_version: art.changed_in_this_version
     }
   ];
 };
@@ -1638,14 +2088,15 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [updatingCategoryNormId, setUpdatingCategoryNormId] = useState<string | null>(null);
 
   useEffect(() => {
     const root = document.documentElement;
     if (themeMode === 'light') {
       root.classList.add('theme-light');
-      root.classList.remove('theme-dark');
+      root.classList.remove('theme-dark', 'dark');
     } else {
-      root.classList.add('theme-dark');
+      root.classList.add('theme-dark', 'dark');
       root.classList.remove('theme-light');
     }
     try {
@@ -1661,6 +2112,29 @@ export default function App() {
   const [showSubModal, setShowSubModal] = useState(false);
   const [showAddConceptModal, setShowAddConceptModal] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const [portalMobileMenuOpen, setPortalMobileMenuOpen] = useState(false);
+  const toolsMenuRef = React.useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!toolsMenuOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target as Node)) {
+        setToolsMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setToolsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [toolsMenuOpen]);
 
   // Database Data State
   const [loading, setLoading] = useState(true);
@@ -1687,7 +2161,7 @@ export default function App() {
   });
   const [selectedLibraryScope, setSelectedLibraryScope] = useState<'principales' | 'suplementarias'>('principales');
   const [selectedLibraryCategory, setSelectedLibraryCategory] = useState<
-    'convenios' | 'codigos' | 'leyes' | 'reglamentos' | 'resoluciones' | 'circulares' | 'otras_normas'
+    'convenios' | 'codigos' | 'leyes' | 'reglamentos' | 'decretos' | 'resoluciones' | 'circulares' | 'otras_normas'
   >('leyes');
   const [libraryRightView, setLibraryRightView] = useState<'cards' | 'ficha'>('cards');
   const [libraryPreviewTab, setLibraryPreviewTab] = useState<'summary' | 'tables' | 'reforms'>('summary');
@@ -1765,6 +2239,16 @@ export default function App() {
   const [expandedInlineCascade, setExpandedInlineCascade] = useState<Record<string, boolean>>({});
   const [floatingEbookModal, setFloatingEbookModal] = useState<SecondaryCascadeItem | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
+  const [selectedHistorySubId, setSelectedHistorySubId] = useState<string | null>(null);
+  const [showActiveTablesTab, setShowActiveTablesTab] = useState<boolean>(true);
+  const [showInactiveTablesTab, setShowInactiveTablesTab] = useState<boolean>(false);
+  const [selectedTableTaxGroup, setSelectedTableTaxGroup] = useState<string | null>('impuesto_renta');
+  const [selectedTableSeriesKey, setSelectedTableSeriesKey] = useState<string | null>(null);
+  const [expandedIndexGroups, setExpandedIndexGroups] = useState<Record<string, boolean>>({
+    impuesto_renta: true
+  });
+  const [expandedTableIds, setExpandedTableIds] = useState<Record<string, boolean>>({});
+  const [tableSearchQuery, setTableSearchQuery] = useState<string>('');
   const [isCurrentColExpanded, setIsCurrentColExpanded] = useState<boolean>(false);
   const [openSummaryId, setOpenSummaryId] = useState<string | null>(null);
   const [activeHistoryYear, setActiveHistoryYear] = useState<number | null>(null);
@@ -1811,6 +2295,38 @@ export default function App() {
   ]);
 
   // Helper to map DB structure row to UI NormStructure shape
+  const getCompactNormCardMeta = (
+    n: Norm,
+    category: string
+  ): { heading: string; description: string } => {
+    const rawTitle = (n.title || '').trim();
+    const rawCode = (n.code || '').trim();
+
+    if (category === 'decretos') {
+      const codeMatch = rawCode.match(/^(?:DE|DECRETO-EJECUTIVO)-(\d+[A-Za-z-]*)$/i);
+      const titleNumMatch = rawTitle.match(
+        /^Decreto\s+Ejecutivo\s+(?:No\.?|N°|Nro\.?)?\s*(\d+[A-Za-z-]*)/i
+      );
+      const decreeNum = codeMatch?.[1] || titleNumMatch?.[1];
+      const heading = decreeNum ? `Decreto Ejecutivo No. ${decreeNum}` : rawCode || rawTitle;
+      const cleanedDesc = rawTitle
+        .replace(
+          /^Decreto\s+Ejecutivo\s+(?:No\.?|N°|Nro\.?)?\s*\d+[A-Za-z-]*\s*(?:[—–\-:]\s*)?/i,
+          ''
+        )
+        .trim();
+      return {
+        heading,
+        description: cleanedDesc || rawTitle
+      };
+    }
+
+    return {
+      heading: rawCode || rawTitle,
+      description: rawTitle
+    };
+  };
+
   const mapStructureRow = (s: any): NormStructure => {
     const rawNorm = s.norm_versions?.norms || s.norms;
     const mappedNorm: Norm | undefined = rawNorm
@@ -1822,10 +2338,17 @@ export default function App() {
         hierarchy_level: String(rawNorm.metadata?.hierarchy_level || '1'),
         is_secondary:
           rawNorm.normative_type === 'regulation' ||
+          rawNorm.normative_type === 'decree' ||
           rawNorm.normative_type === 'resolution' ||
           rawNorm.normative_type === 'circular',
-        drive_folder_path: rawNorm.metadata?.folder_category || '02_leyes',
-        storage_object_path: `${rawNorm.metadata?.folder_category || '02_leyes'}/${rawNorm.code}.pdf`
+        drive_folder_path:
+          rawNorm.metadata?.folder_category ||
+          (rawNorm.normative_type === 'decree'
+            ? '08_decretos_ejecutivos'
+            : rawNorm.normative_type === 'regulation' || rawNorm.code === 'RALRTI' || rawNorm.code === 'RLRTI'
+              ? '03_reglamentos'
+              : '02_leyes'),
+        storage_object_path: `${rawNorm.metadata?.folder_category || (rawNorm.normative_type === 'decree' ? '08_decretos_ejecutivos' : '02_leyes')}/${rawNorm.code}.pdf`
       }
       : undefined;
 
@@ -1847,6 +2370,14 @@ export default function App() {
       formattedLabel = /^T[íi]tulo/i.test(ident) ? ident : `Título ${ident}`;
     } else if (structType === 'chapter') {
       formattedLabel = /^Cap[íi]tulo/i.test(ident) ? ident : `Capítulo ${ident}`;
+    } else if (structType === 'literal') {
+      const marker = s.metadata?.display_marker || (s.metadata?.sub_code ? `${s.metadata.sub_code})` : ident);
+      formattedLabel = `Literal ${marker}`;
+    } else if (structType === 'numeral') {
+      const code = s.metadata?.sub_code || ident;
+      formattedLabel = `Numeral ${code}`;
+    } else if (structType === 'paragraph' || structType === 'item') {
+      formattedLabel = s.metadata?.display_marker || s.title || ident || 'Inciso';
     } else {
       formattedLabel = ident ? `Disp. ${ident}` : 'Disposición';
     }
@@ -1893,6 +2424,61 @@ export default function App() {
       cleanTitle = '';
     }
 
+    // Limpieza defensiva en artículos secundarios (especialmente RALRTI) cuando el texto normativo quedó volcado dentro de title
+    if (
+      structType !== 'title' &&
+      structType !== 'chapter' &&
+      mappedNorm?.code !== 'LRTI'
+    ) {
+      const bodyPrefixRe =
+        /^(?:Cuando\s+|Para\s+(?:la\s+(?:aplicaci[oó]n|determinaci[oó]n)|efectos)\b|En\s+el\s+caso\b|Las\s+(?:personas\s+naturales|adquisiciones\s+de\s+bienes)\b|No\s+se\s+reducir[aá]\b|Est[aá]n\s+exentos\b|Constituyen\s+pagos\b|Real[ií]cense\s+las\s+siguientes\b|De\s+la\s+tramitaci[oó]n\b|La\s+emisi[oó]n\s+de\s+oficios\b|Hasta\s+tanto\s+el\s+Comit[eé]\b)/i;
+
+      cleanTitle = cleanTitle.replace(/^[“"«']+/, '').replace(/\s+/g, ' ').trim();
+
+      if (/^[a-zñ]\)\s+/i.test(cleanTitle)) {
+        cleanTitle = '';
+      } else if (
+        /^(?:DISPOSICI[ÓO]N\s+\w+|PRIMERA|SEGUNDA|TERCERA|CUARTA|QUINTA|SEXTA|S[ÉE]PTIMA|OCTAVA|NOVENA|D[ÉE]CIMA(?:\s+\w+)?|VIG[ÉE]SIMA(?:\s+\w+)?)\s*[:.-]+\s*/i.test(
+          cleanTitle
+        ) &&
+        cleanTitle.length > 80
+      ) {
+        cleanTitle = '';
+      }
+
+      if (cleanTitle) {
+        const epMatch = cleanTitle.match(/^(.{3,180}?)\.\-\s+(.+)$/);
+        if (epMatch) {
+          const candidateEp = epMatch[1].replace(/[.:–—-\s]+$/, '').trim();
+          cleanTitle = bodyPrefixRe.test(candidateEp) ? '' : candidateEp;
+        } else if (/\.\-\s*$/.test(cleanTitle) && cleanTitle.length <= 220) {
+          cleanTitle = cleanTitle.replace(/\.\-\s*$/, '').replace(/[.:–—-\s]+$/, '').trim();
+          if (bodyPrefixRe.test(cleanTitle)) cleanTitle = '';
+        } else if (cleanTitle.length > 185 || bodyPrefixRe.test(cleanTitle)) {
+          cleanTitle = '';
+        } else {
+          cleanTitle = cleanTitle.replace(/\.\-?\s*$/, '').trim();
+        }
+      }
+
+      if (!cleanTitle && rawContentText) {
+        const cleanBodyHead = rawContentText
+          .replace(/\s+/g, ' ')
+          .replace(
+            /^\s*[“"«']?\s*(?:Art(?:[íi]culo|\.)?\s*(?:\(\.\.\.\)|[\d.]+|[A-Za-z0-9.-]+)\s*[:.-]*\s*)+/i,
+            ''
+          )
+          .trim();
+        const bodyEpMatch = cleanBodyHead.match(/^([^.\n]{4,140}?)\.\-\s+.+$/);
+        if (bodyEpMatch) {
+          const candidate = bodyEpMatch[1].replace(/[.:–—-\s]+$/, '').trim();
+          if (!bodyPrefixRe.test(candidate) && !/^[a-zñ]\)\s+/i.test(candidate)) {
+            cleanTitle = candidate;
+          }
+        }
+      }
+    }
+
     return {
       id: s.id,
       norm_id: s.norm_versions?.norm_id || s.norm_id || mappedNorm?.id || '',
@@ -1925,7 +2511,18 @@ export default function App() {
       is_fe_erratas: Boolean(s.metadata?.is_fe_erratas),
       is_fe_erratas_replaced: Boolean(s.metadata?.is_fe_erratas_replaced),
       validity_display_label: s.metadata?.validity_display_label || null,
-      manual_validity_override: Boolean(s.metadata?.manual_validity_override)
+      manual_validity_override: Boolean(s.metadata?.manual_validity_override),
+      sub_kind: s.metadata?.sub_kind || null,
+      sub_code: s.metadata?.sub_code || null,
+      display_marker: s.metadata?.display_marker || null,
+      article_identifier: s.metadata?.article_identifier || null,
+      changed_in_this_version:
+        s.metadata?.changed_in_this_version === undefined
+          ? true
+          : Boolean(s.metadata?.changed_in_this_version),
+      superseded_duplicate: Boolean(s.metadata?.superseded_duplicate),
+      obsolete_subelement: Boolean(s.metadata?.obsolete_subelement),
+      table_diff_mode: s.metadata?.table_diff_mode || null
     };
   };
 
@@ -1978,10 +2575,10 @@ export default function App() {
         supabase.from('taxpayer_types').select('*').order('name')
       ]);
 
+      const visibleNorms = (normsRes.data || []).filter((n: any) => !n.metadata?.archived_hidden);
+
       const rawNormsById = new Map<string, any>();
-      if (normsRes.data) {
-        normsRes.data.forEach((n: any) => rawNormsById.set(n.id, n));
-      }
+      visibleNorms.forEach((n: any) => rawNormsById.set(n.id, n));
 
       const rawVersionsById = new Map<string, any>();
       if (normVersionsRes.data) {
@@ -2009,41 +2606,49 @@ export default function App() {
 
       if (normsRes.data) {
         setNorms(
-          normsRes.data.map((n: any) => ({
-            id: n.id,
-            code: n.code,
-            title: n.name || n.title || n.code,
-            norm_type: n.normative_type || 'law',
-            publication_date: n.publication_date || null,
-            hierarchy_level: String(n.metadata?.hierarchy_level || '1'),
-            is_secondary:
-              n.normative_type === 'regulation' ||
-              n.normative_type === 'resolution' ||
-              n.normative_type === 'circular',
-            drive_folder_path:
+          visibleNorms.map((n: any) => {
+            const folder =
               n.metadata?.folder_category ||
               (n.code === 'CT'
                 ? '01_codigos'
-                : n.code === 'RLRTI'
+                : n.code === 'RALRTI' || n.code === 'RLRTI' || n.normative_type === 'regulation'
                   ? '03_reglamentos'
-                  : n.code.includes('DGER')
-                    ? '05_resoluciones_sri'
-                    : n.code.includes('DGECC')
-                      ? '06_circulares_sri'
-                      : '02_leyes'),
-            storage_object_path: `${n.metadata?.folder_category || '02_leyes'}/${n.code}.pdf`
-          }))
+                  : n.normative_type === 'decree'
+                    ? '08_decretos_ejecutivos'
+                    : n.code.includes('DGER')
+                      ? '05_resoluciones_sri'
+                      : n.code.includes('DGECC')
+                        ? '06_circulares_sri'
+                        : '02_leyes');
+            return {
+              id: n.id,
+              code: n.code,
+              title: n.name || n.title || n.code,
+              norm_type: n.normative_type || 'law',
+              publication_date: n.publication_date || null,
+              hierarchy_level: String(n.metadata?.hierarchy_level || '1'),
+              is_secondary:
+                n.normative_type === 'regulation' ||
+                n.normative_type === 'decree' ||
+                n.normative_type === 'resolution' ||
+                n.normative_type === 'circular',
+              drive_folder_path: folder,
+              storage_object_path: `${folder}/${n.code}.pdf`
+            };
+          })
         );
       }
 
       if (structuresRes.data) {
         setStructures(
-          structuresRes.data.map((s: any) =>
-            mapStructureRow({
-              ...s,
-              norm_versions: s.norm_versions || rawVersionsById.get(s.norm_version_id) || null
-            })
-          )
+          structuresRes.data
+            .map((s: any) =>
+              mapStructureRow({
+                ...s,
+                norm_versions: s.norm_versions || rawVersionsById.get(s.norm_version_id) || null
+              })
+            )
+            .filter((s: NormStructure) => Boolean(s.norms) && !s.superseded_duplicate && !s.obsolete_subelement)
         );
       }
 
@@ -2061,7 +2666,15 @@ export default function App() {
             effective_during: t.effective_during || null,
             columns_schema: t.columns_schema || [],
             rows_data: t.rows_data || [],
-            notes: t.notes || null
+            notes: t.notes || null,
+            is_active: t.is_active !== false,
+            article_structure_id: t.metadata?.article_structure_id || null,
+            sub_identifier: t.metadata?.sub_identifier || null,
+            table_diff_mode: t.metadata?.table_diff_mode || null,
+            emitter_norm_id: t.metadata?.emitter_norm_id || null,
+            emitter_norm_code: t.metadata?.emitter_norm_code || null,
+            emitter_norm_title: t.metadata?.emitter_norm_title || null,
+            emitter_structure_id: t.metadata?.emitter_structure_id || null
           }))
         );
       }
@@ -2297,6 +2910,7 @@ export default function App() {
     | 'codigos'
     | 'leyes'
     | 'reglamentos'
+    | 'decretos'
     | 'resoluciones'
     | 'circulares'
     | 'otras_normas';
@@ -2306,6 +2920,7 @@ export default function App() {
     { key: 'codigos', label: 'Códigos', shortBadge: 'Código' },
     { key: 'leyes', label: 'Leyes', shortBadge: 'Ley' },
     { key: 'reglamentos', label: 'Reglamentos', shortBadge: 'Reglamento' },
+    { key: 'decretos', label: 'Decretos', shortBadge: 'Decreto' },
     { key: 'resoluciones', label: 'Resoluciones', shortBadge: 'Resolución' },
     { key: 'circulares', label: 'Circulares', shortBadge: 'Circular' },
     { key: 'otras_normas', label: 'Otras Normas', shortBadge: 'Otra Norma' }
@@ -2379,7 +2994,56 @@ export default function App() {
       };
     }
 
-    // 5. Resoluciones
+    // 5. Reglamentos y Decretos Ejecutivos (antes de Resoluciones para evitar confusión por textos tipo "Dispónese...")
+    const isTaxRegOrDecree =
+      code === 'RALRTI' ||
+      code === 'RLRTI' ||
+      code === 'RALRUC' ||
+      title.includes('TRIBUTARI') ||
+      title.includes('IMPUESTO') ||
+      title.includes('IVA') ||
+      title.includes('TARIFA CERO') ||
+      title.includes('REGISTRO ÚNICO DE CONTRIBUYENTES') ||
+      title.includes('REGISTRO UNICO DE CONTRIBUYENTES') ||
+      title.includes('SALIDA DE DIVISAS') ||
+      title.includes('CONSUMOS ESPECIALES') ||
+      title.includes('DECRETO EJECUTIVO 1232');
+
+    if (
+      nt === 'regulation' ||
+      ((code === 'RALRTI' || code === 'RLRTI' || code === 'RALRUC') && nt !== 'decree')
+    ) {
+      return {
+        scope: isTaxRegOrDecree ? 'principales' : 'suplementarias',
+        category: 'reglamentos',
+        badge: 'Reglamento'
+      };
+    }
+
+    if (
+      nt === 'decree' ||
+      (!code.startsWith('DECRETO-LEY') && /^(?:DE-|DECRETO-EJECUTIVO)/.test(code))
+    ) {
+      return {
+        scope: isTaxRegOrDecree ? 'principales' : 'suplementarias',
+        category: 'decretos',
+        badge: 'Decreto Ejecutivo'
+      };
+    }
+
+    if (
+      code.startsWith('REGLAMENTO') ||
+      title.includes('REGLAMENTO PARA LA APLICACIÓN') ||
+      title.includes('REGLAMENTO PARA LA APLICACION')
+    ) {
+      return {
+        scope: isTaxRegOrDecree ? 'principales' : 'suplementarias',
+        category: 'reglamentos',
+        badge: 'Reglamento'
+      };
+    }
+
+    // 6. Resoluciones
     if (
       nt === 'resolution' ||
       nt === 'sri_resolution' ||
@@ -2400,30 +3064,6 @@ export default function App() {
         scope: isSriResolution ? 'principales' : 'suplementarias',
         category: 'resoluciones',
         badge: 'Resolución'
-      };
-    }
-
-    // 6. Reglamentos y Decretos Ejecutivos reglamentarios
-    if (
-      nt === 'regulation' ||
-      nt === 'decree' ||
-      code === 'RALRTI' ||
-      code === 'RLRTI' ||
-      (!code.startsWith('DECRETO-LEY') && /^(?:DE-|DECRETO-EJECUTIVO|REGLAMENTO)/.test(code)) ||
-      title.includes('REGLAMENTO PARA LA APLICACIÓN') ||
-      title.includes('REGLAMENTO PARA LA APLICACION')
-    ) {
-      const isTaxMainReg =
-        code === 'RALRTI' ||
-        code === 'RLRTI' ||
-        title.includes('RÉGIMEN TRIBUTARIO INTERNO') ||
-        title.includes('REGIMEN TRIBUTARIO INTERNO') ||
-        title.includes('IVA') ||
-        title.includes('TARIFA CERO');
-      return {
-        scope: isTaxMainReg ? 'principales' : 'suplementarias',
-        category: 'reglamentos',
-        badge: nt === 'regulation' || code === 'RALRTI' || code === 'RLRTI' ? 'Reglamento' : 'Decreto / Regl.'
       };
     }
 
@@ -2448,7 +3088,7 @@ export default function App() {
     const map = new Map<string, number>();
     const seenByNorm = new Map<string, Set<string>>();
     for (const s of structures) {
-      if (s.structure_type === 'title' || s.structure_type === 'chapter') continue;
+      if (s.structure_type === 'title' || s.structure_type === 'chapter' || isSubElementType(s.structure_type)) continue;
       if (!s.norm_id) continue;
       let set = seenByNorm.get(s.norm_id);
       if (!set) {
@@ -2460,6 +3100,22 @@ export default function App() {
     seenByNorm.forEach((set, normId) => {
       map.set(normId, set.size);
     });
+    return map;
+  }, [structures]);
+
+  // Mapa rápido de sub-elementos jerárquicos (literales, numerales, párrafos) agrupados por parent_id del artículo
+  const subElementsByParentId = useMemo(() => {
+    const map = new Map<string, NormStructure[]>();
+    for (const s of structures) {
+      if (!isSubElementType(s.structure_type) || !s.parent_id) continue;
+      let arr = map.get(s.parent_id);
+      if (!arr) {
+        arr = [];
+        map.set(s.parent_id, arr);
+      }
+      arr.push(s);
+    }
+    map.forEach(arr => arr.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
     return map;
   }, [structures]);
 
@@ -2610,7 +3266,13 @@ export default function App() {
     setReaderSubView('document');
 
     const normArticles = structures
-      .filter(s => s.norm_id === targetNorm.id && s.structure_type !== 'title' && s.structure_type !== 'chapter')
+      .filter(
+        s =>
+          s.norm_id === targetNorm.id &&
+          s.structure_type !== 'title' &&
+          s.structure_type !== 'chapter' &&
+          !isSubElementType(s.structure_type)
+      )
       .sort(sortLegalStructures);
 
     let chosenLabel = normArticles[0]?.label || 'Art. 1';
@@ -2640,6 +3302,56 @@ export default function App() {
       ? defaultLrtiNormId
       : null);
 
+  const handleChangeNormCategory = async (normId: string, targetType: 'regulation' | 'decree') => {
+    if (updatingCategoryNormId === normId) return;
+    setUpdatingCategoryNormId(normId);
+    try {
+      const { data, error } = await supabase.rpc('admin_set_norm_category', {
+        p_norm_id: normId,
+        p_target_category: targetType
+      });
+      if (error || data?.ok === false) {
+        window.alert(error?.message || data?.error || 'No se pudo cambiar la categoría.');
+        return;
+      }
+      const targetFolder = targetType === 'regulation' ? '03_reglamentos' : '08_decretos_ejecutivos';
+      setNorms(prev =>
+        prev.map(normItem =>
+          normItem.id === normId
+            ? {
+                ...normItem,
+                norm_type: targetType,
+                is_secondary: true,
+                drive_folder_path: targetFolder,
+                storage_object_path: `${targetFolder}/${normItem.code}.pdf`
+              }
+            : normItem
+        )
+      );
+      setStructures(prev =>
+        prev.map(s =>
+          s.norms?.id === normId
+            ? {
+                ...s,
+                norms: {
+                  ...s.norms,
+                  norm_type: targetType,
+                  is_secondary: true,
+                  drive_folder_path: targetFolder,
+                  storage_object_path: `${targetFolder}/${s.norms.code}.pdf`
+                }
+              }
+            : s
+        )
+      );
+      if (libraryRightView === 'ficha' && effectiveNormId === normId) {
+        setSelectedLibraryCategory(targetType === 'regulation' ? 'reglamentos' : 'decretos');
+      }
+    } finally {
+      setUpdatingCategoryNormId(null);
+    }
+  };
+
   // Group structures by (norm_id + label) so we show current version in center list
   // or the version in force during [searchValidFrom, searchValidTo] when Option B is active
   const currentArticles = useMemo(() => {
@@ -2648,7 +3360,7 @@ export default function App() {
     const queryTo = searchValidTo || '9999-12-31';
 
     const candidateArticles = structures.filter(s => {
-      if (s.structure_type === 'title' || s.structure_type === 'chapter') return false;
+      if (s.structure_type === 'title' || s.structure_type === 'chapter' || isSubElementType(s.structure_type)) return false;
       if (!hasDateFilter) {
         return s.is_current;
       }
@@ -2757,22 +3469,29 @@ export default function App() {
     return Object.values(titlesMap);
   }, [currentArticles]);
 
-  // Currently selected article & all its historical versions (coincidencia estricta por norma + etiqueta, soportando decimales 97.1..97.15 y sufijos 4A, 40A)
+  // Extrae el código exacto de un artículo soportando prefijos con guion (IA-1, IA-2), decimales (97.6) y sufijos (4A)
+  const extractArticleCode = (label?: string | null, identifier?: string | null): string | null => {
+    const cleanId = (identifier || '').trim();
+    if (cleanId) return cleanId.toUpperCase();
+    const raw = (label || '').trim();
+    const m = raw.match(/^Art(?:[íi]culo|\.)?\s+([A-Za-z]+-\d+(?:\.\d+)?[A-Za-z]*|\d+(?:\.\d+)?[A-Za-z]*)\b/i);
+    return m ? m[1].toUpperCase() : null;
+  };
+
+  // Currently selected article & all its historical versions (coincidencia estricta por norma + identificador exacto, sin mezclar Art. 2 con Art. IA-2)
   const selectedVersions = useMemo(() => {
     const target = (selectedArticleLabel || 'Art. 1').trim();
-    const targetNormId = selectedNormId || currentArticles.find(a => a.label === target)?.norm_id || defaultLrtiNormId;
-    const targetCodeMatch = target.match(/\b(\d+(?:\.\d+)?[A-Za-z]*)\b/);
-    const targetCode = targetCodeMatch ? targetCodeMatch[1].toUpperCase() : null;
+    const currentMatch = currentArticles.find(a => a.label === target);
+    const targetNormId = selectedNormId || currentMatch?.norm_id || defaultLrtiNormId;
+    const targetCode = extractArticleCode(target, currentMatch?.identifier);
 
     const matched = structures.filter(s => {
-      if (s.structure_type === 'title' || s.structure_type === 'chapter') return false;
+      if (s.structure_type === 'title' || s.structure_type === 'chapter' || isSubElementType(s.structure_type)) return false;
       if (targetNormId && s.norm_id !== targetNormId) return false;
 
       if (targetCode && /^Art/i.test(target)) {
-        if (s.identifier && s.identifier.trim().toUpperCase() === targetCode) return true;
-        const sCodeMatch = (s.label || '').match(/\b(\d+(?:\.\d+)?[A-Za-z]*)\b/);
-        if (sCodeMatch && sCodeMatch[1].toUpperCase() === targetCode && /^Art/i.test(s.label || '')) return true;
-        return false;
+        const sCode = extractArticleCode(s.label, s.identifier);
+        return sCode === targetCode && /^Art/i.test(s.label || '');
       }
 
       const cleanTarget = target.replace(/[:.-]+$/, '').trim().toLowerCase();
@@ -2807,16 +3526,58 @@ export default function App() {
     return selectedVersions.find(v => v.is_current) || selectedVersions[0] || currentArticles[0];
   }, [selectedVersions, currentArticles, searchValidFrom, searchValidTo]);
 
-  // Tables attached to the currently selected article (or any of its historical versions)
+  // Sub-elementos jerárquicos disponibles para el artículo activo (ej. Literal a), b), c), d) o Numeral 1, 2...)
+  const activeArticleSubElements = useMemo(() => {
+    if (!activeCurrentArticle) return [];
+    const seen = new Map<string, NormStructure>();
+    const currentChildren = subElementsByParentId.get(activeCurrentArticle.id) || [];
+    for (const c of currentChildren) {
+      if (c.sub_kind === 'intro') continue;
+      if ((c.content || '').trim().length <= 3) continue;
+      if (c.identifier && !seen.has(c.identifier)) seen.set(c.identifier, c);
+    }
+    // Incluir también sub-elementos históricos que pudieran existir en versiones anteriores del mismo artículo
+    for (const ver of selectedVersions) {
+      const children = subElementsByParentId.get(ver.id) || [];
+      for (const c of children) {
+        if (c.sub_kind === 'intro') continue;
+        if ((c.content || '').trim().length <= 3) continue;
+        if (c.identifier && !seen.has(c.identifier)) seen.set(c.identifier, c);
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  }, [activeCurrentArticle, selectedVersions, subElementsByParentId]);
+
+  // Tables attached to the currently selected article (or any of its historical versions or sub-elements)
   const articleTables = useMemo(() => {
     if (!activeCurrentArticle) return [];
     const versionIds = selectedVersions.map(v => v.id);
+    const subElementIds = new Set<string>();
+    for (const vid of versionIds) {
+      const children = subElementsByParentId.get(vid) || [];
+      for (const c of children) {
+        if (!selectedHistorySubId || c.identifier === selectedHistorySubId) {
+          subElementIds.add(c.id);
+        }
+      }
+    }
     const isLrtiArt36 =
       activeCurrentArticle.label?.trim().toUpperCase() === 'ART. 36' &&
       (!activeCurrentArticle.norms?.code || activeCurrentArticle.norms.code.toUpperCase() === 'LRTI');
 
     const matchedTables = tables.filter(t => {
-      if (t.structure_id === activeCurrentArticle.id || (t.structure_id && versionIds.includes(t.structure_id))) {
+      if (selectedHistorySubId) {
+        if (t.sub_identifier === selectedHistorySubId) return true;
+        if (t.structure_id && subElementIds.has(t.structure_id)) return true;
+        return false;
+      }
+      if (
+        t.structure_id === activeCurrentArticle.id ||
+        t.emitter_structure_id === activeCurrentArticle.id ||
+        (t.structure_id && (versionIds.includes(t.structure_id) || subElementIds.has(t.structure_id))) ||
+        (t.article_structure_id && versionIds.includes(t.article_structure_id)) ||
+        (t.emitter_structure_id && versionIds.includes(t.emitter_structure_id))
+      ) {
         return true;
       }
       if (isLrtiArt36) {
@@ -2844,20 +3605,18 @@ export default function App() {
       if (b.fiscal_year !== a.fiscal_year) return b.fiscal_year - a.fiscal_year;
       return a.table_code.localeCompare(b.table_code);
     });
-  }, [tables, activeCurrentArticle, selectedVersions]);
+  }, [tables, activeCurrentArticle, selectedVersions, subElementsByParentId, selectedHistorySubId]);
 
   // Helper para conocer cuántas versiones históricas reales tiene cualquier artículo en la Pantalla 2
   const getArticleVersionsCount = (art: NormStructure): number => {
     const target = (art.label || '').trim();
-    const targetCodeMatch = target.match(/\b(\d+(?:\.\d+)?[A-Za-z]*)\b/);
-    const targetCode = targetCodeMatch ? targetCodeMatch[1].toUpperCase() : null;
+    const targetCode = extractArticleCode(target, art.identifier);
     const rawMatches = structures.filter(s => {
-      if (s.structure_type === 'title' || s.structure_type === 'chapter') return false;
+      if (s.structure_type === 'title' || s.structure_type === 'chapter' || isSubElementType(s.structure_type)) return false;
       if (art.norm_id && s.norm_id !== art.norm_id) return false;
       if (targetCode && /^Art/i.test(target)) {
-        if (s.identifier && s.identifier.trim().toUpperCase() === targetCode) return true;
-        const sCodeMatch = (s.label || '').match(/\b(\d+(?:\.\d+)?[A-Za-z]*)\b/);
-        return Boolean(sCodeMatch && sCodeMatch[1].toUpperCase() === targetCode && /^Art/i.test(s.label || ''));
+        const sCode = extractArticleCode(s.label, s.identifier);
+        return sCode === targetCode && /^Art/i.test(s.label || '');
       }
       return (s.label || '').trim().toLowerCase() === target.toLowerCase();
     });
@@ -2886,10 +3645,47 @@ export default function App() {
     return getSecondaryCascadeForArticle(activeCurrentArticle, relations, versionIds);
   }, [activeCurrentArticle, relations, selectedVersions]);
 
-  // Trazabilidad histórica completa (Versión vigente + Reformas anteriores)
+  // Trazabilidad histórica completa (Artículo íntegro o sub-elemento seleccionado: literal / numeral / párrafo)
   const articleHistoricalVersions = useMemo(() => {
-    return getHistoricalVersionsForArticle(activeCurrentArticle, selectedVersions);
-  }, [activeCurrentArticle, selectedVersions]);
+    if (!selectedHistorySubId || !activeCurrentArticle) {
+      return getHistoricalVersionsForArticle(activeCurrentArticle, selectedVersions);
+    }
+
+    const subMatches: NormStructure[] = [];
+    for (const ver of selectedVersions) {
+      const children = subElementsByParentId.get(ver.id) || [];
+      const found = children.find(c => c.identifier === selectedHistorySubId);
+      if (found) {
+        subMatches.push({
+          ...found,
+          reform_source_cite: found.reform_source_cite || ver.reform_source_cite,
+          official_registry: found.official_registry || ver.official_registry,
+          summary_change: found.summary_change || ver.summary_change,
+          ro_published_on: found.ro_published_on || ver.ro_published_on,
+          tax_periodicity: found.tax_periodicity || ver.tax_periodicity,
+          table_diff_mode: found.table_diff_mode || ver.table_diff_mode
+        });
+      }
+    }
+
+    if (subMatches.length === 0) {
+      return getHistoricalVersionsForArticle(activeCurrentArticle, selectedVersions);
+    }
+
+    const allSubVersions = getHistoricalVersionsForArticle(subMatches[0], subMatches);
+    // Mostrar solo las versiones donde ese sub-elemento cambió (conservando siempre la vigente [0] y la original [última])
+    const filteredSubVersions = allSubVersions.filter((ver, idx, arr) => {
+      if (idx === 0 || idx === arr.length - 1) return true;
+      if (ver.changed_in_this_version !== false) return true;
+      const prev = arr[idx + 1];
+      return Boolean(prev && prev.content.trim() !== ver.content.trim());
+    });
+
+    return filteredSubVersions.map((ver, idx) => ({
+      ...ver,
+      version_number: filteredSubVersions.length - idx
+    }));
+  }, [activeCurrentArticle, selectedVersions, selectedHistorySubId, subElementsByParentId]);
 
   // Conteo de artículos por cada impuesto troncal
   const taxCounts = useMemo(() => {
@@ -2933,7 +3729,8 @@ export default function App() {
         s =>
           s.review_status === 'pending_review' &&
           s.structure_type !== 'title' &&
-          s.structure_type !== 'chapter'
+          s.structure_type !== 'chapter' &&
+          !isSubElementType(s.structure_type)
       )
       .sort(sortLegalStructures);
   }, [structures]);
@@ -2943,10 +3740,9 @@ export default function App() {
   // ============================================================================
   const irTable = useMemo(
     () =>
+      tables.find(t => t.table_code === 'TBL_IR_PN_2026' && t.is_active !== false) ||
+      tables.find(t => t.category === 'progressive_rates' && t.is_active !== false) ||
       tables.find(t => t.table_code === 'TBL_IR_PN_2026') ||
-      tables.find(t => t.table_code === 'TBL_IR_PN_2006') ||
-      tables.find(t => t.table_code === 'TBL_IR_PN_2005') ||
-      tables.find(t => t.table_code === 'TBL_IR_PN_2004') ||
       tables[0],
     [tables]
   );
@@ -3293,10 +4089,26 @@ export default function App() {
   };
 
   const handleGoToLibraryHome = () => {
+    setToolsMenuOpen(false);
+    setPortalMobileMenuOpen(false);
     setCurrentView('portal');
     setActiveTab('reader');
     setReaderSubView('library');
     setLibraryRightView('cards');
+  };
+
+  const handleGoToPricingPage = () => {
+    setToolsMenuOpen(false);
+    setPortalMobileMenuOpen(false);
+    setCurrentView('landing');
+    setTimeout(() => {
+      const el = document.getElementById('planes');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 80);
   };
 
   // ============================================================================
@@ -3315,7 +4127,7 @@ export default function App() {
             if (plan === 'free') {
               handleOpenRegister();
             } else {
-              handleGeneratePlacetoPaySession(plan, plan === 'premium' ? 19 : 39);
+              handleGeneratePlacetoPaySession(plan, plan === 'premium' ? 4.99 : 9.99);
             }
           }}
         />
@@ -3336,211 +4148,499 @@ export default function App() {
     <div
       className={`${
         activeTab === 'reader' ? 'h-screen overflow-hidden' : 'min-h-screen'
-      } flex flex-col bg-[#0d0d0f] text-[#f4f4f5] selection:bg-[#26262b] selection:text-white`}
+      } flex flex-col bg-[var(--color-fondo)] text-[var(--color-texto)] selection:bg-[var(--color-seleccion-fondo)] selection:text-[var(--color-seleccion-texto)]`}
     >
-      {/* TOP HEADER BAR (MINIMALISTA MONOCROMÁTICO OSCURO) */}
-      <header className="h-14 shrink-0 bg-[#0d0d0f] border-b border-[#26262b] px-5 flex items-center justify-between sticky top-0 z-40">
-        {/* Brand Logo (clic para ir al inicio de la Biblioteca) */}
-        <button
-          type="button"
-          onClick={handleGoToLibraryHome}
-          title="Ir al inicio de la Biblioteca Normativa"
-          className="flex items-center gap-3 cursor-pointer text-left group"
-        >
-          <div className="flex items-center justify-center p-1 rounded-lg bg-[#151518] border border-[#26262b] group-hover:border-[#3ECF8E]/60 transition">
-            <RubikCubeLogo size={26} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-heading text-lg font-extrabold tracking-tight text-[#f4f4f5]">
-                SmartLex<span className="text-[#3ECF8E]">EC</span>
-              </span>
-              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-[#151518] text-[#a1a1aa] border border-[#26262b]">
-                Repositorio Jurídico Tributario
-              </span>
-            </div>
-          </div>
-        </button>
-
-        {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1 bg-[#151518] p-1 rounded-lg border border-[#26262b]">
-          <button
-            onClick={() => {
-              setActiveTab('reader');
-              setReaderSubView('library');
-            }}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-              activeTab === 'reader' && readerSubView === 'library'
-                ? 'bg-[#3ECF8E] text-[#06140d]'
-                : 'text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#1c1c21]'
-            }`}
-          >
-            <FolderOpen className="w-3.5 h-3.5" />
-            <span>Biblioteca</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveTab('reader');
-              setReaderSubView('document');
-            }}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-              activeTab === 'reader' && readerSubView === 'document'
-                ? 'bg-[#3ECF8E] text-[#06140d]'
-                : 'text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#1c1c21]'
-            }`}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Documento Activo</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('tables')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-              activeTab === 'tables'
-                ? 'bg-[#3ECF8E] text-[#06140d]'
-                : 'text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#1c1c21]'
-            }`}
-          >
-            <Table2 className="w-3.5 h-3.5" />
-            <span>Tablas Tributarias</span>
-            <span className="px-1.5 py-0.2 bg-black/30 rounded text-[10px]">{tables.length}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('calculators')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-              activeTab === 'calculators'
-                ? 'bg-[#3ECF8E] text-[#06140d]'
-                : 'text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#1c1c21]'
-            }`}
-          >
-            <Calculator className="w-3.5 h-3.5" />
-            <span>Calculadoras SRI</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-              activeTab === 'chat'
-                ? 'bg-[#3ECF8E] text-[#06140d]'
-                : 'text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#1c1c21]'
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Asistente IA</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('reviewer')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-              activeTab === 'reviewer'
-                ? 'bg-[#3ECF8E] text-[#06140d]'
-                : 'text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#1c1c21]'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Control</span>
-            {discrepancies.filter(d => d.status === 'pending').length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-[#26262b] text-[#f4f4f5] font-bold text-[10px]">
-                {discrepancies.filter(d => d.status === 'pending').length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setIsUploadModalOpen(true)}
-            className="px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 bg-[#1c1c21] text-[#e4e4e7] hover:bg-[#26262b] transition border border-[#2e2e36] cursor-pointer"
-            title="Subir nuevo documento PDF para procesamiento"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Subir PDF</span>
-          </button>
-        </nav>
-
-        {/* Controles de Usuario y Plan */}
-        <div className="flex items-center gap-2.5">
-          <div className="hidden xl:flex items-center bg-[#151518] rounded-lg p-0.5 border border-[#26262b] text-[11px]">
-            <button
-              onClick={() => setCurrentPlan('free')}
-              className={`px-2 py-1 rounded font-semibold transition cursor-pointer ${
-                currentPlan === 'free' ? 'bg-[#26262b] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'
-              }`}
-            >
-              Free
-            </button>
-            <button
-              onClick={() => setCurrentPlan('premium')}
-              className={`px-2 py-1 rounded font-semibold transition cursor-pointer ${
-                currentPlan === 'premium' ? 'bg-[#26262b] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'
-              }`}
-            >
-              Pro
-            </button>
-            <button
-              onClick={() => setCurrentPlan('professional')}
-              className={`px-2 py-1 rounded font-semibold transition cursor-pointer ${
-                currentPlan === 'professional' ? 'bg-[#26262b] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'
-              }`}
-            >
-              Plus
-            </button>
-          </div>
-
+      {/* CABECERA DEL PORTAL SMARTLEX */}
+      <header className="bg-[var(--color-superficie)] border-b border-[var(--color-borde)] sticky top-0 z-40 shrink-0">
+        <div className="h-14 sm:h-16 px-3 sm:px-5 flex items-center justify-between gap-3">
+          {/* Izquierda: Marca */}
           <button
             type="button"
-            onClick={() => setThemeMode(prev => (prev === 'dark' ? 'light' : 'dark'))}
-            title={themeMode === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
-            aria-label={themeMode === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#151518] border border-[#26262b] text-[#e4e4e7] hover:bg-[#1c1c21] transition flex items-center gap-1.5 cursor-pointer"
+            onClick={handleGoToLibraryHome}
+            title="Ir al inicio de la Biblioteca Normativa"
+            className="flex items-center gap-2.5 cursor-pointer text-left group shrink-0"
           >
-            {themeMode === 'dark' ? (
-              <>
-                <Sun className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Modo Claro</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Modo Noche</span>
-              </>
-            )}
-          </button>
-
-          <button
-            onClick={() => setCurrentView('landing')}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#151518] border border-[#26262b] text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#1c1c21] transition cursor-pointer"
-          >
-            Inicio
-          </button>
-
-          {currentUser ? (
-            <div className="flex items-center gap-2 pl-2 border-l border-[#26262b]">
-              <span className="text-[11px] text-[#d4d4d8] bg-[#151518] px-2.5 py-1 rounded-md border border-[#26262b]">
-                {userProfile?.whatsapp_phone || currentUser.email}
+            <div className="flex items-center justify-center p-1.5 rounded-lg bg-[var(--color-fondo)] border border-[var(--color-borde)] group-hover:border-[var(--color-secundario)] transition-colors">
+              <RubikCubeLogo size={26} />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-heading text-base sm:text-lg font-extrabold tracking-tight text-[var(--color-texto)]">
+                SmartLex<span className="text-[var(--color-secundario)]">EC</span>
               </span>
-              <button
-                onClick={handleSignOut}
-                className="px-2 py-1 rounded-md text-[11px] font-medium text-[#a1a1aa] hover:text-white hover:bg-[#1c1c21] border border-[#26262b] transition cursor-pointer"
+              <span className="hidden 2xl:inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)]">
+                Portal Tributario
+              </span>
+            </div>
+          </button>
+
+          {/* Centro: 5 vistas principales de consulta */}
+          <nav
+            aria-label="Navegación principal del portal"
+            className="hidden lg:flex items-center gap-1 bg-[var(--color-fondo)] p-1 rounded-xl border border-[var(--color-borde)]"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('reader');
+                setReaderSubView('library');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+                activeTab === 'reader' && readerSubView === 'library'
+                  ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] shadow-xs'
+                  : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
+              }`}
+            >
+              <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+              <span>Biblioteca</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('reader');
+                setReaderSubView('document');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+                activeTab === 'reader' && readerSubView === 'document'
+                  ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] shadow-xs'
+                  : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
+              <span>Documento</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('tables')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+                activeTab === 'tables'
+                  ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] shadow-xs'
+                  : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
+              }`}
+            >
+              <Table2 className="w-3.5 h-3.5 shrink-0" />
+              <span>Tablas</span>
+              <span
+                className={`px-1.5 py-0.5 rounded text-[10px] font-mono leading-none ${
+                  activeTab === 'tables'
+                    ? 'bg-[var(--color-superficie)] text-[var(--color-texto)]'
+                    : 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)]'
+                }`}
               >
-                Salir
+                {tables.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('calculators')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+                activeTab === 'calculators'
+                  ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] shadow-xs'
+                  : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
+              }`}
+            >
+              <Calculator className="w-3.5 h-3.5 shrink-0" />
+              <span>Calculadoras</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('chat')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+                activeTab === 'chat'
+                  ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] shadow-xs'
+                  : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+              <span>Asistente IA</span>
+            </button>
+          </nav>
+
+          {/* Derecha: Plan, Tema, Menú Herramientas y Usuario */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Botón Subir de plan / Obtener Premium */}
+            <button
+              type="button"
+              onClick={handleGoToPricingPage}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-xs font-bold border border-[var(--color-secundario-borde)] bg-[var(--color-secundario-suave)] text-[var(--color-exito-texto)] hover:bg-[var(--color-secundario)] hover:text-[var(--color-texto-sobre-secundario)] hover:border-[var(--color-secundario)] transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <Crown className="w-3.5 h-3.5 shrink-0" />
+              <span>{currentPlan === 'free' ? 'Obtener Premium' : 'Subir de plan'}</span>
+            </button>
+
+            {/* Botón compacto de tema */}
+            <button
+              type="button"
+              onClick={() => setThemeMode(prev => (prev === 'dark' ? 'light' : 'dark'))}
+              title={themeMode === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
+              aria-label={themeMode === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
+              className="w-9 h-9 rounded-lg border border-[var(--color-borde)] bg-[var(--color-fondo)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] flex items-center justify-center transition-colors cursor-pointer"
+            >
+              {themeMode === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+
+            {/* Menú desplegable de Herramientas / Administración */}
+            <div ref={toolsMenuRef} className="relative hidden sm:block">
+              <button
+                type="button"
+                onClick={() => setToolsMenuOpen(prev => !prev)}
+                aria-expanded={toolsMenuOpen}
+                aria-haspopup="menu"
+                title="Herramientas y administración"
+                className={`px-2.5 h-9 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  toolsMenuOpen || activeTab === 'reviewer'
+                    ? 'border-[var(--color-secundario)] bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
+                    : 'border-[var(--color-borde)] bg-[var(--color-fondo)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)]'
+                }`}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />
+                <span className="hidden xl:inline">Herramientas</span>
+                {discrepancies.filter(d => d.status === 'pending').length > 0 ? (
+                  <span className="px-1.5 py-0.5 rounded-full bg-[var(--color-aviso-fondo)] text-[var(--color-aviso)] border border-[var(--color-aviso-borde)] font-bold text-[10px] leading-none">
+                    {discrepancies.filter(d => d.status === 'pending').length}
+                  </span>
+                ) : activeTab === 'reviewer' ? (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-secundario)]" />
+                ) : null}
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[var(--color-texto-secundario)] transition-transform ${
+                    toolsMenuOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {toolsMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-[var(--color-borde)] bg-[var(--color-superficie)] shadow-xl p-1.5 z-50 text-left space-y-1"
+                >
+                  <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-texto-secundario)]">
+                    Administración y herramientas
+                  </div>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setActiveTab('reviewer');
+                      setToolsMenuOpen(false);
+                    }}
+                    className={`w-full px-2.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                      activeTab === 'reviewer'
+                        ? 'bg-[var(--color-secundario-suave)] text-[var(--color-exito-texto)]'
+                        : 'text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 shrink-0" />
+                      <span>Control de discrepancias</span>
+                    </span>
+                    {discrepancies.filter(d => d.status === 'pending').length > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-[var(--color-aviso-fondo)] text-[var(--color-aviso)] border border-[var(--color-aviso-borde)] font-bold text-[10px] leading-none">
+                        {discrepancies.filter(d => d.status === 'pending').length}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsUploadModalOpen(true);
+                      setToolsMenuOpen(false);
+                    }}
+                    className="w-full px-2.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition-colors cursor-pointer"
+                  >
+                    <Upload className="w-4 h-4 shrink-0 text-[var(--color-secundario)]" />
+                    <span>Subir PDF normativo</span>
+                  </button>
+
+                  <div className="border-t border-[var(--color-borde)] my-1 pt-2 px-2 pb-1.5 space-y-1.5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-texto-secundario)]">
+                      Vista rápida de plan
+                    </div>
+                    <div className="grid grid-cols-3 gap-1 bg-[var(--color-fondo)] p-1 rounded-lg border border-[var(--color-borde)] text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPlan('free')}
+                        className={`py-1 rounded font-semibold transition-colors cursor-pointer ${
+                          currentPlan === 'free'
+                            ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)]'
+                            : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
+                        }`}
+                      >
+                        Free
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPlan('premium')}
+                        className={`py-1 rounded font-semibold transition-colors cursor-pointer ${
+                          currentPlan === 'premium'
+                            ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)]'
+                            : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
+                        }`}
+                      >
+                        Pro
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPlan('professional')}
+                        className={`py-1 rounded font-semibold transition-colors cursor-pointer ${
+                          currentPlan === 'professional'
+                            ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)]'
+                            : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
+                        }`}
+                      >
+                        Plus
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-[var(--color-borde)] pt-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setToolsMenuOpen(false);
+                        setCurrentView('landing');
+                      }}
+                      className="w-full px-2.5 py-2 rounded-lg text-xs font-medium flex items-center gap-2 text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition-colors cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                      <span>Volver a la página de inicio</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Cuenta de usuario o botón Ingresar */}
+            <div className="hidden md:flex items-center gap-2 pl-1">
+              {currentUser ? (
+                <>
+                  <span
+                    title={userProfile?.whatsapp_phone || currentUser.email}
+                    className="max-w-[140px] truncate text-[11px] font-medium text-[var(--color-texto)] bg-[var(--color-fondo)] px-2.5 h-9 inline-flex items-center rounded-lg border border-[var(--color-borde)]"
+                  >
+                    {userProfile?.whatsapp_phone || currentUser.email}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    title="Cerrar sesión"
+                    className="px-2.5 h-9 rounded-lg text-xs font-medium text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span className="hidden xl:inline">Salir</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleOpenLogin}
+                  className="px-3.5 h-9 rounded-lg text-xs font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition-colors cursor-pointer"
+                >
+                  Ingresar
+                </button>
+              )}
+            </div>
+
+            {/* Botón de menú móvil / tablet */}
+            <button
+              type="button"
+              onClick={() => setPortalMobileMenuOpen(prev => !prev)}
+              aria-label={portalMobileMenuOpen ? 'Cerrar menú del portal' : 'Abrir menú del portal'}
+              aria-expanded={portalMobileMenuOpen}
+              className="lg:hidden w-9 h-9 rounded-lg border border-[var(--color-borde)] bg-[var(--color-fondo)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] flex items-center justify-center transition-colors cursor-pointer"
+            >
+              {portalMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Panel desplegable móvil y tablet */}
+        {portalMobileMenuOpen && (
+          <div className="lg:hidden border-t border-[var(--color-borde)] bg-[var(--color-superficie)] px-4 py-3 space-y-3 shadow-md text-left">
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('reader');
+                  setReaderSubView('library');
+                  setPortalMobileMenuOpen(false);
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
+                  activeTab === 'reader' && readerSubView === 'library'
+                    ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
+                    : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
+                }`}
+              >
+                <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+                <span>Biblioteca</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('reader');
+                  setReaderSubView('document');
+                  setPortalMobileMenuOpen(false);
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
+                  activeTab === 'reader' && readerSubView === 'document'
+                    ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
+                    : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                <span>Documento</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('tables');
+                  setPortalMobileMenuOpen(false);
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between gap-1.5 border transition-colors cursor-pointer ${
+                  activeTab === 'tables'
+                    ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
+                    : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Table2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Tablas</span>
+                </span>
+                <span className="text-[10px] font-mono opacity-80">{tables.length}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('calculators');
+                  setPortalMobileMenuOpen(false);
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
+                  activeTab === 'calculators'
+                    ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
+                    : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
+                }`}
+              >
+                <Calculator className="w-3.5 h-3.5 shrink-0" />
+                <span>Calculadoras</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('chat');
+                  setPortalMobileMenuOpen(false);
+                }}
+                className={`col-span-2 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
+                  activeTab === 'chat'
+                    ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
+                    : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                <span>Asistente IA</span>
               </button>
             </div>
-          ) : (
+
             <button
-              onClick={handleOpenLogin}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#f4f4f5] hover:bg-white text-[#0d0d0f] transition cursor-pointer"
+              type="button"
+              onClick={handleGoToPricingPage}
+              className="w-full py-2.5 px-3 rounded-lg text-xs font-bold border border-[var(--color-secundario-borde)] bg-[var(--color-secundario-suave)] text-[var(--color-exito-texto)] flex items-center justify-center gap-2 cursor-pointer"
             >
-              Ingresar
+              <Crown className="w-4 h-4 shrink-0" />
+              <span>{currentPlan === 'free' ? 'Obtener Premium' : 'Subir de plan'}</span>
             </button>
-          )}
-        </div>
+
+            <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-[var(--color-borde)]">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('reviewer');
+                  setPortalMobileMenuOpen(false);
+                }}
+                className={`px-2.5 py-2 rounded-lg text-[11px] font-semibold border flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'reviewer'
+                    ? 'bg-[var(--color-secundario-suave)] text-[var(--color-exito-texto)] border-[var(--color-secundario-borde)]'
+                    : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                <span>Control</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUploadModalOpen(true);
+                  setPortalMobileMenuOpen(false);
+                }}
+                className="px-2.5 py-2 rounded-lg text-[11px] font-semibold border border-[var(--color-borde)] bg-[var(--color-fondo)] text-[var(--color-texto)] flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5 shrink-0 text-[var(--color-secundario)]" />
+                <span>Subir PDF</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPortalMobileMenuOpen(false);
+                  setCurrentView('landing');
+                }}
+                className="px-2.5 py-2 rounded-lg text-[11px] font-semibold border border-[var(--color-borde)] bg-[var(--color-fondo)] text-[var(--color-texto-secundario)] flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                <span>Inicio</span>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--color-borde)]">
+              {currentUser ? (
+                <>
+                  <span className="text-xs text-[var(--color-texto-secundario)] truncate">
+                    {userProfile?.whatsapp_phone || currentUser.email}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPortalMobileMenuOpen(false);
+                      handleSignOut();
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--color-borde)] bg-[var(--color-fondo)] text-[var(--color-texto)] inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Salir</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPortalMobileMenuOpen(false);
+                    handleOpenLogin();
+                  }}
+                  className="w-full py-2.5 rounded-lg text-xs font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] cursor-pointer"
+                >
+                  Ingresar a tu cuenta
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* TOAST NOTIFICATION */}
       {checkoutToast && (
-        <div className="bg-[#1c1c21] border-b border-[#26262b] text-[#f4f4f5] px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-[#e4e4e7]" />
+        <div className="bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] text-[var(--color-texto)] px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[var(--color-texto)]" />
           <span>{checkoutToast}</span>
         </div>
       )}
@@ -3549,21 +4649,21 @@ export default function App() {
       {/* TAB 1: PANTALLA 1 (BIBLIOTECA EN ÁRBOL JERÁRQUICO) Y PANTALLA 2      */}
       {/* ==================================================================== */}
       {activeTab === 'reader' && (
-        <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-[#0d0d0f]">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-[var(--color-fondo)]">
           {readerSubView === 'library' ? (
             /* ================================================================ */
             /* PANTALLA 1: BIBLIOTECA EN ÁRBOL JERÁRQUICO (SIN PALABRA "EBOOK") */
             /* ================================================================ */
             <div className="flex-1 grid grid-cols-12 overflow-hidden min-h-0">
               {/* COLUMNA IZQUIERDA (Cols 1-4): ÁRBOL POR JERARQUÍAS (NORMATIVA Y TRIBUTOS) */}
-              <aside className="col-span-12 md:col-span-4 lg:col-span-4 bg-[#121215] border-r border-[#26262b] flex flex-col overflow-hidden">
-                <div className="p-4 border-b border-[#26262b] space-y-3">
+              <aside className="col-span-12 md:col-span-4 lg:col-span-4 bg-[var(--color-superficie)] border-r border-[var(--color-borde)] flex flex-col overflow-hidden">
+                <div className="p-4 border-b border-[var(--color-borde)] space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#71717a]">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-texto-secundario)]">
                         Pantalla 1 • Explorador Jerárquico
                       </span>
-                      <h2 className="text-sm font-bold text-[#f4f4f5] mt-0.5">
+                      <h2 className="text-sm font-bold text-[var(--color-texto)] mt-0.5">
                         Biblioteca Normativa y Tributaria
                       </h2>
                     </div>
@@ -3574,7 +4674,7 @@ export default function App() {
                           setSelectedTaxFilter('ALL');
                           setSelectedConceptId(null);
                         }}
-                        className="text-[11px] text-[#a1a1aa] hover:text-[#f4f4f5] underline cursor-pointer"
+                        className="text-[11px] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] underline cursor-pointer"
                       >
                         Restablecer
                       </button>
@@ -3583,13 +4683,13 @@ export default function App() {
 
                   {/* Buscador rápido en la Biblioteca */}
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-[#71717a] absolute left-3 top-2.5" />
+                    <Search className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] absolute left-3 top-2.5" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Filtrar cuerpo legal, impuesto o artículo..."
-                      className="w-full bg-[#151518] border border-[#26262b] focus:border-[#52525b] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#f4f4f5] placeholder-[#71717a] outline-none"
+                      className="w-full bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] focus:border-[var(--color-borde-fuerte)] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none"
                     />
                   </div>
                 </div>
@@ -3597,7 +4697,7 @@ export default function App() {
                 {/* Árbol Jerárquico Desplegable */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {/* GRUPO 1: NORMATIVA (CUERPOS LEGALES) */}
-                  <div className="bg-[#151518] border border-[#26262b] rounded-xl overflow-hidden">
+                  <div className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-xl overflow-hidden">
                     <button
                       onClick={() =>
                         setLibraryTreeOpen(prev => ({
@@ -3605,20 +4705,20 @@ export default function App() {
                           group_normativa: !prev.group_normativa
                         }))
                       }
-                      className="w-full px-3.5 py-3 bg-[#18181c] hover:bg-[#1c1c21] transition flex items-center justify-between text-left cursor-pointer border-b border-[#26262b]"
+                      className="w-full px-3.5 py-3 bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] transition flex items-center justify-between text-left cursor-pointer border-b border-[var(--color-borde)]"
                     >
                       <div className="flex items-center gap-2">
                         {libraryTreeOpen.group_normativa ? (
-                          <ChevronDown className="w-4 h-4 text-[#a1a1aa]" />
+                          <ChevronDown className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-[#a1a1aa]" />
+                          <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                         )}
-                        <FolderOpen className="w-4 h-4 text-[#d4d4d8]" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#f4f4f5]">
+                        <FolderOpen className="w-4 h-4 text-[var(--color-texto)]" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-texto)]">
                           Grupo 1: Normativa
                         </span>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-[#0d0d0f] text-[#a1a1aa] border border-[#26262b] font-mono">
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)] font-mono">
                         {Math.max(norms.length, 3)} cuerpos
                       </span>
                     </button>
@@ -3627,13 +4727,14 @@ export default function App() {
                       <div className="p-2 space-y-2">
                         {(() => {
                           const renderCategoryIcon = (cat: LibraryNormCategory) => {
-                            if (cat === 'convenios') return <Globe className="w-3.5 h-3.5 text-[#a1a1aa] shrink-0" />;
-                            if (cat === 'codigos') return <BookOpen className="w-3.5 h-3.5 text-[#d4d4d8] shrink-0" />;
-                            if (cat === 'leyes') return <Scale className="w-3.5 h-3.5 text-[#d4d4d8] shrink-0" />;
-                            if (cat === 'reglamentos') return <Layers className="w-3.5 h-3.5 text-[#a1a1aa] shrink-0" />;
-                            if (cat === 'resoluciones') return <FileText className="w-3.5 h-3.5 text-[#a1a1aa] shrink-0" />;
-                            if (cat === 'circulares') return <Bookmark className="w-3.5 h-3.5 text-[#a1a1aa] shrink-0" />;
-                            return <FileCode className="w-3.5 h-3.5 text-[#a1a1aa] shrink-0" />;
+                            if (cat === 'convenios') return <Globe className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />;
+                            if (cat === 'codigos') return <BookOpen className="w-3.5 h-3.5 text-[var(--color-texto)] shrink-0" />;
+                            if (cat === 'leyes') return <Scale className="w-3.5 h-3.5 text-[var(--color-texto)] shrink-0" />;
+                            if (cat === 'reglamentos') return <Layers className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />;
+                            if (cat === 'decretos') return <ShieldCheck className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />;
+                            if (cat === 'resoluciones') return <FileText className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />;
+                            if (cat === 'circulares') return <Bookmark className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />;
+                            return <FileCode className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />;
                           };
 
                           const countFor = (scope: LibraryNormScope, cat?: LibraryNormCategory) =>
@@ -3651,7 +4752,7 @@ export default function App() {
                             const totalInScope = countFor(scope);
                             const isOpen = Boolean(libraryTreeOpen[treeKey]);
                             return (
-                              <div className="rounded-lg border border-[#26262b]/80 bg-[#121215] overflow-hidden">
+                              <div className="rounded-lg border border-[var(--color-borde)] bg-[var(--color-superficie)] overflow-hidden">
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -3660,24 +4761,24 @@ export default function App() {
                                       [treeKey]: !prev[treeKey]
                                     }))
                                   }
-                                  className="w-full px-2.5 py-2 bg-[#16161a] hover:bg-[#1a1a1f] transition flex items-center justify-between text-left cursor-pointer"
+                                  className="w-full px-2.5 py-2 bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] transition flex items-center justify-between text-left cursor-pointer"
                                 >
                                   <div className="flex items-center gap-1.5 min-w-0 pr-2">
                                     {isOpen ? (
-                                      <ChevronDown className="w-3.5 h-3.5 text-[#f4f4f5] shrink-0" />
+                                      <ChevronDown className="w-3.5 h-3.5 text-[var(--color-texto)] shrink-0" />
                                     ) : (
-                                      <ChevronRight className="w-3.5 h-3.5 text-[#71717a] shrink-0" />
+                                      <ChevronRight className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />
                                     )}
-                                    <span className="text-[11px] font-bold text-[#e4e4e7] truncate">
+                                    <span className="text-[11px] font-bold text-[var(--color-texto)] truncate">
                                       {title}
                                     </span>
                                   </div>
-                                  <span className="text-[10px] font-mono text-[#a1a1aa] shrink-0">
+                                  <span className="text-[10px] font-mono text-[var(--color-texto-secundario)] shrink-0">
                                     {totalInScope}
                                   </span>
                                 </button>
                                 {isOpen && (
-                                  <div className="p-1.5 space-y-0.5 border-t border-[#26262b]/60">
+                                  <div className="p-1.5 space-y-0.5 border-t border-[var(--color-borde)]">
                                     {LIBRARY_CATEGORIES.map(cat => {
                                       const count = countFor(scope, cat.key);
                                       const isActiveCat =
@@ -3699,8 +4800,8 @@ export default function App() {
                                           }}
                                           className={`w-full px-2.5 py-2 rounded-lg text-xs transition flex items-center justify-between gap-2 text-left cursor-pointer border ${
                                             isActiveCat
-                                              ? 'bg-[#1c1c21] text-[#f4f4f5] border-[#3f3f46] font-semibold'
-                                              : 'text-[#a1a1aa] border-transparent hover:bg-[#18181c] hover:text-[#e4e4e7]'
+                                              ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border-[var(--color-borde-fuerte)] font-semibold'
+                                              : 'text-[var(--color-texto-secundario)] border-transparent hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)]'
                                           }`}
                                         >
                                           <div className="flex items-center gap-2 min-w-0">
@@ -3710,8 +4811,8 @@ export default function App() {
                                           <span
                                             className={`text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${
                                               count > 0
-                                                ? 'bg-[#0d0d0f] text-[#d4d4d8] border-[#26262b]'
-                                                : 'bg-[#0d0d0f]/60 text-[#52525b] border-[#26262b]/50'
+                                                ? 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
+                                                : 'bg-[var(--color-fondo)] text-[var(--color-texto-secundario)] border-[var(--color-borde)]'
                                             }`}
                                           >
                                             {count}
@@ -3737,7 +4838,7 @@ export default function App() {
                   </div>
 
                   {/* GRUPO 2: TRIBUTOS (IMPUESTOS Y CATEGORÍA ADICIONAL) */}
-                  <div className="bg-[#151518] border border-[#26262b] rounded-xl overflow-hidden">
+                  <div className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-xl overflow-hidden">
                     <button
                       onClick={() =>
                         setLibraryTreeOpen(prev => ({
@@ -3745,20 +4846,20 @@ export default function App() {
                           group_tributos: !prev.group_tributos
                         }))
                       }
-                      className="w-full px-3.5 py-3 bg-[#18181c] hover:bg-[#1c1c21] transition flex items-center justify-between text-left cursor-pointer border-b border-[#26262b]"
+                      className="w-full px-3.5 py-3 bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] transition flex items-center justify-between text-left cursor-pointer border-b border-[var(--color-borde)]"
                     >
                       <div className="flex items-center gap-2">
                         {libraryTreeOpen.group_tributos ? (
-                          <ChevronDown className="w-4 h-4 text-[#a1a1aa]" />
+                          <ChevronDown className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-[#a1a1aa]" />
+                          <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                         )}
-                        <Scale className="w-4 h-4 text-[#d4d4d8]" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#f4f4f5]">
+                        <Scale className="w-4 h-4 text-[var(--color-texto)]" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-texto)]">
                           Grupo 2: Tributos
                         </span>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-[#0d0d0f] text-[#a1a1aa] border border-[#26262b] font-mono">
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)] font-mono">
                         Jerarquía Fiscal
                       </span>
                     </button>
@@ -3766,7 +4867,7 @@ export default function App() {
                     {libraryTreeOpen.group_tributos && (
                       <div className="p-2.5 space-y-2">
                         {/* Sub-rama 2.1: Impuestos */}
-                        <div className="border-l border-[#26262b] pl-2.5 space-y-1">
+                        <div className="border-l border-[var(--color-borde)] pl-2.5 space-y-1">
                           <button
                             onClick={() =>
                               setLibraryTreeOpen(prev => ({
@@ -3774,17 +4875,17 @@ export default function App() {
                                 sub_impuestos: !prev.sub_impuestos
                               }))
                             }
-                            className="w-full px-2 py-1.5 rounded-md hover:bg-[#18181c] flex items-center justify-between text-left cursor-pointer"
+                            className="w-full px-2 py-1.5 rounded-md hover:bg-[var(--color-superficie-hover)] flex items-center justify-between text-left cursor-pointer"
                           >
-                            <span className="text-[11px] font-bold text-[#d4d4d8] flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-[var(--color-texto)] flex items-center gap-1.5">
                               {libraryTreeOpen.sub_impuestos ? (
-                                <ChevronDown className="w-3.5 h-3.5 text-[#a1a1aa]" />
+                                <ChevronDown className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                               ) : (
-                                <ChevronRight className="w-3.5 h-3.5 text-[#a1a1aa]" />
+                                <ChevronRight className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                               )}
                               <span>Impuestos Principales</span>
                             </span>
-                            <span className="text-[10px] text-[#71717a]">5 tributos</span>
+                            <span className="text-[10px] text-[var(--color-texto-secundario)]">5 tributos</span>
                           </button>
 
                           {libraryTreeOpen.sub_impuestos && (
@@ -3839,15 +4940,15 @@ export default function App() {
                                     }}
                                     className={`w-full text-left px-3 py-2 rounded-lg text-xs transition flex items-center justify-between cursor-pointer border ${
                                       isSelected
-                                        ? 'bg-[#1c1c21] text-[#f4f4f5] border-[#3f3f46] font-semibold'
-                                        : 'text-[#a1a1aa] border-transparent hover:bg-[#18181c] hover:text-[#e4e4e7]'
+                                        ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border-[var(--color-borde-fuerte)] font-semibold'
+                                        : 'text-[var(--color-texto-secundario)] border-transparent hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)]'
                                     }`}
                                   >
                                     <div className="pr-2 truncate">
                                       <div className="truncate">{taxItem.label}</div>
-                                      <div className="text-[10px] text-[#71717a] truncate">{taxItem.sub}</div>
+                                      <div className="text-[10px] text-[var(--color-texto-secundario)] truncate">{taxItem.sub}</div>
                                     </div>
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0d0d0f] text-[#a1a1aa] border border-[#26262b] font-mono shrink-0">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)] font-mono shrink-0">
                                       {count} arts.
                                     </span>
                                   </button>
@@ -3858,7 +4959,7 @@ export default function App() {
                         </div>
 
                         {/* Sub-rama 2.2: Categoría Adicional / Otra (Regímenes y Conceptos Transversales) */}
-                        <div className="border-l border-[#26262b] pl-2.5 space-y-1">
+                        <div className="border-l border-[var(--color-borde)] pl-2.5 space-y-1">
                           <button
                             onClick={() =>
                               setLibraryTreeOpen(prev => ({
@@ -3866,17 +4967,17 @@ export default function App() {
                                 sub_adicionales: !prev.sub_adicionales
                               }))
                             }
-                            className="w-full px-2 py-1.5 rounded-md hover:bg-[#18181c] flex items-center justify-between text-left cursor-pointer"
+                            className="w-full px-2 py-1.5 rounded-md hover:bg-[var(--color-superficie-hover)] flex items-center justify-between text-left cursor-pointer"
                           >
-                            <span className="text-[11px] font-bold text-[#d4d4d8] flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-[var(--color-texto)] flex items-center gap-1.5">
                               {libraryTreeOpen.sub_adicionales ? (
-                                <ChevronDown className="w-3.5 h-3.5 text-[#a1a1aa]" />
+                                <ChevronDown className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                               ) : (
-                                <ChevronRight className="w-3.5 h-3.5 text-[#a1a1aa]" />
+                                <ChevronRight className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                               )}
                               <span>Adicionales y Conceptos Tributarios</span>
                             </span>
-                            <span className="text-[10px] text-[#71717a]">{concepts.length + 1}</span>
+                            <span className="text-[10px] text-[var(--color-texto-secundario)]">{concepts.length + 1}</span>
                           </button>
 
                           {libraryTreeOpen.sub_adicionales && (
@@ -3888,12 +4989,12 @@ export default function App() {
                                 }}
                                 className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition flex items-center justify-between cursor-pointer border ${
                                   selectedTaxFilter === 'GENERAL'
-                                    ? 'bg-[#1c1c21] text-[#f4f4f5] border-[#3f3f46] font-semibold'
-                                    : 'text-[#a1a1aa] border-transparent hover:bg-[#18181c] hover:text-[#e4e4e7]'
+                                    ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border-[var(--color-borde-fuerte)] font-semibold'
+                                    : 'text-[var(--color-texto-secundario)] border-transparent hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)]'
                                 }`}
                               >
                                 <span>Disposiciones Generales, Transitorias y Reformatorias</span>
-                                <span className="text-[10px] text-[#71717a] font-mono">{taxCounts.GENERAL || 0}</span>
+                                <span className="text-[10px] text-[var(--color-texto-secundario)] font-mono">{taxCounts.GENERAL || 0}</span>
                               </button>
 
                               {concepts.map(c => (
@@ -3904,12 +5005,12 @@ export default function App() {
                                   }
                                   className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition flex items-center justify-between cursor-pointer border ${
                                     selectedConceptId === c.id
-                                      ? 'bg-[#1c1c21] text-[#f4f4f5] border-[#3f3f46] font-semibold'
-                                      : 'text-[#a1a1aa] border-transparent hover:bg-[#18181c] hover:text-[#e4e4e7]'
+                                      ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border-[var(--color-borde-fuerte)] font-semibold'
+                                      : 'text-[var(--color-texto-secundario)] border-transparent hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)]'
                                   }`}
                                 >
                                   <span className="truncate">{c.name}</span>
-                                  <span className="text-[10px] text-[#71717a]">{c.code}</span>
+                                  <span className="text-[10px] text-[var(--color-texto-secundario)]">{c.code}</span>
                                 </button>
                               ))}
                             </div>
@@ -3922,7 +5023,7 @@ export default function App() {
               </aside>
 
               {/* PANEL DERECHO (Cols 5-12): TARJETAS POR CATEGORÍA O APARTADO "FICHA DE LA LEY" */}
-              <main className="col-span-12 md:col-span-8 lg:col-span-8 bg-[#0d0d0f] flex flex-col overflow-y-auto p-6 lg:p-8 space-y-6">
+              <main className="col-span-12 md:col-span-8 lg:col-span-8 bg-[var(--color-fondo)] flex flex-col overflow-y-auto p-6 lg:p-8 space-y-6">
                 {libraryRightView === 'cards' && selectedTaxFilter === 'ALL' ? (
                   (() => {
                     const scopeTitle =
@@ -3965,27 +5066,27 @@ export default function App() {
                     return (
                       <>
                         {/* Cabecera de la Categoría Activa */}
-                        <div className="bg-[#151518] border border-[#26262b] rounded-2xl p-6 shadow-xl">
+                        <div className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-2xl p-6 shadow-xl">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded bg-[#1c1c21] text-[#d4d4d8] border border-[#2e2e36]">
+                                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                                   {scopeTitle}
                                 </span>
-                                <ChevronRight className="w-3.5 h-3.5 text-[#52525b]" />
-                                <span className="text-[11px] text-[#a1a1aa] font-semibold">
+                                <ChevronRight className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
+                                <span className="text-[11px] text-[var(--color-texto-secundario)] font-semibold">
                                   {catMeta.label}
                                 </span>
                               </div>
-                              <h1 className="font-heading text-2xl font-extrabold text-[#f4f4f5] tracking-tight">
+                              <h1 className="font-heading text-2xl font-extrabold text-[var(--color-texto)] tracking-tight">
                                 {catMeta.label}
                               </h1>
-                              <p className="text-xs text-[#a1a1aa] max-w-2xl leading-relaxed">
-                                Selecciona una tarjeta para consultar la <strong className="text-[#e4e4e7]">Ficha de la Ley</strong> (índice, tablas y trazabilidad) o abre directamente el texto normativo consolidado.
+                              <p className="text-xs text-[var(--color-texto-secundario)] max-w-2xl leading-relaxed">
+                                Selecciona una tarjeta para consultar la <strong className="text-[var(--color-texto)]">Ficha de la Ley</strong> (índice, tablas y trazabilidad) o abre directamente el texto normativo consolidado.
                               </p>
                             </div>
                             <div className="shrink-0 flex items-center gap-2">
-                              <span className="text-xs px-3 py-1.5 rounded-xl bg-[#121215] border border-[#26262b] text-[#e4e4e7] font-mono">
+                              <span className="text-xs px-3 py-1.5 rounded-xl bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[var(--color-texto)] font-mono">
                                 {categoryNorms.length} {categoryNorms.length === 1 ? 'cuerpo cargado' : 'cuerpos cargados'}
                               </span>
                             </div>
@@ -3994,11 +5095,11 @@ export default function App() {
 
                         {/* Cuadrícula de Tarjetas de Normas */}
                         {categoryNorms.length === 0 ? (
-                          <div className="bg-[#151518] border border-dashed border-[#2e2e36] rounded-2xl p-10 text-center space-y-2">
-                            <div className="text-sm font-bold text-[#e4e4e7]">
+                          <div className="bg-[var(--color-superficie-secundaria)] border border-dashed border-[var(--color-borde)] rounded-2xl p-10 text-center space-y-2">
+                            <div className="text-sm font-bold text-[var(--color-texto)]">
                               Aún no hay cuerpos normativos en «{scopeTitle} · {catMeta.label}»
                             </div>
-                            <p className="text-xs text-[#71717a] max-w-md mx-auto">
+                            <p className="text-xs text-[var(--color-texto-secundario)] max-w-md mx-auto">
                               {q
                                 ? 'Prueba a limpiar el filtro de búsqueda en el panel izquierdo.'
                                 : 'Cuando incorpores documentos de esta categoría desde «Subir PDF» o Google Drive, aparecerán aquí automáticamente como tarjetas navegables.'}
@@ -4009,8 +5110,13 @@ export default function App() {
                             {categoryNorms.map(n => {
                               const info = classifyLibraryNormDetailed(n);
                               const artCount = articlesByNormId.get(n.id) || 0;
-                              const isResOrCirc =
-                                info.category === 'resoluciones' || info.category === 'circulares';
+                              const isCompactNormCard =
+                                info.category === 'resoluciones' ||
+                                info.category === 'circulares' ||
+                                info.category === 'decretos';
+                              const cardMeta = isCompactNormCard
+                                ? getCompactNormCardMeta(n, info.category)
+                                : null;
                               const isPinned = isNormPinned(n);
                               return (
                                 <div
@@ -4023,10 +5129,10 @@ export default function App() {
                                     setLibraryPreviewTab('summary');
                                     setLibraryRightView('ficha');
                                   }}
-                                  className={`group w-full bg-[#151518] hover:bg-[#18181c] border rounded-2xl p-5 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4 cursor-pointer shadow-lg ${
+                                  className={`group w-full bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border rounded-2xl p-5 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4 cursor-pointer shadow-lg ${
                                     isPinned
-                                      ? 'border-[#3ECF8E]/45 hover:border-[#3ECF8E]/70'
-                                      : 'border-[#26262b] hover:border-[#3f3f46]'
+                                      ? 'border-[var(--color-secundario-borde)] hover:border-[var(--color-secundario)]'
+                                      : 'border-[var(--color-borde)] hover:border-[var(--color-borde-fuerte)]'
                                   }`}
                                 >
                                   <div className="space-y-1.5 min-w-0 flex-1">
@@ -4041,8 +5147,8 @@ export default function App() {
                                         }
                                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-bold transition cursor-pointer ${
                                           isPinned
-                                            ? 'bg-[#3ECF8E]/15 border-[#3ECF8E]/50 text-[#3ECF8E]'
-                                            : 'bg-[#1c1c21] border-[#2e2e36] text-[#71717a] hover:text-[#e4e4e7] hover:border-[#52525b]'
+                                            ? 'bg-[var(--color-secundario-suave)] border-[var(--color-secundario-borde)] text-[var(--color-secundario)]'
+                                            : 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde)] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:border-[var(--color-borde-fuerte)]'
                                         }`}
                                       >
                                         <Star
@@ -4051,43 +5157,80 @@ export default function App() {
                                         />
                                         {isPinned && <span>Fijada</span>}
                                       </button>
-                                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#1c1c21] text-[#d4d4d8] border border-[#2e2e36]">
+                                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                                         {info.badge}
                                       </span>
                                       {n.publication_date && (
-                                        <span className="text-[11px] font-mono text-[#a1a1aa]">
+                                        <span
+                                          title={
+                                            info.category === 'decretos'
+                                              ? 'Fecha del decreto'
+                                              : 'Fecha de publicación'
+                                          }
+                                          className="text-[11px] font-mono text-[var(--color-texto-secundario)]"
+                                        >
                                           {n.publication_date}
                                         </span>
                                       )}
-                                      {!isResOrCirc && n.code && (
-                                        <span className="text-[10px] font-mono text-[#71717a]">
+                                      {!isCompactNormCard && n.code && (
+                                        <span className="text-[10px] font-mono text-[var(--color-texto-secundario)]">
                                           · {n.code}
                                         </span>
                                       )}
-                                      <span className="text-[#52525b]">•</span>
-                                      <span className="inline-flex items-center gap-1 text-[11px] text-[#a1a1aa]">
-                                        <FileText className="w-3.5 h-3.5 text-[#71717a]" />
+                                      <span className="text-[var(--color-texto-secundario)]">•</span>
+                                      <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-texto-secundario)]">
+                                        <FileText className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                                         {artCount} {artCount === 1 ? 'artículo' : 'artículos'}
                                       </span>
                                     </div>
 
-                                    {isResOrCirc ? (
+                                    {cardMeta ? (
                                       <>
-                                        <h2 className="text-base sm:text-lg font-extrabold text-[#f4f4f5] group-hover:text-white tracking-tight leading-snug break-words">
-                                          {n.code}
+                                        <h2 className="text-base sm:text-lg font-extrabold text-[var(--color-texto)] group-hover:text-[var(--color-texto)] tracking-tight leading-snug break-words">
+                                          {cardMeta.heading}
                                         </h2>
-                                        <p className="text-xs font-light text-[#a1a1aa] leading-relaxed line-clamp-2 max-w-4xl">
-                                          {n.title}
+                                        <p className="text-xs font-light text-[var(--color-texto-secundario)] leading-relaxed line-clamp-2 max-w-4xl">
+                                          {cardMeta.description}
                                         </p>
                                       </>
                                     ) : (
-                                      <h2 className="text-sm sm:text-base font-extrabold text-[#f4f4f5] group-hover:text-white leading-snug">
+                                      <h2 className="text-sm sm:text-base font-extrabold text-[var(--color-texto)] group-hover:text-[var(--color-texto)] leading-snug">
                                         {n.title}
                                       </h2>
                                     )}
                                   </div>
 
-                                  <div className="pt-3 lg:pt-0 border-t lg:border-t-0 border-[#26262b]/80 flex items-center gap-2 shrink-0 self-end lg:self-center">
+                                  <div className="pt-3 lg:pt-0 border-t lg:border-t-0 border-[var(--color-borde)] flex flex-wrap items-center gap-2 shrink-0 self-end lg:self-center">
+                                    {isAdmin &&
+                                      (info.category === 'decretos' ||
+                                        (info.category === 'reglamentos' && n.code !== 'RALRTI')) && (
+                                        <button
+                                          type="button"
+                                          disabled={updatingCategoryNormId === n.id}
+                                          onClick={e => {
+                                            e.stopPropagation();
+                                            handleChangeNormCategory(
+                                              n.id,
+                                              info.category === 'decretos' ? 'regulation' : 'decree'
+                                            );
+                                          }}
+                                          className="px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde-fuerte)] text-[var(--color-texto)] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                                          title={
+                                            info.category === 'decretos'
+                                              ? 'Ascender este decreto a la categoría Reglamentos'
+                                              : 'Mover este cuerpo normativo de vuelta a la categoría Decretos'
+                                          }
+                                        >
+                                          <ShieldCheck className="w-3.5 h-3.5 text-[var(--color-secundario)]" />
+                                          <span>
+                                            {updatingCategoryNormId === n.id
+                                              ? 'Guardando...'
+                                              : info.category === 'decretos'
+                                                ? 'Ascender a Reglamento'
+                                                : 'Mover a Decretos'}
+                                          </span>
+                                        </button>
+                                      )}
                                     <button
                                       type="button"
                                       onClick={e => {
@@ -4099,9 +5242,9 @@ export default function App() {
                                         setLibraryPreviewTab('summary');
                                         setLibraryRightView('ficha');
                                       }}
-                                      className="px-3 py-2 rounded-lg text-xs font-semibold bg-[#1c1c21] hover:bg-[#26262b] border border-[#2e2e36] text-[#e4e4e7] transition flex items-center gap-1.5 cursor-pointer"
+                                      className="px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[var(--color-texto)] transition flex items-center gap-1.5 cursor-pointer"
                                     >
-                                      <Layers className="w-3.5 h-3.5 text-[#a1a1aa]" />
+                                      <Layers className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                                       <span>Ficha de la Ley</span>
                                     </button>
                                     <button
@@ -4110,7 +5253,7 @@ export default function App() {
                                         e.stopPropagation();
                                         handleOpenFullNorm(n);
                                       }}
-                                      className="px-3.5 py-2 rounded-lg text-xs font-bold bg-[#f4f4f5] hover:bg-white text-[#0d0d0f] transition flex items-center gap-1.5 cursor-pointer"
+                                      className="px-3.5 py-2 rounded-lg text-xs font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition flex items-center gap-1.5 cursor-pointer"
                                     >
                                       <BookOpen className="w-3.5 h-3.5" />
                                       <span>Abrir Documento</span>
@@ -4133,7 +5276,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setLibraryRightView('cards')}
-                          className="px-3 py-1.5 rounded-lg bg-[#151518] hover:bg-[#1c1c21] border border-[#26262b] text-xs font-semibold text-[#e4e4e7] flex items-center gap-1.5 transition cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-xs font-semibold text-[var(--color-texto)] flex items-center gap-1.5 transition cursor-pointer"
                         >
                           <span>
                             ← Volver a{' '}
@@ -4141,23 +5284,23 @@ export default function App() {
                               'Tarjetas'}
                           </span>
                         </button>
-                        <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg bg-[#151518] text-[#a1a1aa] border border-[#26262b]">
+                        <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)]">
                           Apartado · Ficha de la Ley
                         </span>
                       </div>
                     )}
 
                 {/* Tarjeta Principal con Botón "Abrir Documento" en la Parte Superior Derecha */}
-                <div className="bg-[#151518] border border-[#26262b] rounded-2xl p-6 shadow-xl">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-[#26262b]">
+                <div className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-2xl p-6 shadow-xl">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-[var(--color-borde)]">
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded bg-[#1c1c21] text-[#d4d4d8] border border-[#2e2e36]">
+                        <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                           {selectedTaxFilter !== 'ALL'
                             ? `Tributo Seleccionado: ${TAX_SCOPES[selectedTaxFilter].name}`
                             : 'Ficha de la Ley'}
                         </span>
-                        <span className="text-[11px] text-[#71717a] font-mono">
+                        <span className="text-[11px] text-[var(--color-texto-secundario)] font-mono">
                           • Vigencia Actual Consolidada
                         </span>
                       </div>
@@ -4165,28 +5308,42 @@ export default function App() {
                         const activeFichaNorm = norms.find(n => n.id === effectiveNormId);
                         const fichaInfo = activeFichaNorm ? classifyLibraryNormDetailed(activeFichaNorm) : null;
                         const isFichaResOrCirc =
-                          fichaInfo?.category === 'resoluciones' || fichaInfo?.category === 'circulares';
-                        if (activeFichaNorm && isFichaResOrCirc) {
+                          fichaInfo?.category === 'resoluciones' ||
+                          fichaInfo?.category === 'circulares' ||
+                          fichaInfo?.category === 'decretos';
+                        if (activeFichaNorm && isFichaResOrCirc && fichaInfo) {
+                          const fichaMeta = getCompactNormCardMeta(activeFichaNorm, fichaInfo.category);
                           return (
                             <>
-                              <h1 className="font-heading text-2xl font-extrabold text-[#f4f4f5] tracking-tight break-words">
-                                {activeFichaNorm.code}
-                              </h1>
-                              <p className="text-xs font-light text-[#a1a1aa] max-w-3xl leading-relaxed">
-                                {activeFichaNorm.title}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h1 className="font-heading text-2xl font-extrabold text-[var(--color-texto)] tracking-tight break-words">
+                                  {fichaMeta.heading}
+                                </h1>
+                                {activeFichaNorm.publication_date && (
+                                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[var(--color-texto-secundario)]">
+                                    {activeFichaNorm.publication_date}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs font-light text-[var(--color-texto-secundario)] max-w-3xl leading-relaxed">
+                                {fichaMeta.description}
                               </p>
                             </>
                           );
                         }
                         return (
                           <>
-                            <h1 className="font-heading text-2xl font-extrabold text-[#f4f4f5] tracking-tight">
+                            <h1 className="font-heading text-2xl font-extrabold text-[var(--color-texto)] tracking-tight">
                               {activeFichaNorm?.title || 'Ley de Régimen Tributario Interno (LRTI)'}
                             </h1>
-                            <p className="text-xs text-[#a1a1aa] max-w-2xl leading-relaxed">
+                            <p className="text-xs text-[var(--color-texto-secundario)] max-w-2xl leading-relaxed">
                               {selectedTaxFilter !== 'ALL'
                                 ? TAX_SCOPES[selectedTaxFilter].description
-                                : 'Codificación 2004-026 publicada en el Suplemento del Registro Oficial No. 463, integrada con las reformas de la Ley Reformatoria para la Equidad Tributaria (R.O. 242), Ley Orgánica Reformatoria (R.O. 392) y resoluciones generales del SRI.'}
+                                : activeFichaNorm?.code === 'RALRTI'
+                                  ? 'Expedido mediante Decreto Ejecutivo No. 374 (Suplemento del Registro Oficial No. 209 de 8 de junio de 2010), integrado cronológicamente con sus decretos ejecutivos reformatorios.'
+                                  : activeFichaNorm && activeFichaNorm.code !== 'LRTI'
+                                    ? `Código normativo: ${activeFichaNorm.code}`
+                                    : 'Codificación 2004-026 publicada en el Suplemento del Registro Oficial No. 463, integrada con las reformas de la Ley Reformatoria para la Equidad Tributaria (R.O. 242), Ley Orgánica Reformatoria (R.O. 392) y resoluciones generales del SRI.'}
                             </p>
                           </>
                         );
@@ -4194,7 +5351,42 @@ export default function App() {
                     </div>
 
                     {/* OPCIÓN DE ABRIR DOCUMENTO EN LA PARTE SUPERIOR DERECHA */}
-                    <div className="shrink-0 flex items-center gap-2 self-start">
+                    <div className="shrink-0 flex flex-wrap items-center gap-2 self-start">
+                      {(() => {
+                        const activeFichaNorm = norms.find(n => n.id === effectiveNormId);
+                        const fichaInfo = activeFichaNorm ? classifyLibraryNormDetailed(activeFichaNorm) : null;
+                        if (
+                          !isAdmin ||
+                          !activeFichaNorm ||
+                          !fichaInfo ||
+                          (fichaInfo.category !== 'decretos' &&
+                            !(fichaInfo.category === 'reglamentos' && activeFichaNorm.code !== 'RALRTI'))
+                        ) {
+                          return null;
+                        }
+                        return (
+                          <button
+                            type="button"
+                            disabled={updatingCategoryNormId === activeFichaNorm.id}
+                            onClick={() =>
+                              handleChangeNormCategory(
+                                activeFichaNorm.id,
+                                fichaInfo.category === 'decretos' ? 'regulation' : 'decree'
+                              )
+                            }
+                            className="px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-[var(--color-superficie)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde-fuerte)] text-[var(--color-texto)] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-wait shadow-sm"
+                          >
+                            <ShieldCheck className="w-4 h-4 text-[var(--color-secundario)]" />
+                            <span>
+                              {updatingCategoryNormId === activeFichaNorm.id
+                                ? 'Guardando...'
+                                : fichaInfo.category === 'decretos'
+                                  ? 'Ascender a Reglamento'
+                                  : 'Mover a Decretos'}
+                            </span>
+                          </button>
+                        );
+                      })()}
                       <button
                         onClick={() => {
                           if (activeCurrentArticle) {
@@ -4205,7 +5397,7 @@ export default function App() {
                           }
                           setReaderSubView('document');
                         }}
-                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#f4f4f5] hover:bg-white text-[#0d0d0f] transition flex items-center gap-2 cursor-pointer shadow-lg"
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition flex items-center gap-2 cursor-pointer shadow-lg"
                       >
                         <BookOpen className="w-4 h-4" />
                         <span>Abrir Documento</span>
@@ -4216,53 +5408,53 @@ export default function App() {
 
                   {/* Métricas del Cuerpo Normativo / Tributo Seleccionado */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5">
-                    <div className="bg-[#121215] border border-[#26262b] rounded-xl p-3.5">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-[#71717a]">
+                    <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-3.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-texto-secundario)]">
                         Artículos Disponibles
                       </div>
-                      <div className="text-xl font-extrabold text-[#f4f4f5] mt-1">
+                      <div className="text-xl font-extrabold text-[var(--color-texto)] mt-1">
                         {selectedTaxFilter === 'ALL'
                           ? currentArticles.length
                           : taxFilteredArticles.length}
                       </div>
-                      <div className="text-[10px] text-[#a1a1aa] mt-0.5">
+                      <div className="text-[10px] text-[var(--color-texto-secundario)] mt-0.5">
                         Redacción vigente consolidada
                       </div>
                     </div>
 
-                    <div className="bg-[#121215] border border-[#26262b] rounded-xl p-3.5">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-[#71717a]">
+                    <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-3.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-texto-secundario)]">
                         Títulos y Capítulos
                       </div>
-                      <div className="text-xl font-extrabold text-[#f4f4f5] mt-1">
+                      <div className="text-xl font-extrabold text-[var(--color-texto)] mt-1">
                         {ebookTree.length} Títulos
                       </div>
-                      <div className="text-[10px] text-[#a1a1aa] mt-0.5">
+                      <div className="text-[10px] text-[var(--color-texto-secundario)] mt-0.5">
                         Índice navegable independiente
                       </div>
                     </div>
 
-                    <div className="bg-[#121215] border border-[#26262b] rounded-xl p-3.5">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-[#71717a]">
+                    <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-3.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-texto-secundario)]">
                         Tablas Tarifarias
                       </div>
-                      <div className="text-xl font-extrabold text-[#f4f4f5] mt-1">
+                      <div className="text-xl font-extrabold text-[var(--color-texto)] mt-1">
                         {tables.length} Tablas
                       </div>
-                      <div className="text-[10px] text-[#a1a1aa] mt-0.5">
+                      <div className="text-[10px] text-[var(--color-texto-secundario)] mt-0.5">
                         Renta y Herencias (2004–2009)
                       </div>
                     </div>
 
-                    <div className="bg-[#121215] border border-[#26262b] rounded-xl p-3.5">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-[#71717a]">
+                    <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-3.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-texto-secundario)]">
                         Trazabilidad Temporal
                       </div>
-                      <div className="text-xl font-extrabold text-[#f4f4f5] mt-1 flex items-center gap-1.5">
-                        <Hourglass className="w-4 h-4 text-[#d4d4d8]" />
+                      <div className="text-xl font-extrabold text-[var(--color-texto)] mt-1 flex items-center gap-1.5">
+                        <Hourglass className="w-4 h-4 text-[var(--color-texto)]" />
                         <span>Activa</span>
                       </div>
-                      <div className="text-[10px] text-[#a1a1aa] mt-0.5">
+                      <div className="text-[10px] text-[var(--color-texto-secundario)] mt-0.5">
                         Comparador horizontal por artículo
                       </div>
                     </div>
@@ -4270,15 +5462,15 @@ export default function App() {
                 </div>
 
                 {/* Pestañas de Vista Previa Antes de Abrir el Documento */}
-                <div className="bg-[#151518] border border-[#26262b] rounded-2xl overflow-hidden flex-1 flex flex-col">
-                  <div className="px-5 py-3 bg-[#18181c] border-b border-[#26262b] flex flex-wrap items-center justify-between gap-2">
+                <div className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-2xl overflow-hidden flex-1 flex flex-col">
+                  <div className="px-5 py-3 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => setLibraryPreviewTab('summary')}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                           libraryPreviewTab === 'summary'
-                            ? 'bg-[#26262b] text-[#f4f4f5]'
-                            : 'text-[#a1a1aa] hover:text-[#f4f4f5]'
+                            ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
+                            : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
                         }`}
                       >
                         Índice de Títulos y Capítulos ({ebookTree.length})
@@ -4287,8 +5479,8 @@ export default function App() {
                         onClick={() => setLibraryPreviewTab('tables')}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                           libraryPreviewTab === 'tables'
-                            ? 'bg-[#26262b] text-[#f4f4f5]'
-                            : 'text-[#a1a1aa] hover:text-[#f4f4f5]'
+                            ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
+                            : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
                         }`}
                       >
                         Tablas del Art. 36 ({articleTables.length})
@@ -4297,14 +5489,14 @@ export default function App() {
                         onClick={() => setLibraryPreviewTab('reforms')}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                           libraryPreviewTab === 'reforms'
-                            ? 'bg-[#26262b] text-[#f4f4f5]'
-                            : 'text-[#a1a1aa] hover:text-[#f4f4f5]'
+                            ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
+                            : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
                         }`}
                       >
                         Artículos con Historial de Reformas
                       </button>
                     </div>
-                    <span className="text-[11px] text-[#71717a]">
+                    <span className="text-[11px] text-[var(--color-texto-secundario)]">
                       Haz clic en cualquier título o artículo para abrir el documento
                     </span>
                   </div>
@@ -4323,14 +5515,14 @@ export default function App() {
                           return (
                             <div
                               key={`lib-preview-title-${tIdx}`}
-                              className="bg-[#121215] border border-[#26262b] hover:border-[#3f3f46] rounded-xl p-4 transition"
+                              className="bg-[var(--color-superficie)] border border-[var(--color-borde)] hover:border-[var(--color-borde-fuerte)] rounded-xl p-4 transition"
                             >
                               <div className="flex items-center justify-between gap-3">
                                 <div>
-                                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#f4f4f5]">
+                                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-texto)]">
                                     {titleNode.titleText}
                                   </h3>
-                                  <p className="text-[11px] text-[#71717a] mt-0.5">
+                                  <p className="text-[11px] text-[var(--color-texto-secundario)] mt-0.5">
                                     {chaptersList.length} capítulos • {totalArts} artículos vigentes
                                   </p>
                                 </div>
@@ -4344,7 +5536,7 @@ export default function App() {
                                       }));
                                       setReaderSubView('document');
                                     }}
-                                    className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-[#1c1c21] hover:bg-[#26262b] text-[#e4e4e7] border border-[#2e2e36] transition cursor-pointer shrink-0"
+                                    className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] border border-[var(--color-borde)] transition cursor-pointer shrink-0"
                                   >
                                     Ir a {firstArticle.label} →
                                   </button>
@@ -4352,7 +5544,7 @@ export default function App() {
                               </div>
 
                               {chaptersList.length > 0 && (
-                                <div className="mt-3 pt-3 border-t border-[#26262b]/60 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div className="mt-3 pt-3 border-t border-[var(--color-borde)] grid grid-cols-1 sm:grid-cols-2 gap-2">
                                   {chaptersList.map((chap, cIdx) => (
                                     <button
                                       key={`lib-chap-${tIdx}-${cIdx}`}
@@ -4367,12 +5559,12 @@ export default function App() {
                                         }
                                         setReaderSubView('document');
                                       }}
-                                      className="text-left p-2 rounded-lg bg-[#151518] hover:bg-[#1c1c21] border border-[#26262b] transition flex items-center justify-between gap-2 cursor-pointer"
+                                      className="text-left p-2 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] transition flex items-center justify-between gap-2 cursor-pointer"
                                     >
-                                      <span className="text-[11px] text-[#d4d4d8] truncate">
+                                      <span className="text-[11px] text-[var(--color-texto)] truncate">
                                         {chap.chapterText}
                                       </span>
-                                      <span className="text-[10px] text-[#71717a] font-mono shrink-0">
+                                      <span className="text-[10px] text-[var(--color-texto-secundario)] font-mono shrink-0">
                                         {chap.articles.length} arts.
                                       </span>
                                     </button>
@@ -4390,24 +5582,24 @@ export default function App() {
                         {articleTables.map(tbl => (
                           <div
                             key={tbl.id}
-                            className="bg-[#121215] border border-[#26262b] rounded-xl p-4 flex flex-col justify-between gap-3"
+                            className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-4 flex flex-col justify-between gap-3"
                           >
                             <div>
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#1c1c21] text-[#e4e4e7] border border-[#2e2e36]">
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                                   Año {tbl.fiscal_year} • {tbl.table_code}
                                 </span>
-                                <span className="text-[10px] text-[#71717a]">
+                                <span className="text-[10px] text-[var(--color-texto-secundario)]">
                                   {tbl.rows_data.length} tramos
                                 </span>
                               </div>
-                              <h4 className="text-xs font-bold text-[#f4f4f5] mt-2">{tbl.title}</h4>
-                              <p className="text-[11px] text-[#a1a1aa] mt-0.5 line-clamp-2">
+                              <h4 className="text-xs font-bold text-[var(--color-texto)] mt-2">{tbl.title}</h4>
+                              <p className="text-[11px] text-[var(--color-texto-secundario)] mt-0.5 line-clamp-2">
                                 {tbl.subtitle}
                               </p>
                             </div>
-                            <div className="flex items-center justify-between pt-2 border-t border-[#26262b]">
-                              <span className="text-[10px] text-[#71717a] font-mono">
+                            <div className="flex items-center justify-between pt-2 border-t border-[var(--color-borde)]">
+                              <span className="text-[10px] text-[var(--color-texto-secundario)] font-mono">
                                 Vigencia: {formatEffectiveRange(tbl.effective_during, tbl.fiscal_year)}
                               </span>
                               <button
@@ -4416,7 +5608,7 @@ export default function App() {
                                   setOpenArticleSheets(prev => ({ ...prev, 'Art. 36': true }));
                                   setReaderSubView('document');
                                 }}
-                                className="text-[11px] font-semibold text-[#e4e4e7] hover:underline cursor-pointer"
+                                className="text-[11px] font-semibold text-[var(--color-texto)] hover:underline cursor-pointer"
                               >
                                 Ver en Art. 36 →
                               </button>
@@ -4436,7 +5628,7 @@ export default function App() {
                             return (
                               <div
                                 key={art.id}
-                                className="bg-[#121215] border border-[#26262b] hover:border-[#3f3f46] rounded-xl p-3.5 flex items-center justify-between gap-3 transition"
+                                className="bg-[var(--color-superficie)] border border-[var(--color-borde)] hover:border-[var(--color-borde-fuerte)] rounded-xl p-3.5 flex items-center justify-between gap-3 transition"
                               >
                                 <button
                                   onClick={() => {
@@ -4446,18 +5638,18 @@ export default function App() {
                                   }}
                                   className="text-left min-w-0 flex-1 cursor-pointer"
                                 >
-                                  <div className="text-xs font-bold text-[#f4f4f5] truncate flex items-center gap-1.5">
+                                  <div className="text-xs font-bold text-[var(--color-texto)] truncate flex items-center gap-1.5">
                                     <span className="truncate">
                                       {art.display_label || art.label}
                                       {art.title ? `: ${art.title}` : ''}
                                     </span>
                                     {art.is_innumerado && art.after_article && (
-                                      <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[#1c1c21] text-[#a1a1aa] border border-[#2e2e36] shrink-0">
+                                      <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)] shrink-0">
                                         {art.innumerado_order || 1} tras Art. {art.after_article}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-[10px] text-[#71717a] truncate mt-0.5">
+                                  <div className="text-[10px] text-[var(--color-texto-secundario)] truncate mt-0.5">
                                     {art.reform_source_cite || 'Reforma consolidada en Registro Oficial'}
                                   </div>
                                 </button>
@@ -4467,9 +5659,9 @@ export default function App() {
                                     setIsHistoryModalOpen(true);
                                   }}
                                   title="Abrir línea del tiempo histórica de este artículo"
-                                  className="px-2.5 py-1.5 rounded-lg bg-[#1c1c21] hover:bg-[#26262b] border border-[#2e2e36] text-[#e4e4e7] text-[11px] font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer"
+                                  className="px-2.5 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[var(--color-texto)] text-[11px] font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer"
                                 >
-                                  <Hourglass className="w-3.5 h-3.5 text-[#d4d4d8]" />
+                                  <Hourglass className="w-3.5 h-3.5 text-[var(--color-texto)]" />
                                   <span>{verCount} vers.</span>
                                 </button>
                               </div>
@@ -4490,55 +5682,58 @@ export default function App() {
             /* ================================================================ */
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Sub-barra superior del Lector del Documento */}
-              <div className="px-5 py-2.5 bg-[#121215] border-b border-[#26262b] flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="px-5 py-2.5 bg-[var(--color-superficie)] border-b border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-3 flex-wrap">
                   <button
                     onClick={() => setReaderSubView('library')}
-                    className="px-3 py-1.5 rounded-lg bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-xs font-semibold text-[#e4e4e7] flex items-center gap-1.5 transition cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-xs font-semibold text-[var(--color-texto)] flex items-center gap-1.5 transition cursor-pointer"
                   >
                     <span>← Volver a la Biblioteca</span>
                   </button>
-                  <div className="h-4 w-[1px] bg-[#26262b]" />
+                  <div className="h-4 w-[1px] bg-[var(--color-superficie-secundaria)]" />
                   <div className="min-w-0 flex-1">
                     {(() => {
                       const docNorm = norms.find(n => n.id === effectiveNormId);
                       const docInfo = docNorm ? classifyLibraryNormDetailed(docNorm) : null;
                       const isDocResOrCirc =
-                        docInfo?.category === 'resoluciones' || docInfo?.category === 'circulares';
-                      if (docNorm && isDocResOrCirc) {
+                        docInfo?.category === 'resoluciones' ||
+                        docInfo?.category === 'circulares' ||
+                        docInfo?.category === 'decretos';
+                      if (docNorm && isDocResOrCirc && docInfo) {
+                        const docMeta = getCompactNormCardMeta(docNorm, docInfo.category);
                         return (
                           <div className="space-y-0.5 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#1c1c21] text-[#d4d4d8] border border-[#2e2e36]">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                                 {docInfo.badge}
                               </span>
-                              <span className="text-sm font-extrabold text-[#f4f4f5] tracking-tight">
-                                {docNorm.code}
+                              <span className="text-sm font-extrabold text-[var(--color-texto)] tracking-tight">
+                                {docMeta.heading}
                               </span>
                               {docNorm.publication_date && (
-                                <span className="text-[10px] font-mono text-[#71717a]">
+                                <span className="text-[10px] font-mono text-[var(--color-texto-secundario)]">
                                   · {docNorm.publication_date}
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] font-light text-[#a1a1aa] leading-snug line-clamp-2 max-w-3xl">
-                              {docNorm.title}
+                            <div className="text-[11px] font-light text-[var(--color-texto-secundario)] leading-snug line-clamp-2 max-w-3xl">
+                              {docMeta.description}
                             </div>
                           </div>
                         );
                       }
                       return (
                         <div className="flex items-center gap-2 text-xs flex-wrap">
-                          <span className="font-bold text-[#f4f4f5]">
+                          <span className="font-bold text-[var(--color-texto)]">
                             {docNorm?.title || 'Ley de Régimen Tributario Interno (LRTI)'}
                           </span>
                           {docNorm?.code && (
-                            <span className="text-[10px] font-mono text-[#71717a]">
+                            <span className="text-[10px] font-mono text-[var(--color-texto-secundario)]">
                               · {docNorm.code}
                             </span>
                           )}
                           {selectedTaxFilter !== 'ALL' && (
-                            <span className="px-2 py-0.5 rounded bg-[#1c1c21] border border-[#2e2e36] text-[10px] font-semibold text-[#d4d4d8]">
+                            <span className="px-2 py-0.5 rounded bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[10px] font-semibold text-[var(--color-texto)]">
                               {TAX_SCOPES[selectedTaxFilter].name}
                             </span>
                           )}
@@ -4551,19 +5746,19 @@ export default function App() {
                 {/* Controles de Hojas y Filtro de Vigencia */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="relative w-56">
-                    <Search className="w-3.5 h-3.5 text-[#71717a] absolute left-2.5 top-2" />
+                    <Search className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] absolute left-2.5 top-2" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Buscar artículo o término..."
-                      className="w-full bg-[#151518] border border-[#26262b] focus:border-[#52525b] rounded-lg pl-8 pr-2.5 py-1 text-xs text-[#f4f4f5] placeholder-[#71717a] outline-none"
+                      className="w-full bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] focus:border-[var(--color-borde-fuerte)] rounded-lg pl-8 pr-2.5 py-1 text-xs text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none"
                     />
                   </div>
 
                   <button
                     onClick={() => setOpenArticleSheets({})}
-                    className="px-2.5 py-1 rounded-lg bg-[#151518] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#a1a1aa] hover:text-[#f4f4f5] transition cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[11px] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] transition cursor-pointer"
                   >
                     Desplegar todos
                   </button>
@@ -4577,7 +5772,7 @@ export default function App() {
                       });
                       setOpenArticleSheets(allCollapsed);
                     }}
-                    className="px-2.5 py-1 rounded-lg bg-[#151518] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#a1a1aa] hover:text-[#f4f4f5] transition cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[11px] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] transition cursor-pointer"
                   >
                     Colapsar todos
                   </button>
@@ -4586,8 +5781,8 @@ export default function App() {
                     onClick={() => setShowAdvancedDateSearch(prev => !prev)}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition flex items-center gap-1 cursor-pointer ${
                       showAdvancedDateSearch || searchValidFrom || searchValidTo
-                        ? 'bg-[#26262b] border-[#52525b] text-[#f4f4f5]'
-                        : 'bg-[#151518] border-[#26262b] text-[#a1a1aa] hover:text-[#f4f4f5]'
+                        ? 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde-fuerte)] text-[var(--color-texto)]'
+                        : 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde)] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
                     }`}
                   >
                     <Hourglass className="w-3 h-3" />
@@ -4598,27 +5793,27 @@ export default function App() {
 
               {/* Barra opcional de filtro por fechas */}
               {(showAdvancedDateSearch || searchValidFrom || searchValidTo) && (
-                <div className="px-5 py-2.5 bg-[#151518] border-b border-[#26262b] flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+                <div className="px-5 py-2.5 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#d4d4d8]">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-texto)]">
                       Vigencia histórica (Art. 11 CT):
                     </span>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-[#71717a]">Desde:</span>
+                      <span className="text-[11px] text-[var(--color-texto-secundario)]">Desde:</span>
                       <input
                         type="date"
                         value={searchValidFrom}
                         onChange={e => setSearchValidFrom(e.target.value)}
-                        className="bg-[#0d0d0f] border border-[#26262b] rounded px-2 py-0.5 text-[11px] text-[#f4f4f5]"
+                        className="bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded px-2 py-0.5 text-[11px] text-[var(--color-texto)]"
                       />
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-[#71717a]">Hasta:</span>
+                      <span className="text-[11px] text-[var(--color-texto-secundario)]">Hasta:</span>
                       <input
                         type="date"
                         value={searchValidTo}
                         onChange={e => setSearchValidTo(e.target.value)}
-                        className="bg-[#0d0d0f] border border-[#26262b] rounded px-2 py-0.5 text-[11px] text-[#f4f4f5]"
+                        className="bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded px-2 py-0.5 text-[11px] text-[var(--color-texto)]"
                       />
                     </div>
                   </div>
@@ -4628,7 +5823,7 @@ export default function App() {
                         setSearchValidFrom('');
                         setSearchValidTo('');
                       }}
-                      className="text-[11px] text-[#e4e4e7] hover:underline cursor-pointer"
+                      className="text-[11px] text-[var(--color-texto)] hover:underline cursor-pointer"
                     >
                       Restablecer a Vigente Hoy
                     </button>
@@ -4639,18 +5834,18 @@ export default function App() {
               {/* Cuerpo dividido: Columna Izquierda (Títulos y Capítulos con scroll propio) + Lienzo Derecho (Hojas Desplegables con scroll propio) */}
               <div className="flex-1 grid grid-cols-12 overflow-hidden min-h-0">
                 {/* COLUMNA IZQUIERDA (Cols 1-4 o 1-3): ÍNDICE DE TÍTULOS Y CAPÍTULOS INDEPENDIENTE */}
-                <aside className="col-span-12 md:col-span-4 lg:col-span-3 bg-[#121215] border-r border-[#26262b] flex flex-col overflow-hidden min-h-0">
-                  <div className="p-3 border-b border-[#26262b] flex items-center justify-between gap-2 shrink-0">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#a1a1aa]">
+                <aside className="col-span-12 md:col-span-4 lg:col-span-3 bg-[var(--color-superficie)] border-r border-[var(--color-borde)] flex flex-col overflow-hidden min-h-0">
+                  <div className="p-3 border-b border-[var(--color-borde)] flex items-center justify-between gap-2 shrink-0">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-texto-secundario)]">
                       Índice de Títulos y Capítulos
                     </span>
-                    <div className="flex items-center gap-1 bg-[#18181c] p-0.5 rounded-md border border-[#26262b]">
+                    <div className="flex items-center gap-1 bg-[var(--color-superficie-secundaria)] p-0.5 rounded-md border border-[var(--color-borde)]">
                       <button
                         onClick={() => setEbookNavMode('index')}
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${
                           ebookNavMode === 'index'
-                            ? 'bg-[#26262b] text-[#f4f4f5]'
-                            : 'text-[#71717a] hover:text-[#d4d4d8]'
+                            ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
+                            : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
                         }`}
                       >
                         Por Capítulos
@@ -4659,8 +5854,8 @@ export default function App() {
                         onClick={() => setEbookNavMode('tax')}
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${
                           ebookNavMode === 'tax'
-                            ? 'bg-[#26262b] text-[#f4f4f5]'
-                            : 'text-[#71717a] hover:text-[#d4d4d8]'
+                            ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
+                            : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
                         }`}
                       >
                         Por Tributo
@@ -4669,7 +5864,7 @@ export default function App() {
                   </div>
 
                   {ebookNavMode === 'tax' && (
-                    <div className="p-2.5 border-b border-[#26262b] flex flex-wrap gap-1 bg-[#151518] shrink-0">
+                    <div className="p-2.5 border-b border-[var(--color-borde)] flex flex-wrap gap-1 bg-[var(--color-superficie-secundaria)] shrink-0">
                       {(['ALL', 'RENTA', 'IVA', 'ICE', 'ISD', 'RISE', 'GENERAL'] as TaxScopeCode[]).map(
                         scopeCode => {
                           const scope = TAX_SCOPES[scopeCode];
@@ -4681,8 +5876,8 @@ export default function App() {
                               onClick={() => setSelectedTaxFilter(scopeCode)}
                               className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition cursor-pointer ${
                                 isSelected
-                                  ? 'bg-[#f4f4f5] text-[#0d0d0f] border-[#f4f4f5]'
-                                  : 'bg-[#121215] text-[#a1a1aa] border-[#26262b] hover:text-[#f4f4f5]'
+                                  ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
+                                  : 'bg-[var(--color-superficie)] text-[var(--color-texto-secundario)] border-[var(--color-borde)] hover:text-[var(--color-texto)]'
                               }`}
                             >
                               {scope.shortName} ({count})
@@ -4705,7 +5900,7 @@ export default function App() {
                       return (
                         <div
                           key={`doc-title-${tIdx}`}
-                          className="bg-[#151518] border border-[#26262b] rounded-xl overflow-hidden"
+                          className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-xl overflow-hidden"
                         >
                           <button
                             onClick={() =>
@@ -4714,19 +5909,19 @@ export default function App() {
                                 [`title-${tIdx}`]: !prev[`title-${tIdx}`]
                               }))
                             }
-                            className="w-full p-2.5 bg-[#18181c] hover:bg-[#1c1c21] transition flex items-center justify-between text-left cursor-pointer border-b border-[#26262b]/60"
+                            className="w-full p-2.5 bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] transition flex items-center justify-between text-left cursor-pointer border-b border-[var(--color-borde)]"
                           >
-                            <span className="text-[11px] font-bold text-[#f4f4f5] line-clamp-2 pr-2">
+                            <span className="text-[11px] font-bold text-[var(--color-texto)] line-clamp-2 pr-2">
                               {titleNode.titleText}
                             </span>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#0d0d0f] text-[#a1a1aa] border border-[#26262b] font-mono">
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-[var(--color-fondo)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)] font-mono">
                                 {totalArts}
                               </span>
                               {isTitleCollapsed ? (
-                                <ChevronRight className="w-3.5 h-3.5 text-[#71717a]" />
+                                <ChevronRight className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                               ) : (
-                                <ChevronDown className="w-3.5 h-3.5 text-[#71717a]" />
+                                <ChevronDown className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                               )}
                             </div>
                           </button>
@@ -4740,7 +5935,7 @@ export default function App() {
                                 return (
                                   <div
                                     key={chapKey}
-                                    className="pl-2 border-l border-[#26262b] space-y-1"
+                                    className="pl-2 border-l border-[var(--color-borde)] space-y-1"
                                   >
                                     <button
                                       onClick={() =>
@@ -4749,15 +5944,15 @@ export default function App() {
                                           [chapKey]: !prev[chapKey]
                                         }))
                                       }
-                                      className="w-full py-1 px-2 rounded hover:bg-[#1c1c21] transition flex items-center justify-between text-left cursor-pointer"
+                                      className="w-full py-1 px-2 rounded hover:bg-[var(--color-superficie-hover)] transition flex items-center justify-between text-left cursor-pointer"
                                     >
-                                      <span className="text-[11px] font-semibold text-[#d4d4d8] line-clamp-1">
+                                      <span className="text-[11px] font-semibold text-[var(--color-texto)] line-clamp-1">
                                         {chapNode.chapterText}
                                       </span>
                                       {isChapCollapsed ? (
-                                        <ChevronRight className="w-3 h-3 text-[#71717a]" />
+                                        <ChevronRight className="w-3 h-3 text-[var(--color-texto-secundario)]" />
                                       ) : (
-                                        <ChevronDown className="w-3 h-3 text-[#71717a]" />
+                                        <ChevronDown className="w-3 h-3 text-[var(--color-texto-secundario)]" />
                                       )}
                                     </button>
 
@@ -4796,8 +5991,8 @@ export default function App() {
                                               }}
                                               className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition flex items-center justify-between gap-1.5 cursor-pointer ${
                                                 isSelected
-                                                  ? 'bg-[#26262b] text-[#f4f4f5] font-semibold'
-                                                  : 'text-[#a1a1aa] hover:bg-[#18181c] hover:text-[#e4e4e7]'
+                                                  ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] font-semibold'
+                                                  : 'text-[var(--color-texto-secundario)] hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)]'
                                               }`}
                                             >
                                               <span className="truncate flex items-center gap-1.5 min-w-0">
@@ -4806,13 +6001,13 @@ export default function App() {
                                                   {art.title ? ` · ${art.title}` : ''}
                                                 </span>
                                                 {art.is_innumerado && art.after_article && (
-                                                  <span className="text-[9px] font-normal px-1 py-0.2 rounded bg-[#18181c] text-[#71717a] border border-[#26262b] shrink-0">
+                                                  <span className="text-[9px] font-normal px-1 py-0.2 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)] shrink-0">
                                                     {art.innumerado_order || 1} tras Art. {art.after_article}
                                                   </span>
                                                 )}
                                               </span>
                                               {isSheetOpen && (
-                                                <span className="w-1.5 h-1.5 rounded-full bg-[#e4e4e7] shrink-0" />
+                                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-superficie-secundaria)] shrink-0" />
                                               )}
                                             </button>
                                           );
@@ -4857,8 +6052,8 @@ export default function App() {
                                         }}
                                         className={`w-full text-left px-2 py-1.5 rounded-md text-[11px] transition flex items-center justify-between cursor-pointer ${
                                           isSelected
-                                            ? 'bg-[#26262b] text-[#f4f4f5] font-semibold'
-                                            : 'text-[#a1a1aa] hover:bg-[#18181c] hover:text-[#e4e4e7]'
+                                            ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] font-semibold'
+                                            : 'text-[var(--color-texto-secundario)] hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)]'
                                         }`}
                                       >
                                         <span className="truncate flex items-center gap-1.5 min-w-0">
@@ -4867,7 +6062,7 @@ export default function App() {
                                             {art.title ? ` · ${art.title}` : ''}
                                           </span>
                                           {art.is_innumerado && art.after_article && (
-                                            <span className="text-[9px] font-normal px-1 py-0.2 rounded bg-[#18181c] text-[#71717a] border border-[#26262b] shrink-0">
+                                            <span className="text-[9px] font-normal px-1 py-0.2 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)] shrink-0">
                                               {art.innumerado_order || 1} tras Art. {art.after_article}
                                             </span>
                                           )}
@@ -4888,14 +6083,14 @@ export default function App() {
                 {/* LIENZO DERECHO INDEPENDIENTE (Cols 5-12 o 4-12): ARTÍCULOS UNIDOS Y DESPLEGADOS CON TÍTULO STICKY AL HACER SCROLL */}
                 <main
                   id="document-sheets-scroll-container"
-                  className="col-span-12 md:col-span-8 lg:col-span-9 bg-[#121215] overflow-y-auto p-0 min-h-0"
+                  className="col-span-12 md:col-span-8 lg:col-span-9 bg-[var(--color-superficie)] overflow-y-auto p-0 min-h-0"
                 >
                   {loading ? (
-                    <div className="p-12 text-center text-xs text-[#a1a1aa]">
+                    <div className="p-12 text-center text-xs text-[var(--color-texto-secundario)]">
                       Cargando texto normativo consolidado...
                     </div>
                   ) : (ebookNavMode === 'tax' ? taxFilteredArticles : currentArticles).length === 0 ? (
-                    <div className="p-12 text-center text-xs text-[#a1a1aa]">
+                    <div className="p-12 text-center text-xs text-[var(--color-texto-secundario)]">
                       No hay artículos que coincidan con el filtro actual.
                     </div>
                   ) : (
@@ -4903,32 +6098,26 @@ export default function App() {
                       const visibleArticles =
                         ebookNavMode === 'tax' ? taxFilteredArticles : currentArticles;
                       return (
-                        <div className="bg-[#121215] divide-y divide-[#26262b]">
+                        <div className="bg-[var(--color-superficie)] divide-y divide-[var(--color-borde)]">
                           {visibleArticles.map(art => {
                             const isSheetOpen = openArticleSheets[art.label] !== false;
                             const isSourceOpen = Boolean(openArticleSources[art.id]);
                             const isActiveArt = art.label === selectedArticleLabel;
                             const verCount = getArticleVersionsCount(art);
-                            const isLrti36 =
-                              art.label.trim().toUpperCase() === 'ART. 36' &&
-                              (!art.norms?.code || art.norms.code.toUpperCase() === 'LRTI');
-                            const displayContent =
-                              isLrti36 && !searchValidFrom && !searchValidTo
-                                ? ART_36_CLEAN_2009_CONTENT
-                                : art.content;
+                            const displayContent = art.content;
 
                             return (
                               <article
                                 id={`article-sheet-${art.id}`}
                                 key={art.id}
-                                className={isActiveArt ? 'bg-[#151518]/60' : 'bg-[#121215]'}
+                                className={isActiveArt ? 'bg-[var(--color-superficie-secundaria)]' : 'bg-[var(--color-superficie)]'}
                               >
                                 {/* ENCABEZADO DEL ARTÍCULO: STICKY TOP-0 AL RAS SUPERIOR SIN ESPACIOS NI SALTOS */}
                                 <div
                                   className={`${
                                     isSheetOpen
-                                      ? 'sticky top-0 z-20 bg-[#151518] border-b border-[#26262b]'
-                                      : 'bg-[#151518]/60 hover:bg-[#151518]'
+                                      ? 'sticky top-0 z-20 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)]'
+                                      : 'bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)]'
                                   } px-5 lg:px-7 py-3 flex items-center justify-between gap-3`}
                                 >
                                   {/* Botón izquierdo para desplegar / contraer el artículo */}
@@ -4944,23 +6133,30 @@ export default function App() {
                                     }}
                                     className="flex items-center gap-3 text-left flex-1 min-w-0 cursor-pointer"
                                   >
-                                    <div className="w-6 h-6 rounded-md bg-[#1c1c21] border border-[#2e2e36] flex items-center justify-center shrink-0">
+                                    <div className="w-6 h-6 rounded-md bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] flex items-center justify-center shrink-0">
                                       {isSheetOpen ? (
-                                        <ChevronDown className="w-4 h-4 text-[#f4f4f5]" />
+                                        <ChevronDown className="w-4 h-4 text-[var(--color-texto)]" />
                                       ) : (
-                                        <ChevronRight className="w-4 h-4 text-[#a1a1aa]" />
+                                        <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                                       )}
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="text-sm font-extrabold text-[#f4f4f5]">
+                                      <div className="flex items-baseline gap-2 flex-wrap">
+                                        <span className="text-sm font-extrabold text-[var(--color-texto)] shrink-0">
                                           {art.display_label || art.label}
-                                          {art.title ? ` — ${art.title}` : ''}
                                         </span>
+                                        {art.title && (
+                                          <span
+                                            title={art.title}
+                                            className="text-xs sm:text-[13px] font-semibold text-[var(--color-texto-secundario)] line-clamp-2 leading-snug"
+                                          >
+                                            — {art.title}
+                                          </span>
+                                        )}
                                         {art.is_innumerado && art.after_article && (
                                           <span
                                             title={`Código interno de orden: ${art.identifier || art.label}`}
-                                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#1c1c21] text-[#a1a1aa] border border-[#2e2e36]"
+                                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)]"
                                           >
                                             {art.innumerado_order || 1} tras Art. {art.after_article}
                                           </span>
@@ -4968,7 +6164,7 @@ export default function App() {
                                         <LegalStatusButton status={art.legal_status} size="sm" />
                                       </div>
                                       {(art.parent_title || art.parent_chapter) && (
-                                        <div className="text-[10px] text-[#71717a] truncate mt-0.5">
+                                        <div className="text-[10px] text-[var(--color-texto-secundario)] truncate mt-0.5">
                                           {[art.parent_title, art.parent_chapter]
                                             .filter(Boolean)
                                             .join(' • ')}
@@ -4999,8 +6195,8 @@ export default function App() {
                                       title="Desplegar u ocultar fuente, vigencia y opciones del artículo"
                                       className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm ${
                                         isSourceOpen
-                                          ? 'bg-[#26262b] border-[#3ECF8E]/60 text-[#3ECF8E]'
-                                          : 'bg-[#1c1c21] hover:bg-[#26262b] border-[#3f3f46] text-[#d4d4d8] hover:text-[#f4f4f5]'
+                                          ? 'bg-[var(--color-superficie-secundaria)] border-[var(--color-secundario-borde)] text-[var(--color-secundario)]'
+                                          : 'bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border-[var(--color-borde-fuerte)] text-[var(--color-texto)] hover:text-[var(--color-texto)]'
                                       }`}
                                     >
                                       <FileText className="w-3.5 h-3.5" />
@@ -5012,6 +6208,7 @@ export default function App() {
                                       onClick={e => {
                                         e.stopPropagation();
                                         setSelectedArticleLabel(art.label);
+                                        setSelectedHistorySubId(null);
                                         setPopupCascadeGroupsOpen({
                                           reglamentos: false,
                                           resoluciones: false,
@@ -5020,11 +6217,11 @@ export default function App() {
                                         setIsHistoryModalOpen(true);
                                       }}
                                       title="Ver evolución temporal y normativa conexa jerárquica (Pop-up)"
-                                      className="px-3 py-1.5 rounded-lg bg-[#1c1c21] hover:bg-[#26262b] border border-[#3f3f46] text-[#f4f4f5] text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                                      className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde-fuerte)] text-[var(--color-texto)] text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
                                     >
-                                      <Hourglass className="w-3.5 h-3.5 text-[#e4e4e7]" />
+                                      <Hourglass className="w-3.5 h-3.5 text-[var(--color-texto)]" />
                                       <span className="hidden sm:inline">Histórico</span>
-                                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#0d0d0f] text-[#d4d4d8] font-mono">
+                                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] font-mono">
                                         {verCount}
                                       </span>
                                     </button>
@@ -5033,7 +6230,7 @@ export default function App() {
 
                                 {/* CUERPO DEL ARTÍCULO (VISIBLE POR DEFECTO SALVO QUE EL USUARIO LO COLAPSE) */}
                                 {isSheetOpen && (
-                                  <div className="px-5 lg:px-7 py-4 space-y-3 bg-[#121215]">
+                                  <div className="px-5 lg:px-7 py-4 space-y-3 bg-[var(--color-superficie)]">
                                     {/* Metadatos de vigencia y fuente del artículo (solo se despliegan al pulsar el botón "Fuente") */}
                                     {isSourceOpen &&
                                       (() => {
@@ -5070,9 +6267,9 @@ export default function App() {
                                             (art.official_registry || '').trim().toLowerCase();
 
                                         return (
-                                          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#26262b]/80 text-[11px] text-[#a1a1aa]">
+                                          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--color-borde)] text-[11px] text-[var(--color-texto-secundario)]">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                              <span className="px-2 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[#d4d4d8]">
+                                              <span className="px-2 py-0.5 rounded bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] font-mono text-[var(--color-texto)]">
                                                 {periodicityLabel(art.tax_periodicity)}:{' '}
                                                 {formatValidityRange(
                                                   art.valid_from,
@@ -5081,16 +6278,16 @@ export default function App() {
                                                 )}
                                               </span>
                                               {art.official_registry && (
-                                                <span className="text-[#a1a1aa]">
+                                                <span className="text-[var(--color-texto-secundario)]">
                                                   Fuente: {art.official_registry}
                                                 </span>
                                               )}
                                               {showLawName && (
                                                 <>
                                                   {art.official_registry && (
-                                                    <span className="text-[#52525b]">•</span>
+                                                    <span className="text-[var(--color-texto-secundario)]">•</span>
                                                   )}
-                                                  <span className="text-[#d4d4d8] font-medium">
+                                                  <span className="text-[var(--color-texto)] font-medium">
                                                     {art.legal_status === 'vigente_reformado' ||
                                                     art.legal_status === 'derogado'
                                                       ? 'Ley modificatoria: '
@@ -5104,14 +6301,22 @@ export default function App() {
                                             <div className="flex items-center gap-2">
                                               <button
                                                 type="button"
-                                                onClick={() =>
+                                                onClick={() => {
+                                                  const directArtTables = tables.filter(
+                                                    t => t.structure_id === art.id || t.emitter_structure_id === art.id
+                                                  );
+                                                  const hasMdTbl = /\|\s*[^|\n]+\s*\|/.test(displayContent || '');
+                                                  const extraTablesText =
+                                                    !hasMdTbl && directArtTables.length > 0
+                                                      ? `\n\n${directArtTables.map(buildTableMarkdownText).filter(Boolean).join('\n\n')}`
+                                                      : '';
                                                   handleCopyCitation(
                                                     `${art.norms?.code || 'LRTI'} ${art.label}${
                                                       art.title ? `: ${art.title}` : ''
-                                                    }\n\n${displayContent}`
-                                                  )
-                                                }
-                                                className="px-2 py-1 rounded bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#d4d4d8] flex items-center gap-1 cursor-pointer"
+                                                    }\n\n${displayContent}${extraTablesText}`
+                                                  );
+                                                }}
+                                                className="px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[11px] text-[var(--color-texto)] flex items-center gap-1 cursor-pointer"
                                               >
                                                 <Copy className="w-3 h-3" />
                                                 <span>Copiar texto</span>
@@ -5119,7 +6324,7 @@ export default function App() {
                                               <button
                                                 type="button"
                                                 onClick={() => handleOpenReportModal(art)}
-                                                className="px-2 py-1 rounded bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#a1a1aa] hover:text-[#f4f4f5] flex items-center gap-1 cursor-pointer"
+                                                className="px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[11px] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] flex items-center gap-1 cursor-pointer"
                                               >
                                                 <Flag className="w-3 h-3" />
                                                 <span>Reportar observación</span>
@@ -5129,10 +6334,79 @@ export default function App() {
                                         );
                                       })()}
 
-                                    {/* Texto normativo vigente del artículo */}
-                                    <div className="text-sm text-[#e4e4e7] leading-relaxed space-y-3 w-full text-justify">
-                                      {renderMarkdownContent(displayContent)}
-                                    </div>
+                                    {/* Texto normativo vigente del artículo + tablas integradas y salto directo a sección Tablas */}
+                                    {(() => {
+                                      const directArtTables = tables.filter(
+                                        t => t.structure_id === art.id || t.emitter_structure_id === art.id
+                                      );
+                                      const contentHasMdTable = /\|\s*[^|\n]+\s*\|/.test(displayContent || '');
+                                      const fallbackArtTables = !contentHasMdTable ? directArtTables : [];
+
+                                      const handleJumpToArticleTables = () => {
+                                        if (directArtTables.length === 0) return;
+                                        if (directArtTables.some(t => t.is_active === false)) {
+                                          setShowInactiveTablesTab(true);
+                                        }
+                                        if (directArtTables.some(t => t.is_active !== false)) {
+                                          setShowActiveTablesTab(true);
+                                        }
+                                        const targetGroup = classifyTableTaxGroup(directArtTables[0]).group;
+                                        setSelectedTableTaxGroup(targetGroup);
+                                        setExpandedIndexGroups(prev => ({ ...prev, [targetGroup]: true }));
+                                        const distinctSeries = Array.from(
+                                          new Set(directArtTables.map(t => getTableSeriesMeta(t).seriesKey))
+                                        );
+                                        setSelectedTableSeriesKey(distinctSeries.length === 1 ? distinctSeries[0] : null);
+                                        setTableSearchQuery('');
+                                        setExpandedTableIds(prev => {
+                                          const next = { ...prev };
+                                          for (const t of directArtTables) delete next[t.id];
+                                          return next;
+                                        });
+                                        setActiveTab('tables');
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                      };
+
+                                      return (
+                                        <>
+                                          <div className="text-sm text-[var(--color-texto)] leading-relaxed space-y-3 w-full text-justify">
+                                            {renderMarkdownContent(displayContent)}
+                                            {fallbackArtTables.length > 0 && (
+                                              <div className="space-y-3 pt-1">
+                                                {fallbackArtTables.map(tbl => {
+                                                  const grid = getTableDisplayGrid(tbl);
+                                                  if (grid.headers.length === 0) return null;
+                                                  return (
+                                                    <CollapsibleMarkdownTable
+                                                      key={tbl.id}
+                                                      headers={grid.headers}
+                                                      rows={grid.rows}
+                                                      caption={tbl.title || tbl.table_code}
+                                                      defaultOpen={true}
+                                                    />
+                                                  );
+                                                })}
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {directArtTables.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-[var(--color-borde)] flex justify-end">
+                                              <button
+                                                type="button"
+                                                onClick={handleJumpToArticleTables}
+                                                className="px-3 py-1.5 rounded-lg bg-[var(--color-secundario-suave)] hover:bg-[var(--color-secundario)]/20 border border-[var(--color-secundario-borde)] text-[11px] font-bold text-[var(--color-secundario)] inline-flex items-center gap-1.5 cursor-pointer transition shrink-0"
+                                              >
+                                                <Table2 className="w-3.5 h-3.5 shrink-0" />
+                                                <span>
+                                                  Ver en sección Tablas ({directArtTables.length})
+                                                </span>
+                                              </button>
+                                            </div>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 )}
                               </article>
@@ -5150,122 +6424,708 @@ export default function App() {
       )}
 
       {/* ==================================================================== */}
-      {/* TAB 2: APARTADO EXCLUSIVO DE TABLAS TRIBUTARIAS                      */}
+      {/* TAB 2: TABLAS TRIBUTARIAS (ÍNDICE LATERAL IZQUIERDO + VISOR DERECHO) */}
       {/* ==================================================================== */}
-      {activeTab === 'tables' && (
-        <div className="max-w-6xl mx-auto w-full p-6 space-y-6">
-          <div className="bg-[#262522] border border-[#3C3A36] rounded-2xl p-6 flex items-center justify-between">
-            <div>
-              <span className="text-xs font-extrabold uppercase text-[#3ECF8E]">
-                Repositorio Estructurado • Eje Vertical (Tarifas)
-              </span>
-              <h1 className="font-heading text-2xl font-black text-white mt-1">
-                Apartado Exclusivo de Tablas Tributarias del Ecuador
-              </h1>
-              <p className="text-xs text-[#BAB8B5] mt-1">
-                Todas las tablas contenidas en Leyes, Reglamentos y Resoluciones NAC se almacenan
-                en formato JSON estructurado y se vinculan tanto al artículo de origen como a las
-                calculadoras.
-              </p>
-            </div>
-            <button
-              onClick={() => setActiveTab('calculators')}
-              className="btn-chess-green px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer"
-            >
-              <Calculator className="w-4 h-4" />
-              <span>Abrir Calculadoras Conectadas</span>
-            </button>
-          </div>
+      {activeTab === 'tables' && (() => {
 
-          <div className="space-y-6">
-            {tables.map(tbl => (
+        // Resuelve con precisión la Resolución o Ley EMISORA que creó/actualizó la tabla y el artículo exacto dentro de ella
+        const resolveTableOrigin = (tbl: NormativeTable) => {
+          const targetNormId = tbl.emitter_norm_id || tbl.norm_id;
+          const targetNorm = norms.find(n => n.id === targetNormId) || null;
+
+          // Artículos renderizables en el lector para la norma emisora
+          const normRenderableArticles = structures.filter(
+            s =>
+              s.norm_id === targetNormId &&
+              s.structure_type !== 'title' &&
+              s.structure_type !== 'chapter' &&
+              !isSubElementType(s.structure_type)
+          );
+          const normCurrentArticles = normRenderableArticles.filter(s => s.is_current);
+          const pool = normCurrentArticles.length > 0 ? normCurrentArticles : normRenderableArticles;
+
+          const preferredStructId = tbl.emitter_structure_id || tbl.article_structure_id || tbl.structure_id;
+          const st = preferredStructId ? structures.find(s => s.id === preferredStructId) : undefined;
+          const parentArt =
+            (st?.parent_id && structures.find(s => s.id === st.parent_id && !isSubElementType(s.structure_type))) ||
+            (st && !isSubElementType(st.structure_type) ? st : undefined);
+
+          let targetArt: NormStructure | undefined;
+          if (parentArt && parentArt.norm_id === targetNormId) {
+            const pCode = extractArticleCode(parentArt.label, parentArt.identifier);
+            targetArt =
+              pool.find(a => a.id === parentArt.id) ||
+              (pCode ? pool.find(a => extractArticleCode(a.label, a.identifier) === pCode) : undefined) ||
+              pool.find(a => (a.label || '').trim().toLowerCase() === (parentArt.label || '').trim().toLowerCase()) ||
+              parentArt;
+          } else if (pool.length > 0) {
+            // Si no se encontró por ID directo, elegir el artículo que contiene la tabla en la norma emisora
+            targetArt = pool.find(a => (a.content || '').includes('|')) || pool[0];
+          }
+
+          const normShort = tbl.emitter_norm_code || targetNorm?.code || targetNorm?.title || 'la norma emisora';
+          const artShort = targetArt?.display_label || targetArt?.label || '';
+          const buttonLabel = artShort
+            ? `Ver ${artShort} en ${normShort}`
+            : `Ver norma emisora (${normShort})`;
+
+          const emitterHeading =
+            tbl.emitter_norm_title ||
+            (targetNorm ? `${targetNorm.title}` : tbl.subtitle || '');
+
+          return { targetNorm, targetArt, buttonLabel, emitterHeading };
+        };
+
+        const handleNavigateToTableOrigin = (tbl: NormativeTable) => {
+          const { targetNorm, targetArt } = resolveTableOrigin(tbl);
+          if (!targetNorm && !targetArt) return;
+
+          if (targetNorm) {
+            setSelectedNormId(targetNorm.id);
+          }
+          // Limpiar filtros del lector para garantizar que el artículo destino sea visible
+          setSelectedConceptId(null);
+          setSelectedTaxFilter('ALL');
+          setStatusFilter('all');
+          setSearchQuery('');
+          setSearchValidFrom('');
+          setSearchValidTo('');
+          setEbookNavMode('index');
+          setIsHistoryModalOpen(false);
+
+          if (targetArt) {
+            setSelectedArticleLabel(targetArt.label);
+            setOpenArticleSheets(prev => ({ ...prev, [targetArt.label]: true }));
+          }
+          setActiveTab('reader');
+          setReaderSubView('document');
+
+          if (targetArt) {
+            const scrollToArt = () => {
+              const container = document.getElementById('document-sheets-scroll-container');
+              const el = document.getElementById(`article-sheet-${targetArt.id}`);
+              if (container && el) {
+                const topPos =
+                  el.getBoundingClientRect().top -
+                  container.getBoundingClientRect().top +
+                  container.scrollTop;
+                container.scrollTo({ top: Math.max(0, topPos), behavior: 'smooth' });
+                return true;
+              }
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return true;
+              }
+              return false;
+            };
+            setTimeout(() => {
+              if (!scrollToArt()) {
+                setTimeout(scrollToArt, 300);
+              }
+            }, 140);
+          }
+        };
+
+        const q = tableSearchQuery.trim().toLowerCase();
+
+        // Filtrar respetando siempre vigentes e históricas según los interruptores activos
+        const filteredTables = tables
+          .filter(t => {
+            const isActive = t.is_active !== false;
+            if (isActive && !showActiveTablesTab) return false;
+            if (!isActive && !showInactiveTablesTab) return false;
+            if (q) {
+              const hay = `${t.title || ''} ${t.subtitle || ''} ${t.table_code || ''} ${t.fiscal_year || ''}`.toLowerCase();
+              if (!hay.includes(q)) return false;
+            }
+            return true;
+          })
+          .sort((a, b) => {
+            const ca = classifyTableTaxGroup(a);
+            const cb = classifyTableTaxGroup(b);
+            const actA = a.is_active !== false ? 1 : 0;
+            const actB = b.is_active !== false ? 1 : 0;
+            // En Impuesto a la Renta: vigentes siempre primero (con Personas Naturales #1 y Herencias #2 ancladas),
+            // y luego históricas ordenadas por año fiscal descendente
+            if (actA !== actB) return actB - actA;
+            if (ca.pinRank !== cb.pinRank) return ca.pinRank - cb.pinRank;
+            if ((b.fiscal_year || 0) !== (a.fiscal_year || 0)) return (b.fiscal_year || 0) - (a.fiscal_year || 0);
+            return (a.title || '').localeCompare(b.title || '', 'es');
+          });
+
+        const tablesByGroup = new Map<string, NormativeTable[]>();
+        for (const g of TABLE_TAX_GROUPS) {
+          tablesByGroup.set(g.key, []);
+        }
+        for (const tbl of filteredTables) {
+          const { group: gKey } = classifyTableTaxGroup(tbl);
+          const arr = tablesByGroup.get(gKey) || [];
+          arr.push(tbl);
+          tablesByGroup.set(gKey, arr);
+        }
+
+        // Construir las entradas únicas (series) por tributo para el menú lateral izquierdo
+        type SeriesIndexEntry = {
+          seriesKey: string;
+          displayLabel: string;
+          pinRank: number;
+          items: NormativeTable[];
+          hasActive: boolean;
+          latestYear: number | null;
+        };
+
+        const seriesByGroup = new Map<string, SeriesIndexEntry[]>();
+        const allSeriesMap = new Map<string, SeriesIndexEntry>();
+
+        for (const g of TABLE_TAX_GROUPS) {
+          const items = tablesByGroup.get(g.key) || [];
+          const localMap = new Map<string, SeriesIndexEntry>();
+
+          for (const tbl of items) {
+            const { pinRank } = classifyTableTaxGroup(tbl);
+            const { seriesKey, displayLabel } = getTableSeriesMeta(tbl);
+            const existing = localMap.get(seriesKey);
+            if (existing) {
+              existing.items.push(tbl);
+              if (tbl.is_active !== false) existing.hasActive = true;
+              if ((tbl.fiscal_year || 0) > (existing.latestYear || 0)) {
+                existing.latestYear = tbl.fiscal_year || existing.latestYear;
+              }
+            } else {
+              const entry: SeriesIndexEntry = {
+                seriesKey,
+                displayLabel,
+                pinRank,
+                items: [tbl],
+                hasActive: tbl.is_active !== false,
+                latestYear: tbl.fiscal_year || null
+              };
+              localMap.set(seriesKey, entry);
+              allSeriesMap.set(seriesKey, entry);
+            }
+          }
+
+          // Dentro de cada serie: vigente(s) siempre arriba del todo, seguidas por históricas ordenadas por año descendente
+          const orderedEntries = Array.from(localMap.values()).map(entry => {
+            entry.items.sort((a, b) => {
+              const actA = a.is_active !== false ? 1 : 0;
+              const actB = b.is_active !== false ? 1 : 0;
+              if (actA !== actB) return actB - actA;
+              if ((b.fiscal_year || 0) !== (a.fiscal_year || 0)) return (b.fiscal_year || 0) - (a.fiscal_year || 0);
+              return (a.table_code || '').localeCompare(b.table_code || '');
+            });
+            return entry;
+          });
+
+          orderedEntries.sort((a, b) => {
+            if (a.hasActive !== b.hasActive) return a.hasActive ? -1 : 1;
+            if (a.pinRank !== b.pinRank) return a.pinRank - b.pinRank;
+            return a.displayLabel.localeCompare(b.displayLabel, 'es');
+          });
+
+          seriesByGroup.set(g.key, orderedEntries);
+        }
+
+        const visibleGroups = TABLE_TAX_GROUPS.filter(g => (tablesByGroup.get(g.key) || []).length > 0);
+
+        const activeGroupMeta = selectedTableTaxGroup
+          ? TABLE_TAX_GROUPS.find(g => g.key === selectedTableTaxGroup) || null
+          : null;
+        const activeGroupTables = selectedTableTaxGroup ? (tablesByGroup.get(selectedTableTaxGroup) || []) : [];
+        const activeSeriesEntry = selectedTableSeriesKey ? allSeriesMap.get(selectedTableSeriesKey) || null : null;
+
+        // Las tablas se muestran descolapsadas por defecto, con opción de colapsarlas individualmente o en bloque.
+        const rightPanelTables = activeSeriesEntry ? activeSeriesEntry.items : activeGroupTables;
+        const anyExpandedInRightPanel = rightPanelTables.some(t => expandedTableIds[t.id] !== false);
+        const anyCollapsedInRightPanel = rightPanelTables.some(t => expandedTableIds[t.id] === false);
+
+        // Interruptores independientes: activar Históricas NUNCA apaga Vigentes; solo se apaga uno si el usuario desmarca ese mismo botón (y nunca quedan ambos apagados a la vez)
+        const toggleActiveFilter = () => {
+          if (showActiveTablesTab && !showInactiveTablesTab) {
+            return; // Mantener al menos un filtro encendido
+          }
+          setShowActiveTablesTab(prev => !prev);
+        };
+
+        const toggleInactiveFilter = () => {
+          if (showInactiveTablesTab && !showActiveTablesTab) {
+            return; // Mantener al menos un filtro encendido
+          }
+          setShowInactiveTablesTab(prev => !prev);
+        };
+
+        const renderTableCard = (tbl: NormativeTable) => {
+          const isExpanded = expandedTableIds[tbl.id] !== false;
+          const isActive = tbl.is_active !== false;
+          const { pinRank } = classifyTableTaxGroup(tbl);
+          const isPinnedMain = isActive && (pinRank === 1 || pinRank === 2);
+          const originInfo = resolveTableOrigin(tbl);
+
+          return (
+            <div
+              key={tbl.id}
+              className="rounded-2xl border border-[var(--color-borde)] bg-[var(--color-superficie)] overflow-hidden shadow-md transition"
+            >
+              {/* Cabecera clicable de la tarjeta (desplegada por defecto con opción de colapsar) */}
               <div
-                key={tbl.id}
-                className="bg-[#262522] border border-[#3C3A36] rounded-2xl p-6 space-y-4 shadow-lg"
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  setExpandedTableIds(prev => ({
+                    ...prev,
+                    [tbl.id]: prev[tbl.id] === false ? true : false
+                  }))
+                }
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedTableIds(prev => ({
+                      ...prev,
+                      [tbl.id]: prev[tbl.id] === false ? true : false
+                    }));
+                  }
+                }}
+                className="w-full px-5 py-4 flex items-center justify-between gap-3 text-left hover:bg-[var(--color-superficie-hover)] transition cursor-pointer"
               >
-                <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#3C3A36] pb-4">
-                  <div>
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="w-6 h-6 mt-0.5 rounded-md bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] flex items-center justify-center shrink-0">
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4 text-[var(--color-texto)]" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2.5 py-0.5 rounded bg-[#81B64C] text-white text-[11px] font-black">
+                      {isPinnedMain && (
+                        <Star className="w-3.5 h-3.5 text-[var(--color-aviso)] fill-[var(--color-aviso)] shrink-0" />
+                      )}
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                          isActive ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)]' : 'bg-amber-600/85 text-white'
+                        }`}
+                      >
+                        {isActive ? 'Vigente' : 'Histórica / Derogada'}
+                      </span>
+                      {tbl.fiscal_year && (
+                        <span className="px-2 py-0.5 rounded bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[10px] font-mono font-bold text-[var(--color-texto)]">
+                          Año {tbl.fiscal_year}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-mono text-[var(--color-texto-secundario)]">
                         {tbl.table_code}
                       </span>
-                      <span className="px-2.5 py-0.5 rounded bg-[#302E2B] text-[#F7C631] text-[11px] font-bold">
-                        Categoría: {tbl.category.toUpperCase()}
-                      </span>
-                      <span className="px-2.5 py-0.5 rounded bg-[#1B1A17] border border-[#81B64C]/30 text-[#3ECF8E] text-[11px] font-mono font-bold">
-                        Vigencia Art. 11 CT ({tbl.fiscal_year}): {formatEffectiveRange(tbl.effective_during, tbl.fiscal_year)}
-                      </span>
                     </div>
-                    <h2 className="font-heading text-xl font-extrabold text-white mt-2">
+                    <h3 className="font-heading text-base font-extrabold text-[var(--color-texto)] mt-1 leading-snug">
                       {tbl.title}
-                    </h2>
-                    <p className="text-xs text-[#BAB8B5]">{tbl.subtitle}</p>
+                    </h3>
+                    {originInfo.emitterHeading ? (
+                      <p className="text-xs text-[var(--color-texto-secundario)] mt-0.5">
+                        <span className="font-semibold text-[var(--color-texto)]">Emitida por:</span>{' '}
+                        {originInfo.emitterHeading}
+                      </p>
+                    ) : tbl.subtitle ? (
+                      <p className="text-xs text-[var(--color-texto-secundario)] mt-0.5">{tbl.subtitle}</p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <span className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[11px] font-bold text-[var(--color-texto)] shrink-0 flex items-center gap-1.5">
+                  {isExpanded ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5" />
+                      <span>Colapsar tabla</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span>Desplegar tabla</span>
+                    </>
+                  )}
+                </span>
+              </div>
+
+              {/* Contenido desplegable de la tabla */}
+              {isExpanded && (
+                <div className="px-5 pb-5 pt-3 border-t border-[var(--color-borde)] space-y-4 bg-[var(--color-superficie)]">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="px-2.5 py-1 rounded bg-[var(--color-superficie-secundaria)] border border-[var(--color-secundario-borde)] text-[var(--color-secundario)] text-[11px] font-mono font-bold">
+                      Vigencia Art. 11 CT ({tbl.fiscal_year}): {formatEffectiveRange(tbl.effective_during, tbl.fiscal_year)}
+                    </span>
+                    {(originInfo.targetNorm || originInfo.targetArt) && (
+                      <button
+                        type="button"
+                        onClick={() => handleNavigateToTableOrigin(tbl)}
+                        className="btn-chess-dark px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>{originInfo.buttonLabel}</span>
+                      </button>
+                    )}
                   </div>
 
-                  {tbl.structure_id && (
-                    <button
-                      onClick={() => {
-                        const st = structures.find(s => s.id === tbl.structure_id);
-                        const label = st?.label || 'Art. 36';
-                        setSelectedArticleLabel(label);
-                        setOpenArticleSheets(prev => ({ ...prev, [label]: true }));
-                        setActiveTab('reader');
-                        setReaderSubView('document');
-                      }}
-                      className="btn-chess-dark px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <BookOpen className="w-4 h-4 text-[#e4e4e7]" />
-                      <span>Ver Artículo de Origen en la Ley</span>
-                    </button>
+                  <div className="w-full flex justify-center">
+                    <div className="w-fit max-w-full overflow-x-auto rounded-xl border border-[var(--color-borde)]">
+                      <table className="w-auto max-w-full text-left text-xs">
+                        <thead className="bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] uppercase text-[11px]">
+                          <tr>
+                            {tbl.columns_schema.map(col => (
+                              <th key={col.key} className={`py-3 px-4 font-extrabold ${getAdaptiveCellClass(col.label, true)}`}>
+                                {col.label}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--color-borde)] bg-[var(--color-fondo)]">
+                          {tbl.rows_data.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-[var(--color-superficie-hover)]">
+                              {tbl.columns_schema.map(col => {
+                                const val = row[col.key];
+                                const displayVal =
+                                  val === null
+                                    ? 'En adelante'
+                                    : col.type === 'currency'
+                                      ? `USD ${Number(val).toLocaleString('en-US', {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2
+                                        })}`
+                                      : col.type === 'percentage'
+                                        ? `${val}%`
+                                        : val;
+                                return (
+                                  <td
+                                    key={col.key}
+                                    className={`py-2.5 px-4 font-medium text-[var(--color-texto)] ${getAdaptiveCellClass(displayVal)}`}
+                                  >
+                                    {displayVal}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {tbl.notes && (
+                    <div className="text-xs text-[var(--color-texto-secundario)] bg-[var(--color-superficie)] p-3 rounded-lg border border-[var(--color-borde)]">
+                      <strong className="text-[var(--color-secundario)]">Base Legal:</strong> {tbl.notes}
+                    </div>
                   )}
                 </div>
+              )}
+            </div>
+          );
+        };
 
-                <div className="overflow-x-auto rounded-xl border border-[#3C3A36]">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#21201D] text-[#BAB8B5] uppercase text-[11px]">
-                      <tr>
-                        {tbl.columns_schema.map(col => (
-                          <th key={col.key} className="py-3 px-4 font-extrabold">
-                            {col.label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#3C3A36] bg-[#302E2B]">
-                      {tbl.rows_data.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-[#3C3A36]/60">
-                          {tbl.columns_schema.map(col => {
-                            const val = row[col.key];
-                            return (
-                              <td key={col.key} className="py-2.5 px-4 font-medium text-white">
-                                {val === null
-                                  ? 'En adelante'
-                                  : col.type === 'currency'
-                                    ? `USD ${Number(val).toLocaleString('en-US', {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2
-                                    })}`
-                                    : col.type === 'percentage'
-                                      ? `${val}%`
-                                      : val}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {tbl.notes && (
-                  <div className="text-xs text-[#BAB8B5] bg-[#21201D] p-3 rounded-lg border border-[#3C3A36]">
-                    <strong className="text-[#3ECF8E]">Base Legal:</strong> {tbl.notes}
+        return (
+          <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-5">
+            <div className="flex flex-col lg:flex-row gap-5 items-start">
+              {/* ========================================================== */}
+              {/* MENÚ ÍNDICE LATERAL IZQUIERDO (TRIBUTOS Y TABLAS)          */}
+              {/* ========================================================== */}
+              <aside className="w-full lg:w-80 xl:w-96 shrink-0 bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl overflow-hidden shadow-lg lg:sticky lg:top-20 flex flex-col max-h-[calc(100vh-6.5rem)]">
+                <div className="p-4 border-b border-[var(--color-borde)] space-y-3 bg-[var(--color-superficie)]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Table2 className="w-4 h-4 text-[var(--color-secundario)]" />
+                      <h2 className="font-heading text-sm font-black text-[var(--color-texto)]">
+                        Índice de Tablas
+                      </h2>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[10px] font-bold text-[var(--color-texto-secundario)]">
+                      {filteredTables.length} disponibles
+                    </span>
                   </div>
+
+                  {/* Interruptores combinables: Vigentes y/o Históricas-Derogadas */}
+                  <div className="space-y-1.5">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={toggleActiveFilter}
+                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border flex items-center justify-center gap-1 cursor-pointer transition ${
+                          showActiveTablesTab
+                            ? 'bg-[var(--color-secundario-suave)] border-[var(--color-secundario)] text-[var(--color-secundario)]'
+                            : 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde)] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Vigentes</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={toggleInactiveFilter}
+                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border flex items-center justify-center gap-1 cursor-pointer transition ${
+                          showInactiveTablesTab
+                            ? 'bg-amber-500/15 border-amber-500 text-amber-500'
+                            : 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde)] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
+                        }`}
+                      >
+                        <History className="w-3.5 h-3.5 shrink-0" />
+                        <span>Históricas / Derog.</span>
+                      </button>
+                    </div>
+                    <div className="text-[10px] text-[var(--color-texto-secundario)] text-center">
+                      Mostrando:{' '}
+                      <strong className="text-[var(--color-texto-secundario)]">
+                        {showActiveTablesTab && showInactiveTablesTab
+                          ? 'Vigentes + Históricas'
+                          : showActiveTablesTab
+                            ? 'Solo vigentes'
+                            : 'Solo históricas / derogadas'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Buscador rápido del índice */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={tableSearchQuery}
+                      onChange={e => setTableSearchQuery(e.target.value)}
+                      placeholder="Filtrar por nombre, impuesto o año..."
+                      className="w-full pl-8 pr-8 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-xs text-[var(--color-texto)] placeholder:text-[var(--color-texto-secundario)] focus:outline-none focus:border-[var(--color-secundario)]"
+                    />
+                    {tableSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setTableSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Árbol limpio de Tributos -> Tablas directas (sin subcategorías intermedias) */}
+                <nav className="overflow-y-auto p-2.5 space-y-1 flex-1">
+                  {visibleGroups.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-[var(--color-texto-secundario)]">
+                      No hay tablas que coincidan con el filtro actual.
+                    </div>
+                  ) : (
+                    visibleGroups.map(group => {
+                      const groupItems = tablesByGroup.get(group.key) || [];
+                      const groupSeries = seriesByGroup.get(group.key) || [];
+                      const isGroupSelected = selectedTableTaxGroup === group.key;
+                      const isGroupOpen = Boolean(expandedIndexGroups[group.key]) || Boolean(q);
+
+                      return (
+                        <div key={group.key} className="rounded-xl overflow-hidden">
+                          {/* Fila del Tributo en el índice */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedTableTaxGroup(group.key);
+                              setSelectedTableSeriesKey(null);
+                              setExpandedIndexGroups(prev => ({
+                                ...prev,
+                                [group.key]: !prev[group.key]
+                              }));
+                            }}
+                            className={`w-full px-3 py-2.5 rounded-xl flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                              isGroupSelected && !selectedTableSeriesKey
+                                ? 'bg-[var(--color-secundario-suave)] border border-[var(--color-secundario-borde)] text-[var(--color-texto)]'
+                                : 'hover:bg-[var(--color-superficie-hover)] border border-transparent text-[var(--color-texto)]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              {isGroupOpen ? (
+                                <ChevronDown className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />
+                              )}
+                              <span className="text-xs font-extrabold truncate">
+                                {group.label}
+                              </span>
+                            </div>
+                            <span className="px-1.5 py-0.5 rounded-md bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[10px] font-mono font-bold text-[var(--color-texto-secundario)] shrink-0">
+                              {groupItems.length}
+                            </span>
+                          </button>
+
+                          {/* Lista directa de tablas/series del tributo (en Impuesto a la Renta: Personas Naturales y Herencias ancladas arriba con ★) */}
+                          {isGroupOpen && (
+                            <div className="mt-1 ml-4 pl-2.5 border-l border-[var(--color-borde)] space-y-0.5 pb-1">
+                              {groupSeries.map(series => {
+                                const isSeriesSelected = selectedTableSeriesKey === series.seriesKey;
+                                const isPinned = series.pinRank === 1 || series.pinRank === 2;
+                                const histCount = series.items.filter(t => t.is_active === false).length;
+
+                                return (
+                                  <button
+                                    key={series.seriesKey}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedTableTaxGroup(group.key);
+                                      setSelectedTableSeriesKey(series.seriesKey);
+                                      // Asegurar que las tarjetas de la serie inicien desplegadas por defecto al seleccionarla desde el índice
+                                      setExpandedTableIds(prev => {
+                                        const next = { ...prev };
+                                        for (const t of series.items) delete next[t.id];
+                                        return next;
+                                      });
+                                    }}
+                                    className={`w-full px-2.5 py-1.5 rounded-lg text-left transition cursor-pointer flex items-start gap-2 ${
+                                      isSeriesSelected
+                                        ? 'bg-[var(--color-secundario-suave)] text-[var(--color-texto)] font-bold border border-[var(--color-secundario-borde)]'
+                                        : 'text-[var(--color-texto-secundario)] hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)] border border-transparent'
+                                    }`}
+                                  >
+                                    {isPinned ? (
+                                      <Star className="w-3 h-3 text-[var(--color-aviso)] fill-[var(--color-aviso)] mt-1 shrink-0" />
+                                    ) : (
+                                      <span
+                                        title={series.hasActive ? 'Vigente' : 'Histórica / Derogada'}
+                                        className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
+                                          series.hasActive ? 'bg-[var(--color-secundario)]' : 'bg-amber-500'
+                                        }`}
+                                      />
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                      <div className={`text-[11px] leading-snug line-clamp-2 ${isPinned ? 'font-bold text-[var(--color-texto)]' : ''}`}>
+                                        {series.displayLabel}
+                                      </div>
+                                      <div className="text-[10px] text-[var(--color-texto-secundario)] font-mono mt-0.5">
+                                        {series.hasActive
+                                          ? histCount > 0
+                                            ? `Vigente${series.latestYear ? ` ${series.latestYear}` : ''} + ${histCount} hist.`
+                                            : `Vigente${series.latestYear ? ` ${series.latestYear}` : ''}`
+                                          : `${series.items.length} ${series.items.length === 1 ? 'histórica' : 'históricas'}`}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </nav>
+
+                {/* Acceso a calculadoras en el pie del índice */}
+                <div className="p-3 border-t border-[var(--color-borde)] bg-[var(--color-superficie)]">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('calculators')}
+                    className="btn-chess-green w-full px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Calculator className="w-3.5 h-3.5" />
+                    <span>Abrir Calculadoras Conectadas</span>
+                  </button>
+                </div>
+              </aside>
+
+              {/* ========================================================== */}
+              {/* PANTALLA DERECHA LIBRE (TARJETAS DE TABLAS SELECCIONADAS)  */}
+              {/* ========================================================== */}
+              <section className="flex-1 min-w-0 w-full space-y-4">
+                {!activeGroupMeta && !activeSeriesEntry ? (
+                  <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-10 text-center space-y-3 shadow-md">
+                    <div className="w-12 h-12 rounded-2xl bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] flex items-center justify-center mx-auto">
+                      <Table2 className="w-6 h-6 text-[var(--color-secundario)]" />
+                    </div>
+                    <h1 className="font-heading text-xl font-black text-[var(--color-texto)]">
+                      Tablas Tributarias del Ecuador
+                    </h1>
+                    <p className="text-xs text-[var(--color-texto-secundario)] max-w-lg mx-auto leading-relaxed">
+                      Usa el índice de la izquierda para elegir un tributo o seleccionar directamente una tabla específica.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Cabecera contextual del tributo / serie elegida */}
+                    <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl px-5 py-4 flex items-center justify-between flex-wrap gap-3 shadow-sm">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-secundario)]">
+                            {activeGroupMeta?.label || 'Tablas'}
+                            {activeSeriesEntry ? ` › ${activeSeriesEntry.displayLabel}` : ''}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[10px] font-bold text-[var(--color-texto-secundario)]">
+                            {rightPanelTables.length} {rightPanelTables.length === 1 ? 'tabla' : 'tablas'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[var(--color-texto-secundario)] mt-0.5">
+                          {activeSeriesEntry
+                            ? showInactiveTablesTab
+                              ? 'Tabla vigente arriba y sus versiones históricas debajo. Puedes colapsar cada tabla desde su cabecera.'
+                              : 'Tablas desplegadas automáticamente; puedes colapsarlas individualmente o activar "Históricas / Derog." en el índice.'
+                            : activeGroupMeta?.shortDesc || 'Tablas desplegadas automáticamente; haz clic en la cabecera de cualquier tarjeta para colapsarla.'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {activeSeriesEntry && activeGroupMeta && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTableSeriesKey(null)}
+                            className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-xs font-semibold text-[var(--color-texto)] flex items-center gap-1.5 cursor-pointer transition"
+                          >
+                            <Layers className="w-3.5 h-3.5" />
+                            <span>
+                              Ver todas en {activeGroupMeta.label} ({activeGroupTables.length})
+                            </span>
+                          </button>
+                        )}
+                        {anyCollapsedInRightPanel && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExpandedTableIds(prev => {
+                                const next = { ...prev };
+                                for (const t of rightPanelTables) delete next[t.id];
+                                return next;
+                              });
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-xs font-semibold text-[var(--color-texto)] flex items-center gap-1.5 cursor-pointer transition"
+                          >
+                            <Maximize2 className="w-3.5 h-3.5" />
+                            <span>Desplegar todas</span>
+                          </button>
+                        )}
+                        {anyExpandedInRightPanel && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExpandedTableIds(prev => {
+                                const next = { ...prev };
+                                for (const t of rightPanelTables) next[t.id] = false;
+                                return next;
+                              });
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-xs font-semibold text-[var(--color-texto)] flex items-center gap-1.5 cursor-pointer transition"
+                          >
+                            <Minimize2 className="w-3.5 h-3.5" />
+                            <span>Contraer todas</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Tarjetas colapsadas de la tabla/serie elegida (o de todo el tributo si eligió la categoría padre) */}
+                    {rightPanelTables.length === 0 ? (
+                      <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-8 text-center text-xs text-[var(--color-texto-secundario)]">
+                        No hay tablas visibles con el filtro de vigencia actual. Activa &ldquo;Históricas / Derog.&rdquo; en el índice izquierdo para ver años anteriores.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {rightPanelTables.map(tbl => renderTableCard(tbl))}
+                      </div>
+                    )}
+                  </>
                 )}
-              </div>
-            ))}
+              </section>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ==================================================================== */}
       {/* TAB 3: CALCULADORAS TRIBUTARIAS INTERACTIVAS (PLAN PLUS $9.99)       */}
@@ -5273,14 +7133,14 @@ export default function App() {
       {activeTab === 'calculators' && (
         <div className="max-w-6xl mx-auto w-full p-6 space-y-6">
           {currentPlan !== 'professional' && (
-            <div className="bg-[#21201D] border-2 border-[#F7C631] rounded-2xl p-5 flex items-center justify-between">
+            <div className="bg-[var(--color-superficie)] border-2 border-[var(--color-aviso)] rounded-2xl p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Lock className="w-6 h-6 text-[#F7C631]" />
+                <Lock className="w-6 h-6 text-[var(--color-aviso)]" />
                 <div>
-                  <h3 className="text-sm font-extrabold text-white">
+                  <h3 className="text-sm font-extrabold text-[var(--color-texto)]">
                     Calculadoras Tributarias Exclusivas del Plan Plus (USD 9.99/mes)
                   </h3>
-                  <p className="text-xs text-[#BAB8B5]">
+                  <p className="text-xs text-[var(--color-texto-secundario)]">
                     Activa la vista del Plan Plus para usar todas las calculadoras conectadas en
                     tiempo real a public.normative_tables.
                   </p>
@@ -5300,14 +7160,14 @@ export default function App() {
               }`}
           >
             {/* CALCULADORA 1: IMPUESTO A LA RENTA PERSONAS NATURALES + REBAJA GASTOS PERSONALES */}
-            <div className="bg-[#262522] border border-[#3C3A36] rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+            <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-5 space-y-4 flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-[#3C3A36] pb-3">
+                <div className="flex items-center justify-between border-b border-[var(--color-borde)] pb-3">
                   <div>
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#81B64C] text-white">
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)]">
                       Art. 36 y Art. 10 LRTI
                     </span>
-                    <h3 className="font-heading text-base font-extrabold text-white mt-1">
+                    <h3 className="font-heading text-base font-extrabold text-[var(--color-texto)] mt-1">
                       1. Impuesto a la Renta PN + Rebaja Gastos Personales
                     </h3>
                   </div>
@@ -5315,41 +7175,41 @@ export default function App() {
 
                 <div className="space-y-3 text-xs">
                   <div>
-                    <label className="block text-[#BAB8B5] mb-1 font-bold">
+                    <label className="block text-[var(--color-texto-secundario)] mb-1 font-bold">
                       Ingresos Gravados Anuales (USD)
                     </label>
                     <input
                       type="number"
                       value={calcIncome}
                       onChange={e => setCalcIncome(Number(e.target.value))}
-                      className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white font-bold"
+                      className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)] font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block text-[#BAB8B5] mb-1 font-bold">
+                    <label className="block text-[var(--color-texto-secundario)] mb-1 font-bold">
                       Aporte IESS y Deducciones de Ley (USD)
                     </label>
                     <input
                       type="number"
                       value={calcDeductions}
                       onChange={e => setCalcDeductions(Number(e.target.value))}
-                      className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white font-bold"
+                      className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)] font-bold"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[#BAB8B5] mb-1 font-bold">
+                      <label className="block text-[var(--color-texto-secundario)] mb-1 font-bold">
                         Gastos Personales (USD)
                       </label>
                       <input
                         type="number"
                         value={calcPersonalExpenses}
                         onChange={e => setCalcPersonalExpenses(Number(e.target.value))}
-                        className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white font-bold"
+                        className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)] font-bold"
                       />
                     </div>
                     <div>
-                      <label className="block text-[#BAB8B5] mb-1 font-bold">
+                      <label className="block text-[var(--color-texto-secundario)] mb-1 font-bold">
                         Cargas Familiares (0 a 5+)
                       </label>
                       <input
@@ -5358,35 +7218,35 @@ export default function App() {
                         max={6}
                         value={calcFamilyLoads}
                         onChange={e => setCalcFamilyLoads(Number(e.target.value))}
-                        className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white font-bold"
+                        className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)] font-bold"
                       />
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-[#21201D] rounded-xl p-4 border border-[#3C3A36] space-y-2 text-xs">
+              <div className="bg-[var(--color-superficie)] rounded-xl p-4 border border-[var(--color-borde)] space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-[#9E9C98]">Base Imponible Gravada:</span>
+                  <span className="text-[var(--color-texto-secundario)]">Base Imponible Gravada:</span>
                   <span className="font-bold">USD {irCalculation.baseImponible.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#9E9C98]">Tramo Art. 36 Aplicado:</span>
-                  <span className="font-bold text-[#F7C631]">
+                  <span className="text-[var(--color-texto-secundario)]">Tramo Art. 36 Aplicado:</span>
+                  <span className="font-bold text-[var(--color-aviso)]">
                     FB USD {irCalculation.fraccionBasica} ({irCalculation.tarifaExcedente}%)
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#9E9C98]">Impuesto Causado:</span>
+                  <span className="text-[var(--color-texto-secundario)]">Impuesto Causado:</span>
                   <span className="font-bold">USD {irCalculation.impuestoCausado.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-[#3ECF8E]">
+                <div className="flex justify-between text-[var(--color-secundario)]">
                   <span>(-) Rebaja Gastos Personales (18%):</span>
                   <span className="font-bold">- USD {irCalculation.rebajaGastos.toFixed(2)}</span>
                 </div>
-                <div className="border-t border-[#3C3A36] pt-2 flex justify-between text-sm font-black">
+                <div className="border-t border-[var(--color-borde)] pt-2 flex justify-between text-sm font-black">
                   <span>Impuesto Neto a Pagar (Form 102):</span>
-                  <span className="text-[#3ECF8E]">
+                  <span className="text-[var(--color-secundario)]">
                     USD {irCalculation.impuestoPagar.toFixed(2)}
                   </span>
                 </div>
@@ -5394,40 +7254,40 @@ export default function App() {
             </div>
 
             {/* CALCULADORA 2: RIMPE EMPRENDEDOR Y NEGOCIO POPULAR */}
-            <div className="bg-[#262522] border border-[#3C3A36] rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+            <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-5 space-y-4 flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="border-b border-[#3C3A36] pb-3">
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#81B64C] text-white">
+                <div className="border-b border-[var(--color-borde)] pb-3">
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)]">
                     Art. 97.6 LRTI
                   </span>
-                  <h3 className="font-heading text-base font-extrabold text-white mt-1">
+                  <h3 className="font-heading text-base font-extrabold text-[var(--color-texto)] mt-1">
                     2. Calculadora RIMPE Emprendedor / Negocio Popular
                   </h3>
                 </div>
 
                 <div className="space-y-3 text-xs">
                   <div>
-                    <label className="block text-[#BAB8B5] mb-1 font-bold">
+                    <label className="block text-[var(--color-texto-secundario)] mb-1 font-bold">
                       Ingresos Brutos Anuales (USD 0 a USD 300,000)
                     </label>
                     <input
                       type="number"
                       value={calcRimpeIncome}
                       onChange={e => setCalcRimpeIncome(Number(e.target.value))}
-                      className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white font-bold"
+                      className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)] font-bold"
                     />
                   </div>
-                  <p className="text-[11px] text-[#9E9C98]">
+                  <p className="text-[11px] text-[var(--color-texto-secundario)]">
                     Hasta USD 20,000 califica como RIMPE Negocio Popular. De USD 20,000.01 a USD
                     300,000 tributa con la tabla progresiva de RIMPE Emprendedor.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-[#21201D] rounded-xl p-4 border border-[#3C3A36] space-y-2 text-xs">
+              <div className="bg-[var(--color-superficie)] rounded-xl p-4 border border-[var(--color-borde)] space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-[#9E9C98]">Régimen Aplicable:</span>
-                  <span className="font-bold text-[#3ECF8E]">
+                  <span className="text-[var(--color-texto-secundario)]">Régimen Aplicable:</span>
+                  <span className="font-bold text-[var(--color-secundario)]">
                     {calcRimpeIncome <= 20000
                       ? 'RIMPE Negocio Popular'
                       : calcRimpeIncome <= 300000
@@ -5436,14 +7296,14 @@ export default function App() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#9E9C98]">Tipo Marginal sobre Excedente:</span>
-                  <span className="font-bold text-[#F7C631]">
+                  <span className="text-[var(--color-texto-secundario)]">Tipo Marginal sobre Excedente:</span>
+                  <span className="font-bold text-[var(--color-aviso)]">
                     {rimpeCalculation.marginalRate}%
                   </span>
                 </div>
-                <div className="border-t border-[#3C3A36] pt-2 flex justify-between text-sm font-black">
+                <div className="border-t border-[var(--color-borde)] pt-2 flex justify-between text-sm font-black">
                   <span>Impuesto RIMPE Causado:</span>
-                  <span className="text-[#3ECF8E]">
+                  <span className="text-[var(--color-secundario)]">
                     USD {rimpeCalculation.impuestoTotal.toFixed(2)}
                   </span>
                 </div>
@@ -5451,50 +7311,50 @@ export default function App() {
             </div>
 
             {/* CALCULADORA 3: RETENCIÓN EN DISTRIBUCIÓN DE DIVIDENDOS */}
-            <div className="bg-[#262522] border border-[#3C3A36] rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+            <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-5 space-y-4 flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="border-b border-[#3C3A36] pb-3">
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#81B64C] text-white">
+                <div className="border-b border-[var(--color-borde)] pb-3">
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)]">
                     Art. 37 LRTI + Anexo ADI
                   </span>
-                  <h3 className="font-heading text-base font-extrabold text-white mt-1">
+                  <h3 className="font-heading text-base font-extrabold text-[var(--color-texto)] mt-1">
                     3. Retención de Dividendos Societarios
                   </h3>
                 </div>
 
                 <div className="space-y-3 text-xs">
                   <div>
-                    <label className="block text-[#BAB8B5] mb-1 font-bold">
+                    <label className="block text-[var(--color-texto-secundario)] mb-1 font-bold">
                       Dividendo Distribuido al Accionista Residente (USD)
                     </label>
                     <input
                       type="number"
                       value={calcDividendAmount}
                       onChange={e => setCalcDividendAmount(Number(e.target.value))}
-                      className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white font-bold"
+                      className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)] font-bold"
                     />
                   </div>
-                  <p className="text-[11px] text-[#9E9C98]">
+                  <p className="text-[11px] text-[var(--color-texto-secundario)]">
                     El ingreso gravado corresponde al 40% del dividendo efectivamente distribuido,
                     aplicando la tabla progresiva de retención en la fuente.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-[#21201D] rounded-xl p-4 border border-[#3C3A36] space-y-2 text-xs">
+              <div className="bg-[var(--color-superficie)] rounded-xl p-4 border border-[var(--color-borde)] space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-[#9E9C98]">Dividendo Gravado (40%):</span>
+                  <span className="text-[var(--color-texto-secundario)]">Dividendo Gravado (40%):</span>
                   <span className="font-bold">
                     USD {dividendCalculation.dividendoGravado.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#9E9C98]">Tarifa Marginal Aplicada:</span>
-                  <span className="font-bold text-[#F7C631]">{dividendCalculation.rate}%</span>
+                  <span className="text-[var(--color-texto-secundario)]">Tarifa Marginal Aplicada:</span>
+                  <span className="font-bold text-[var(--color-aviso)]">{dividendCalculation.rate}%</span>
                 </div>
-                <div className="border-t border-[#3C3A36] pt-2 flex justify-between text-sm font-black">
+                <div className="border-t border-[var(--color-borde)] pt-2 flex justify-between text-sm font-black">
                   <span>Retención a Practicar (Form 103):</span>
-                  <span className="text-[#3ECF8E]">
+                  <span className="text-[var(--color-secundario)]">
                     USD {dividendCalculation.retencion.toFixed(2)}
                   </span>
                 </div>
@@ -5509,21 +7369,21 @@ export default function App() {
       {/* ==================================================================== */}
       {activeTab === 'chat' && (
         <div className="max-w-4xl mx-auto w-full p-6 flex-1 flex flex-col">
-          <div className="bg-[#262522] border border-[#3C3A36] rounded-2xl flex-1 flex flex-col overflow-hidden shadow-xl">
-            <div className="p-4 bg-[#21201D] border-b border-[#3C3A36] flex items-center justify-between">
+          <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl flex-1 flex flex-col overflow-hidden shadow-xl">
+            <div className="p-4 bg-[var(--color-superficie)] border-b border-[var(--color-borde)] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <Sparkles className="w-5 h-5 text-[#3ECF8E]" />
+                <Sparkles className="w-5 h-5 text-[var(--color-secundario)]" />
                 <div>
-                  <h2 className="text-sm font-extrabold text-white">
+                  <h2 className="text-sm font-extrabold text-[var(--color-texto)]">
                     Asistente Jurídico-Tributario SmartLex IA (Google Gemini RAG)
                   </h2>
-                  <p className="text-[11px] text-[#9E9C98]">
+                  <p className="text-[11px] text-[var(--color-texto-secundario)]">
                     Conectado a Código Tributario, LRTI, RLRTI y Tablas 2026
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-[#302E2B] border border-[#81B64C] text-[#3ECF8E]">
+                <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-[var(--color-fondo)] border border-[var(--color-secundario)] text-[var(--color-secundario)]">
                   {chatUsed} / 100 consultas usadas este mes
                 </span>
               </div>
@@ -5537,8 +7397,8 @@ export default function App() {
                 >
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 text-xs leading-relaxed whitespace-pre-line ${m.role === 'user'
-                      ? 'bg-[#81B64C] text-white font-semibold'
-                      : 'bg-[#302E2B] text-[#DFDFDE] border border-[#3C3A36]'
+                      ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] font-semibold'
+                      : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]'
                       }`}
                   >
                     {m.text}
@@ -5549,7 +7409,7 @@ export default function App() {
 
             <form
               onSubmit={handleSendChat}
-              className="p-4 bg-[#21201D] border-t border-[#3C3A36] flex items-center gap-3"
+              className="p-4 bg-[var(--color-superficie)] border-t border-[var(--color-borde)] flex items-center gap-3"
             >
               <input
                 type="text"
@@ -5561,7 +7421,7 @@ export default function App() {
                     ? 'Pregunta sobre deducciones, retenciones, casilleros o vigencia de artículos...'
                     : 'El Chatbot IA requiere Plan Plus (USD 9.99/mes)'
                 }
-                className="flex-1 bg-[#302E2B] border border-[#3C3A36] rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#3ECF8E]"
+                className="flex-1 bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-xl px-4 py-2.5 text-xs text-[var(--color-texto)] outline-none focus:border-[var(--color-secundario)]"
               />
               <button
                 type="submit"
@@ -5581,16 +7441,16 @@ export default function App() {
       {/* ==================================================================== */}
       {activeTab === 'reviewer' && (
         <div className="max-w-6xl mx-auto w-full p-6 space-y-6">
-          <div className="bg-[#262522] border border-[#3C3A36] rounded-2xl p-5 flex items-center justify-between">
+          <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-5 flex items-center justify-between">
             <div>
-              <span className="text-xs font-extrabold uppercase text-[#3ECF8E] flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#3ECF8E]" />
+              <span className="text-xs font-extrabold uppercase text-[var(--color-secundario)] flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[var(--color-secundario)]" />
                 Auditoría Colaborativa • Control de Calidad Humano
               </span>
-              <h1 className="font-heading text-xl font-black text-white mt-1">
+              <h1 className="font-heading text-xl font-black text-[var(--color-texto)] mt-1">
                 Bandeja de Discrepancias y Reportes Notificados
               </h1>
-              <p className="text-xs text-[#BAB8B5]">
+              <p className="text-xs text-[var(--color-texto-secundario)]">
                 Los artículos extraídos por la IA se publican directamente en producción. Aquí los revisores auditan y corrigen puntualmente las incidencias y sugerencias reportadas por los usuarios.
               </p>
             </div>
@@ -5612,24 +7472,24 @@ export default function App() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Discrepancias Reportadas por Usuarios */}
-            <div className="bg-[#262522] border border-[#3C3A36] rounded-2xl p-5 space-y-4">
+            <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-                  <Flag className="w-4 h-4 text-[#FA412D]" />
+                <h3 className="text-sm font-extrabold text-[var(--color-texto)] flex items-center gap-2">
+                  <Flag className="w-4 h-4 text-[var(--color-error)]" />
                   <span>Discrepancias Notificadas por Usuarios ({discrepancies.filter(d => d.status === 'pending').length})</span>
                 </h3>
-                <span className="text-[11px] text-[#9E9C98]">
+                <span className="text-[11px] text-[var(--color-texto-secundario)]">
                   Total histórico: {discrepancies.length}
                 </span>
               </div>
 
               {discrepancies.filter(d => d.status === 'pending').length === 0 ? (
-                <div className="p-8 text-center text-xs text-[#3ECF8E] bg-[#21201D] border border-[#81B64C]/30 rounded-xl space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-[#81B64C]/20 text-[#3ECF8E] flex items-center justify-center mx-auto mb-1">
+                <div className="p-8 text-center text-xs text-[var(--color-secundario)] bg-[var(--color-superficie)] border border-[var(--color-secundario-borde)] rounded-xl space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-[var(--color-secundario-suave)] text-[var(--color-secundario)] flex items-center justify-center mx-auto mb-1">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <p className="font-bold text-white text-sm">¡Sin discrepancias pendientes!</p>
-                  <p className="text-[#9E9C98]">
+                  <p className="font-bold text-[var(--color-texto)] text-sm">¡Sin discrepancias pendientes!</p>
+                  <p className="text-[var(--color-texto-secundario)]">
                     Todo el repositorio normativo se encuentra sin errores o inconsistencias reportadas por los usuarios.
                   </p>
                 </div>
@@ -5646,11 +7506,11 @@ export default function App() {
                       return (
                         <div
                           key={disc.id}
-                          className="bg-[#21201D] border border-[#FA412D]/40 rounded-xl p-4 space-y-3 shadow-md"
+                          className="bg-[var(--color-superficie)] border border-[var(--color-error-borde)] rounded-xl p-4 space-y-3 shadow-md"
                         >
                           <div className="flex items-center justify-between flex-wrap gap-2">
-                            <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#81B64C]/20 text-[#3ECF8E] border border-[#81B64C]/30">
+                            <span className="text-xs font-bold text-[var(--color-texto)] flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[var(--color-secundario-suave)] text-[var(--color-secundario)] border border-[var(--color-secundario-borde)]">
                                 {disc.article_label}
                               </span>
                               <span>{disc.article_title || ''}</span>
@@ -5660,12 +7520,12 @@ export default function App() {
                             </span>
                           </div>
 
-                          <div className="p-3 rounded-lg bg-[#1B1A17] border border-[#3C3A36] text-xs text-[#E5E3DF] leading-relaxed">
-                            <strong className="text-[#F7C631]">Observación del usuario: </strong>
+                          <div className="p-3 rounded-lg bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-xs text-[var(--color-texto)] leading-relaxed">
+                            <strong className="text-[var(--color-aviso)]">Observación del usuario: </strong>
                             "{disc.user_comment}"
                           </div>
 
-                          <div className="flex items-center justify-between text-[11px] text-[#9E9C98] flex-wrap gap-2 pt-1 border-t border-[#3C3A36]/60">
+                          <div className="flex items-center justify-between text-[11px] text-[var(--color-texto-secundario)] flex-wrap gap-2 pt-1 border-t border-[var(--color-borde)]">
                             <div className="flex items-center gap-2">
                               <span>📅 {disc.created_at ? new Date(disc.created_at).toLocaleDateString() : 'Hoy'}</span>
                               {disc.user_email && (
@@ -5679,7 +7539,7 @@ export default function App() {
                                   setSelectedArticleLabel(disc.article_label);
                                   setActiveTab('reader');
                                 }}
-                                className="px-2.5 py-1 rounded bg-[#2A2926] hover:bg-[#35332F] text-[#BAB8B5] hover:text-white border border-[#3C3A36] transition cursor-pointer text-[11px] font-semibold"
+                                className="px-2.5 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] border border-[var(--color-borde)] transition cursor-pointer text-[11px] font-semibold"
                               >
                                 Ver artículo
                               </button>
@@ -5699,8 +7559,8 @@ export default function App() {
 
               {/* Historial de reportes resueltos */}
               {discrepancies.some(d => d.status === 'resolved') && (
-                <div className="pt-3 border-t border-[#3C3A36]">
-                  <span className="text-[11px] font-bold text-[#9E9C98] block mb-2">
+                <div className="pt-3 border-t border-[var(--color-borde)]">
+                  <span className="text-[11px] font-bold text-[var(--color-texto-secundario)] block mb-2">
                     ✓ Discrepancias Resueltas ({discrepancies.filter(d => d.status === 'resolved').length}):
                   </span>
                   <div className="space-y-1.5 max-h-48 overflow-y-auto">
@@ -5709,12 +7569,12 @@ export default function App() {
                       .map(d => (
                         <div
                           key={d.id}
-                          className="p-2 rounded-lg bg-[#1B1A17] border border-[#3C3A36]/60 text-[11px] flex items-center justify-between text-[#BAB8B5]"
+                          className="p-2 rounded-lg bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[11px] flex items-center justify-between text-[var(--color-texto-secundario)]"
                         >
-                          <span className="font-semibold text-white truncate max-w-xs">
+                          <span className="font-semibold text-[var(--color-texto)] truncate max-w-xs">
                             {d.article_label}: {d.user_comment}
                           </span>
-                          <span className="text-[10px] text-[#3ECF8E] font-bold shrink-0">Resuelto</span>
+                          <span className="text-[10px] text-[var(--color-secundario)] font-bold shrink-0">Resuelto</span>
                         </div>
                       ))}
                   </div>
@@ -5723,11 +7583,11 @@ export default function App() {
             </div>
 
             {/* Norm Discovery Queue */}
-            <div className="bg-[#262522] border border-[#3C3A36] rounded-2xl p-5 space-y-4">
-              <h3 className="text-sm font-extrabold text-white">
+            <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-5 space-y-4">
+              <h3 className="text-sm font-extrabold text-[var(--color-texto)]">
                 Radar de Normas Citadas Aún No Cargadas (public.norm_discovery)
               </h3>
-              <p className="text-xs text-[#9E9C98]">
+              <p className="text-xs text-[var(--color-texto-secundario)]">
                 Cuando una reforma menciona una Ley o Resolución que aún no está en las 7 carpetas
                 de Google Drive / Supabase Storage, el agente la registra aquí automáticamente:
               </p>
@@ -5736,20 +7596,20 @@ export default function App() {
                 {discoveries.map(d => (
                   <div
                     key={d.id}
-                    className="bg-[#21201D] border border-[#3C3A36] rounded-xl p-4 space-y-1.5"
+                    className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-4 space-y-1.5"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-extrabold text-[#3ECF8E]">
+                      <span className="text-xs font-extrabold text-[var(--color-secundario)]">
                         {d.referenced_code} — {d.referenced_title}
                       </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#F7C631]/20 text-[#F7C631]">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--color-aviso-fondo)] text-[var(--color-aviso)]">
                         Estado: {d.status}
                       </span>
                     </div>
-                    <p className="text-xs text-[#BAB8B5]">
+                    <p className="text-xs text-[var(--color-texto-secundario)]">
                       Cita detectada: &ldquo;{d.citation_context}&rdquo;
                     </p>
-                    <p className="text-[11px] text-[#9E9C98]">
+                    <p className="text-[11px] text-[var(--color-texto-secundario)]">
                       Subir PDF a Google Drive en: <code>04_leyes_reformas/</code> para completar el
                       grafo.
                     </p>
@@ -5766,45 +7626,45 @@ export default function App() {
       {/* ==================================================================== */}
       {showAddConceptModal && (
         <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#262522] border border-[#3C3A36] rounded-2xl max-w-md w-full p-6 space-y-4">
-            <h3 className="font-heading text-lg font-black text-white">
+          <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="font-heading text-lg font-black text-[var(--color-texto)]">
               Expandir Eje Vertical (Nuevo Concepto Tributario)
             </h3>
-            <p className="text-xs text-[#BAB8B5]">
+            <p className="text-xs text-[var(--color-texto-secundario)]">
               La arquitectura de SmartLex es 100% dinámica: cualquier concepto agregado aquí se
               guarda en <code>public.tax_concepts</code> sin tocar código.
             </p>
             <form onSubmit={handleAddConcept} className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-[#BAB8B5] mb-1">Código Único</label>
+                <label className="block font-bold text-[var(--color-texto-secundario)] mb-1">Código Único</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: PRECIOS_TRANSFERENCIA"
                   value={newConceptCode}
                   onChange={e => setNewConceptCode(e.target.value)}
-                  className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)]"
                 />
               </div>
               <div>
-                <label className="block font-bold text-[#BAB8B5] mb-1">Nombre Visible</label>
+                <label className="block font-bold text-[var(--color-texto-secundario)] mb-1">Nombre Visible</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Precios de Transferencia y Partes Relacionadas"
                   value={newConceptName}
                   onChange={e => setNewConceptName(e.target.value)}
-                  className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)]"
                 />
               </div>
               <div>
-                <label className="block font-bold text-[#BAB8B5] mb-1">Descripción</label>
+                <label className="block font-bold text-[var(--color-texto-secundario)] mb-1">Descripción</label>
                 <input
                   type="text"
                   placeholder="Descripción breve del eje vertical"
                   value={newConceptDesc}
                   onChange={e => setNewConceptDesc(e.target.value)}
-                  className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)]"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2">
@@ -5829,13 +7689,13 @@ export default function App() {
       {/* ==================================================================== */}
       {showSubModal && (
         <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#262522] border border-[#3C3A36] rounded-2xl max-w-3xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#3C3A36] pb-4">
+          <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl max-w-3xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[var(--color-borde)] pb-4">
               <div>
-                <span className="text-xs font-extrabold uppercase text-[#3ECF8E]">
+                <span className="text-xs font-extrabold uppercase text-[var(--color-secundario)]">
                   Pasarela WebCheckout PlacetoPay + WhatsApp Cloud API
                 </span>
-                <h2 className="font-heading text-xl font-black text-white">
+                <h2 className="font-heading text-xl font-black text-[var(--color-texto)]">
                   Planes SmartLex Ecuador y Perfil de Alertas Tributarias
                 </h2>
               </div>
@@ -5848,26 +7708,26 @@ export default function App() {
             </div>
 
             {/* WhatsApp & 9th RUC Digit Config */}
-            <div className="bg-[#21201D] border border-[#3C3A36] rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div>
-                <label className="block font-bold text-[#BAB8B5] mb-1">
+                <label className="block font-bold text-[var(--color-texto-secundario)] mb-1">
                   WhatsApp para Alertas y Link de Pago
                 </label>
                 <input
                   type="text"
                   value={waPhone}
                   onChange={e => setWaPhone(e.target.value)}
-                  className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white font-bold"
+                  className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)] font-bold"
                 />
               </div>
               <div>
-                <label className="block font-bold text-[#BAB8B5] mb-1">
+                <label className="block font-bold text-[var(--color-texto-secundario)] mb-1">
                   9no Dígito del RUC (Calendario SRI)
                 </label>
                 <select
                   value={rucNinthDigit}
                   onChange={e => setRucNinthDigit(Number(e.target.value))}
-                  className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white font-bold"
+                  className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)] font-bold"
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(d => (
                     <option key={d} value={d}>
@@ -5877,13 +7737,13 @@ export default function App() {
                 </select>
               </div>
               <div>
-                <label className="block font-bold text-[#BAB8B5] mb-1">
+                <label className="block font-bold text-[var(--color-texto-secundario)] mb-1">
                   Tipo de Contribuyente
                 </label>
                 <select
                   value={selectedTaxpayerType}
                   onChange={e => setSelectedTaxpayerType(e.target.value)}
-                  className="w-full bg-[#302E2B] border border-[#3C3A36] rounded-lg px-3 py-2 text-white font-bold"
+                  className="w-full bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-lg px-3 py-2 text-[var(--color-texto)] font-bold"
                 >
                   {taxpayerTypes.map(t => (
                     <option key={t.id} value={t.code}>
@@ -5897,15 +7757,15 @@ export default function App() {
             {/* Pricing Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* FREE */}
-              <div className="bg-[#21201D] border border-[#3C3A36] rounded-xl p-5 flex flex-col justify-between">
+              <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-5 flex flex-col justify-between">
                 <div>
-                  <span className="text-xs font-bold uppercase text-[#9E9C98]">Plan Gratuito</span>
-                  <div className="text-2xl font-black text-white mt-1">USD 0.00</div>
-                  <ul className="mt-4 space-y-2 text-xs text-[#BAB8B5]">
+                  <span className="text-xs font-bold uppercase text-[var(--color-texto-secundario)]">Plan Gratuito</span>
+                  <div className="text-2xl font-black text-[var(--color-texto)] mt-1">USD 0.00</div>
+                  <ul className="mt-4 space-y-2 text-xs text-[var(--color-texto-secundario)]">
                     <li>✓ Código Tributario, LRTI y RLRTI vigentes</li>
                     <li>✓ Semáforo visual de vigencia</li>
-                    <li className="text-[#9E9C98] line-through">✗ Columnas históricas de reformas</li>
-                    <li className="text-[#9E9C98] line-through">✗ Resoluciones NAC y Circulares</li>
+                    <li className="text-[var(--color-texto-secundario)] line-through">✗ Columnas históricas de reformas</li>
+                    <li className="text-[var(--color-texto-secundario)] line-through">✗ Resoluciones NAC y Circulares</li>
                   </ul>
                 </div>
                 <button
@@ -5920,16 +7780,16 @@ export default function App() {
               </div>
 
               {/* PRO $4.99 */}
-              <div className="bg-[#21201D] border-2 border-[#F7C631] rounded-xl p-5 flex flex-col justify-between">
+              <div className="bg-[var(--color-superficie)] border-2 border-[var(--color-aviso)] rounded-xl p-5 flex flex-col justify-between">
                 <div>
-                  <span className="text-xs font-extrabold uppercase text-[#F7C631]">
+                  <span className="text-xs font-extrabold uppercase text-[var(--color-aviso)]">
                     Plan Pro • Investigador
                   </span>
-                  <div className="text-2xl font-black text-white mt-1">
-                    USD 4.99 <span className="text-xs font-normal text-[#9E9C98]">/ mes</span>
+                  <div className="text-2xl font-black text-[var(--color-texto)] mt-1">
+                    USD 4.99 <span className="text-xs font-normal text-[var(--color-texto-secundario)]">/ mes</span>
                   </div>
-                  <div className="text-[11px] text-[#F7C631]">o USD 49.99 / año (ahorra 2 meses)</div>
-                  <ul className="mt-4 space-y-2 text-xs text-[#DFDFDE]">
+                  <div className="text-[11px] text-[var(--color-aviso)]">o USD 49.99 / año (ahorra 2 meses)</div>
+                  <ul className="mt-4 space-y-2 text-xs text-[var(--color-texto)]">
                     <li>✓ Todo el Plan Gratuito</li>
                     <li>✓ Columnas paralelas de reformas históricas</li>
                     <li>✓ Cascada completa (Resoluciones y Circulares SRI)</li>
@@ -5938,23 +7798,23 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => handleGeneratePlacetoPaySession('premium', 4.99)}
-                  className="w-full py-2.5 rounded-lg text-xs font-extrabold bg-[#F7C631] text-black mt-5 cursor-pointer"
+                  className="w-full py-2.5 rounded-lg text-xs font-extrabold bg-[var(--color-aviso)] text-[#111317] mt-5 cursor-pointer"
                 >
                   Generar Link PlacetoPay ($4.99)
                 </button>
               </div>
 
               {/* PLUS $9.99 */}
-              <div className="bg-[#21201D] border-2 border-[#81B64C] rounded-xl p-5 flex flex-col justify-between">
+              <div className="bg-[var(--color-superficie)] border-2 border-[var(--color-secundario)] rounded-xl p-5 flex flex-col justify-between">
                 <div>
-                  <span className="text-xs font-extrabold uppercase text-[#3ECF8E]">
+                  <span className="text-xs font-extrabold uppercase text-[var(--color-secundario)]">
                     Plan Plus • Corporativo Total
                   </span>
-                  <div className="text-2xl font-black text-white mt-1">
-                    USD 9.99 <span className="text-xs font-normal text-[#9E9C98]">/ mes</span>
+                  <div className="text-2xl font-black text-[var(--color-texto)] mt-1">
+                    USD 9.99 <span className="text-xs font-normal text-[var(--color-texto-secundario)]">/ mes</span>
                   </div>
-                  <div className="text-[11px] text-[#3ECF8E]">o USD 99.99 / año (ahorra 2 meses)</div>
-                  <ul className="mt-4 space-y-2 text-xs text-[#DFDFDE]">
+                  <div className="text-[11px] text-[var(--color-secundario)]">o USD 99.99 / año (ahorra 2 meses)</div>
+                  <ul className="mt-4 space-y-2 text-xs text-[var(--color-texto)]">
                     <li>✓ Todo el Plan Pro</li>
                     <li>✓ Calculadoras SRI Interactivas (IR, RIMPE, Dividendos)</li>
                     <li>✓ Formularios, Casilleros y Anexos (ATS, RDEP, ADI)</li>
@@ -5977,14 +7837,14 @@ export default function App() {
       {/* MODAL VENTANA FLOTANTE DE E-BOOK PARA NORMAS CONCORDANTES */}
       {floatingEbookModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#21201D] border border-[#3C3A36] rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="p-4 bg-[#262522] border-b border-[#3C3A36] flex items-center justify-between">
+            <div className="p-4 bg-[var(--color-superficie)] border-b border-[var(--color-borde)] flex items-center justify-between">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#81B64C]/20 text-[#3ECF8E] border border-[#81B64C]/40">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--color-secundario-suave)] text-[var(--color-secundario)] border border-[var(--color-secundario-borde)]">
                   {floatingEbookModal.levelLabel}
                 </span>
-                <span className="text-xs font-bold text-white">
+                <span className="text-xs font-bold text-[var(--color-texto)]">
                   {floatingEbookModal.normCode} — {floatingEbookModal.articleLabel}
                 </span>
               </div>
@@ -5992,7 +7852,7 @@ export default function App() {
                 <LegalStatusButton status={floatingEbookModal.legalStatus} size="sm" />
                 <button
                   onClick={() => setFloatingEbookModal(null)}
-                  className="p-1 rounded-lg text-[#9E9C98] hover:text-white hover:bg-[#302E2B] transition cursor-pointer"
+                  className="p-1 rounded-lg text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -6000,28 +7860,28 @@ export default function App() {
             </div>
 
             {/* Modal Subtitle / Context */}
-            <div className="px-6 pt-4 pb-2 bg-[#1C1B18]/50 border-b border-[#3C3A36]/40">
-              <div className="text-[11px] text-[#9E9C98]">
+            <div className="px-6 pt-4 pb-2 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)]">
+              <div className="text-[11px] text-[var(--color-texto-secundario)]">
                 <span>Norma fuente: </span>
-                <strong className="text-white">{floatingEbookModal.normName}</strong>
+                <strong className="text-[var(--color-texto)]">{floatingEbookModal.normName}</strong>
               </div>
-              <h2 className="text-base font-black text-white mt-1">
+              <h2 className="text-base font-black text-[var(--color-texto)] mt-1">
                 {floatingEbookModal.articleLabel}: {floatingEbookModal.articleTitle}
               </h2>
             </div>
 
             {/* Modal Body: Solamente el texto del artículo en mención */}
-            <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs text-[#E5E3DF] leading-relaxed">
+            <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs text-[var(--color-texto)] leading-relaxed">
               {renderMarkdownContent(floatingEbookModal.content)}
-              <div className="p-3 rounded-lg bg-[#262522] border border-[#3C3A36] text-[11px] text-[#BAB8B5] mt-4">
-                <strong className="text-[#3ECF8E]">Nota de concordancia: </strong>
+              <div className="p-3 rounded-lg bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[11px] text-[var(--color-texto-secundario)] mt-4">
+                <strong className="text-[var(--color-secundario)]">Nota de concordancia: </strong>
                 {floatingEbookModal.relationNote}
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="p-3 bg-[#1C1B18] border-t border-[#3C3A36] flex items-center justify-between">
-              <span className="text-[11px] text-[#9E9C98]">
+            <div className="p-3 bg-[var(--color-superficie-secundaria)] border-t border-[var(--color-borde)] flex items-center justify-between">
+              <span className="text-[11px] text-[var(--color-texto-secundario)]">
                 SmartLex Ecuador • E-Book Jurídico Autónomo
               </span>
               <div className="flex items-center gap-2">
@@ -6031,7 +7891,7 @@ export default function App() {
                       `${floatingEbookModal.normCode} ${floatingEbookModal.articleLabel}: ${floatingEbookModal.articleTitle}\n\n${floatingEbookModal.content}`
                     )
                   }
-                  className="px-3 py-1.5 rounded-lg bg-[#302E2B] hover:bg-[#3C3A36] text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer border border-[#3C3A36]"
+                  className="px-3 py-1.5 rounded-lg bg-[var(--color-fondo)] hover:bg-[var(--color-superficie-hover)] text-xs font-bold text-[var(--color-texto)] flex items-center gap-1.5 transition cursor-pointer border border-[var(--color-borde)]"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>Copiar Cita</span>
@@ -6051,54 +7911,54 @@ export default function App() {
       {/* MODAL: NOTIFICAR ERROR O SUGERENCIA SOBRE EL ARTÍCULO */}
       {isReportModalOpen && reportingArticle && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1C1B18] border border-[#3C3A36] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-[#3C3A36] pb-3">
+          <div className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--color-borde)] pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[#FA412D]/15 text-[#FA412D] border border-[#FA412D]/30">
-                  <Flag className="w-5 h-5 text-[#FA412D]" />
+                <div className="p-2 rounded-xl bg-[var(--color-error-fondo)] text-[var(--color-error)] border border-[var(--color-error-borde)]">
+                  <Flag className="w-5 h-5 text-[var(--color-error)]" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-base font-bold text-white">
+                  <h3 className="font-heading text-base font-bold text-[var(--color-texto)]">
                     Notificar Discrepancia o Sugerencia
                   </h3>
-                  <p className="text-xs text-[#3ECF8E] font-semibold">
+                  <p className="text-xs text-[var(--color-secundario)] font-semibold">
                     {reportingArticle.label}{reportingArticle.title ? `: ${reportingArticle.title}` : ''}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsReportModalOpen(false)}
-                className="text-[#9E9C98] hover:text-white p-1 rounded-lg hover:bg-[#262522] cursor-pointer"
+                className="text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] p-1 rounded-lg hover:bg-[var(--color-superficie-hover)] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Contexto prellenado del artículo para no obligar al usuario o revisor a reescribir */}
-            <div className="p-3 rounded-xl bg-[#21201D] border border-[#3C3A36] space-y-2 text-xs">
-              <div className="flex items-center justify-between text-[11px] text-[#BAB8B5]">
-                <span>Norma: <strong className="text-white">{reportingArticle.norms?.title || 'Ley de Régimen Tributario Interno'}</strong></span>
-                <span className="px-2 py-0.5 rounded bg-[#81B64C]/15 text-[#3ECF8E] font-bold border border-[#81B64C]/30 text-[10px]">
+            <div className="p-3 rounded-xl bg-[var(--color-superficie)] border border-[var(--color-borde)] space-y-2 text-xs">
+              <div className="flex items-center justify-between text-[11px] text-[var(--color-texto-secundario)]">
+                <span>Norma: <strong className="text-[var(--color-texto)]">{reportingArticle.norms?.title || 'Ley de Régimen Tributario Interno'}</strong></span>
+                <span className="px-2 py-0.5 rounded bg-[var(--color-secundario-suave)] text-[var(--color-secundario)] font-bold border border-[var(--color-secundario-borde)] text-[10px]">
                   {reportingArticle.legal_status === 'vigente_reformado' ? 'Vigente y Reformado' : reportingArticle.legal_status === 'derogado' ? 'Derogado' : 'Vigente'}
                 </span>
               </div>
-              <div className="text-white font-bold text-xs">
+              <div className="text-[var(--color-texto)] font-bold text-xs">
                 {reportingArticle.label}{reportingArticle.title ? `: ${reportingArticle.title}` : ''}
               </div>
-              <div className="p-2 bg-[#1B1A17] rounded-lg border border-[#3C3A36]/60 text-[11px] text-[#9E9C98] italic line-clamp-3">
+              <div className="p-2 bg-[var(--color-superficie-secundaria)] rounded-lg border border-[var(--color-borde)] text-[11px] text-[var(--color-texto-secundario)] italic line-clamp-3">
                 "{reportingArticle.content?.slice(0, 220)}..."
               </div>
             </div>
 
             <form onSubmit={handleSubmitDiscrepancy} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#DFDFDE] mb-1.5">
+                <label className="block text-xs font-bold text-[var(--color-texto)] mb-1.5">
                   Tipo de incidencia:
                 </label>
                 <select
                   value={reportType}
                   onChange={e => setReportType(e.target.value)}
-                  className="w-full bg-[#262522] border border-[#3C3A36] focus:border-[#3ECF8E] rounded-lg px-3 py-2 text-xs text-white outline-none cursor-pointer"
+                  className="w-full bg-[var(--color-superficie)] border border-[var(--color-borde)] focus:border-[var(--color-secundario)] rounded-lg px-3 py-2 text-xs text-[var(--color-texto)] outline-none cursor-pointer"
                 >
                   <option value="errata">✏️ Error tipográfico o errata en el texto</option>
                   <option value="missing_content">📄 Falta un literal, inciso o sección</option>
@@ -6109,7 +7969,7 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#DFDFDE] mb-1.5">
+                <label className="block text-xs font-bold text-[var(--color-texto)] mb-1.5">
                   Describe el error o tu sugerencia:
                 </label>
                 <textarea
@@ -6118,12 +7978,12 @@ export default function App() {
                   value={reportComment}
                   onChange={e => setReportComment(e.target.value)}
                   placeholder="Explícanos qué has detectado (ej: En el literal b la tarifa debería ser 25% según el R.O. 478...)"
-                  className="w-full bg-[#262522] border border-[#3C3A36] focus:border-[#3ECF8E] rounded-lg p-3 text-xs text-white placeholder-[#9E9C98] outline-none resize-none leading-relaxed"
+                  className="w-full bg-[var(--color-superficie)] border border-[var(--color-borde)] focus:border-[var(--color-secundario)] rounded-lg p-3 text-xs text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none resize-none leading-relaxed"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#DFDFDE] mb-1.5">
+                <label className="block text-xs font-bold text-[var(--color-texto)] mb-1.5">
                   Tu contacto o email (opcional para darte seguimiento):
                 </label>
                 <input
@@ -6131,15 +7991,15 @@ export default function App() {
                   value={reportUserContact}
                   onChange={e => setReportUserContact(e.target.value)}
                   placeholder="ej: abogado@tuempresa.com o 0991234567"
-                  className="w-full bg-[#262522] border border-[#3C3A36] focus:border-[#3ECF8E] rounded-lg px-3 py-2 text-xs text-white placeholder-[#9E9C98] outline-none"
+                  className="w-full bg-[var(--color-superficie)] border border-[var(--color-borde)] focus:border-[var(--color-secundario)] rounded-lg px-3 py-2 text-xs text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#3C3A36]">
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--color-borde)]">
                 <button
                   type="button"
                   onClick={() => setIsReportModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-[#BAB8B5] hover:text-white hover:bg-[#262522] transition cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -6160,39 +8020,39 @@ export default function App() {
       {/* PANTALLA 3: POP-UP DE EVOLUCIÓN HISTÓRICA (BARRA DE DESPLAZAMIENTO HORIZONTAL ARRIBA + NORMATIVA CONEXA JERÁRQUICA COLAPSADA ABAJO) */}
       {isHistoryModalOpen && activeCurrentArticle && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-[#0d0d0f] border border-[#26262b] rounded-2xl max-w-[1440px] w-full h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+          <div className="bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-2xl max-w-[1440px] w-full h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
             {/* Modal Header Minimalista Oscuro */}
-            <div className="px-5 py-3.5 bg-[#121215] border-b border-[#26262b] flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <div className="px-5 py-3.5 bg-[var(--color-superficie)] border-b border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-[#18181c] text-[#e4e4e7] border border-[#2e2e36]">
-                  <Hourglass className="w-4 h-4 text-[#e4e4e7]" />
+                <div className="p-2 rounded-xl bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border border-[var(--color-borde)]">
+                  <Hourglass className="w-4 h-4 text-[var(--color-texto)]" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-[#18181c] text-[#a1a1aa] border border-[#26262b]">
+                    <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)]">
                       Pantalla 3 • Evolución Temporal y Normativa Conexa
                     </span>
-                    <span className="text-xs font-extrabold text-[#f4f4f5]">
+                    <span className="text-xs font-extrabold text-[var(--color-texto)]">
                       {activeCurrentArticle.display_label || activeCurrentArticle.label}
                       {activeCurrentArticle.title ? `: ${activeCurrentArticle.title}` : ''}
                     </span>
                     {activeCurrentArticle.is_innumerado && activeCurrentArticle.after_article && (
                       <span
                         title={`Código interno de orden: ${activeCurrentArticle.identifier || activeCurrentArticle.label}`}
-                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#1c1c21] text-[#a1a1aa] border border-[#2e2e36]"
+                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)]"
                       >
                         {activeCurrentArticle.innumerado_order || 1} tras Art. {activeCurrentArticle.after_article}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 flex-wrap mt-1 text-[10px] text-[#a1a1aa]">
+                  <div className="flex items-center gap-4 flex-wrap mt-1 text-[10px] text-[var(--color-texto-secundario)]">
                     <span>
                       Versión actual fija a la izquierda • Desplaza la barra horizontal hacia la derecha ➡️ para comparar cada reforma
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[#4ade80]">
+                    <span className="inline-flex items-center gap-1 text-[var(--color-secundario)]">
                       + Texto incorporado respecto a la versión previa
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[#f87171] line-through">
+                    <span className="inline-flex items-center gap-1 text-[var(--color-error)] line-through">
                       Texto suprimido respecto a la versión previa
                     </span>
                   </div>
@@ -6207,7 +8067,7 @@ export default function App() {
                     const track = document.getElementById('popup-horizontal-versions-track');
                     if (track) track.scrollBy({ left: -400, behavior: 'smooth' });
                   }}
-                  className="px-2 py-1 rounded-lg bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#d4d4d8] cursor-pointer"
+                  className="px-2 py-1 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[11px] text-[var(--color-texto)] cursor-pointer"
                   title="Desplazar barra de versiones hacia la izquierda"
                 >
                   ◀
@@ -6222,10 +8082,10 @@ export default function App() {
                     }}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer border ${
                       ver.is_current
-                        ? 'bg-[#f4f4f5] border-[#f4f4f5] text-[#0d0d0f] font-bold'
+                        ? 'bg-[var(--color-secundario)] border-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] font-bold'
                         : activeHistoryYear === ver.version_year
-                          ? 'bg-[#26262b] border-[#52525b] text-[#f4f4f5] font-bold'
-                          : 'bg-[#151518] border-[#26262b] text-[#a1a1aa] hover:text-[#f4f4f5] hover:border-[#3f3f46]'
+                          ? 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde-fuerte)] text-[var(--color-texto)] font-bold'
+                          : 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde)] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:border-[var(--color-borde-fuerte)]'
                     }`}
                   >
                     <span>{ver.version_year}</span>
@@ -6240,42 +8100,88 @@ export default function App() {
                     const track = document.getElementById('popup-horizontal-versions-track');
                     if (track) track.scrollBy({ left: 400, behavior: 'smooth' });
                   }}
-                  className="px-2 py-1 rounded-lg bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-[11px] text-[#d4d4d8] cursor-pointer"
+                  className="px-2 py-1 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[11px] text-[var(--color-texto)] cursor-pointer"
                   title="Desplazar barra de versiones hacia la derecha"
                 >
                   ▶
                 </button>
 
                 <button
-                  onClick={() => setIsHistoryModalOpen(false)}
-                  className="p-1.5 rounded-lg text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#18181c] transition cursor-pointer ml-1"
+                  onClick={() => {
+                    setIsHistoryModalOpen(false);
+                    setSelectedHistorySubId(null);
+                  }}
+                  className="p-1.5 rounded-lg text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition cursor-pointer ml-1"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
+            {/* BARRA SELECTORA DE SUB-NIVELES (ARTÍCULO COMPLETO vs LITERAL / NUMERAL / PÁRRAFO) */}
+            {activeArticleSubElements.length > 0 && (
+              <div className="px-5 py-2 bg-[var(--color-fondo)] border-b border-[var(--color-borde)] flex items-center gap-1.5 flex-wrap shrink-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-texto-secundario)] mr-1">
+                  Ámbito del histórico:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedHistorySubId(null);
+                    setActiveHistoryYear(null);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer border ${
+                    selectedHistorySubId === null
+                      ? 'bg-[var(--color-secundario)] border-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] font-bold'
+                      : 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde)] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:border-[var(--color-borde-fuerte)]'
+                  }`}
+                >
+                  Artículo completo
+                </button>
+                {activeArticleSubElements.map(sub => {
+                  const isActiveSub = selectedHistorySubId === sub.identifier;
+                  return (
+                    <button
+                      key={sub.identifier}
+                      type="button"
+                      onClick={() => {
+                        setSelectedHistorySubId(sub.identifier || null);
+                        setActiveHistoryYear(null);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer border ${
+                        isActiveSub
+                          ? 'bg-[var(--color-secundario)] border-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] font-bold'
+                          : 'bg-[var(--color-superficie-secundaria)] border-[var(--color-borde)] text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:border-[var(--color-borde-fuerte)]'
+                      }`}
+                    >
+                      {sub.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* CUERPO DEL POP-UP CON SCROLL VERTICAL GENERAL: ARRIBA COMPARADOR HORIZONTAL + ABAJO NORMATIVA CONEXA COLAPSADA */}
-            <div className="flex-1 overflow-y-auto divide-y divide-[#26262b] min-h-0">
+            <div className="flex-1 overflow-y-auto divide-y divide-[var(--color-borde)] min-h-0">
               {/* ============================================================ */}
               {/* SECCIÓN SUPERIOR: COMPARADOR PARALELO CON BARRA DE           */}
               {/* DESPLAZAMIENTO HORIZONTAL (COMO EL POP-UP DE SMARTLEX)       */}
               {/* ============================================================ */}
-              <div className="flex h-[54vh] min-h-[370px] overflow-hidden bg-[#0d0d0f]">
+              <div className="flex h-[54vh] min-h-[370px] overflow-hidden bg-[var(--color-fondo)]">
                 {/* COLUMNA 1: VERSIÓN ACTUAL VIGENTE (CONGELADA A LA IZQUIERDA) */}
                 <div
                   className={`${
                     isCurrentColExpanded ? 'w-[520px] sm:w-[600px]' : 'w-[360px] sm:w-[430px]'
-                  } shrink-0 bg-[#121215] border-r-2 border-[#3f3f46] flex flex-col shadow-xl z-20 transition-all duration-200`}
+                  } shrink-0 bg-[var(--color-superficie)] border-r-2 border-[var(--color-borde-fuerte)] flex flex-col shadow-xl z-20 transition-all duration-200`}
                 >
-                  <div className="px-3.5 py-2.5 bg-[#18181c] border-b border-[#26262b] flex items-center justify-between">
-                    <span className="inline-flex items-center gap-2 text-xs font-bold text-[#f4f4f5]">
-                      <span className="w-2 h-2 rounded-full bg-[#f4f4f5] shrink-0" />
+                  <div className="px-3.5 py-2.5 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] flex items-center justify-between">
+                    <span className="inline-flex items-center gap-2 text-xs font-bold text-[var(--color-texto)]">
+                      <span className="w-2 h-2 rounded-full bg-[var(--color-secundario)] shrink-0" />
                       Vigente Hoy ({articleHistoricalVersions[0]?.version_year || 2009})
                     </span>
                     <button
                       onClick={() => setIsCurrentColExpanded(!isCurrentColExpanded)}
-                      className="px-2 py-1 rounded-md bg-[#121215] hover:bg-[#1c1c21] text-[#d4d4d8] border border-[#26262b] text-[10px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                      className="px-2 py-1 rounded-md bg-[var(--color-superficie)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] border border-[var(--color-borde)] text-[10px] font-semibold flex items-center gap-1 transition cursor-pointer"
                     >
                       {isCurrentColExpanded ? (
                         <>
@@ -6291,12 +8197,12 @@ export default function App() {
                     </button>
                   </div>
 
-                  <div className="px-3.5 py-2.5 bg-[#151518] border-b border-[#26262b] text-[11px] text-[#a1a1aa] space-y-1">
-                    <div className="text-[#f4f4f5] font-semibold line-clamp-2">
+                  <div className="px-3.5 py-2.5 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] text-[11px] text-[var(--color-texto-secundario)] space-y-1">
+                    <div className="text-[var(--color-texto)] font-semibold line-clamp-2">
                       {articleHistoricalVersions[0]?.reform_cite || 'Texto Consolidado Vigente'}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0d0d0f] text-[#d4d4d8] border border-[#26262b]">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                         {periodicityLabel(articleHistoricalVersions[0]?.tax_periodicity)}:{' '}
                         {formatValidityRange(
                           articleHistoricalVersions[0]?.raw_valid_from ??
@@ -6308,7 +8214,7 @@ export default function App() {
                       {articleHistoricalVersions[0]?.official_registry &&
                         articleHistoricalVersions[0]?.official_registry !==
                           articleHistoricalVersions[0]?.reform_cite && (
-                          <span className="text-[10px] text-[#71717a] truncate">
+                          <span className="text-[10px] text-[var(--color-texto-secundario)] truncate">
                             {articleHistoricalVersions[0]?.official_registry}
                           </span>
                         )}
@@ -6316,33 +8222,34 @@ export default function App() {
                   </div>
 
                   {/* Texto Íntegro Actual con Resaltado Diferencial respecto a la versión inmediata anterior */}
-                  <div className="p-4 overflow-y-auto flex-1 text-xs text-[#e4e4e7] leading-relaxed space-y-2.5">
+                  <div className="p-4 overflow-y-auto flex-1 text-xs text-[var(--color-texto)] leading-relaxed space-y-2.5">
                     {renderDiffMarkdownContent(
                       articleHistoricalVersions[0]?.content || activeCurrentArticle.content,
-                      articleHistoricalVersions[1]?.content || null
+                      articleHistoricalVersions[1]?.content || null,
+                      articleHistoricalVersions[0]?.table_diff_mode
                     )}
                   </div>
 
                   {openSummaryId === (articleHistoricalVersions[0]?.id || 'vigente') && (
-                    <div className="p-3 bg-[#18181c] border-t border-[#3f3f46] text-xs text-[#e4e4e7] shrink-0">
+                    <div className="p-3 bg-[var(--color-superficie-secundaria)] border-t border-[var(--color-borde-fuerte)] text-xs text-[var(--color-texto)] shrink-0">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-bold uppercase text-[#f4f4f5]">
+                        <span className="text-[10px] font-bold uppercase text-[var(--color-texto)]">
                           Resumen del cambio vigente ({articleHistoricalVersions[0]?.version_year})
                         </span>
                         <button
                           onClick={() => setOpenSummaryId(null)}
-                          className="text-[#a1a1aa] hover:text-white cursor-pointer"
+                          className="text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] cursor-pointer"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <p className="text-[11px] text-[#d4d4d8] leading-relaxed">
+                      <p className="text-[11px] text-[var(--color-texto)] leading-relaxed">
                         {articleHistoricalVersions[0]?.summary_change}
                       </p>
                     </div>
                   )}
 
-                  <div className="px-3.5 py-2 bg-[#151518] border-t border-[#26262b] flex flex-wrap items-center justify-between gap-2 text-[10px] text-[#71717a]">
+                  <div className="px-3.5 py-2 bg-[var(--color-superficie-secundaria)] border-t border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-2 text-[10px] text-[var(--color-texto-secundario)]">
                     <span>Columna Fija de Referencia</span>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {(() => {
@@ -6360,7 +8267,7 @@ export default function App() {
                             type="button"
                             onClick={() => handleOpenFullNorm(matchedCurrent.norm, matchedCurrent.articleLabel)}
                             title={`Abrir norma completa: ${matchedCurrent.norm.title}`}
-                            className="px-2 py-1 rounded bg-[#27272d] hover:bg-[#32323a] text-[#f4f4f5] border border-[#3f3f46] font-semibold flex items-center gap-1 cursor-pointer transition"
+                            className="px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] border border-[var(--color-borde-fuerte)] font-semibold flex items-center gap-1 cursor-pointer transition"
                           >
                             <BookOpen className="w-3 h-3" />
                             <span>Ver norma modificatoria completa</span>
@@ -6375,7 +8282,7 @@ export default function App() {
                               : articleHistoricalVersions[0]?.id || 'vigente'
                           )
                         }
-                        className="px-2 py-1 rounded bg-[#1c1c21] hover:bg-[#26262b] text-[#e4e4e7] border border-[#2e2e36] font-semibold flex items-center gap-1 cursor-pointer"
+                        className="px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] border border-[var(--color-borde)] font-semibold flex items-center gap-1 cursor-pointer"
                       >
                         <FileText className="w-3 h-3" />
                         <span>Cambio introducido</span>
@@ -6386,7 +8293,7 @@ export default function App() {
                             `${articleHistoricalVersions[0]?.reform_cite}\nVigente desde: ${articleHistoricalVersions[0]?.valid_from}\n\n${articleHistoricalVersions[0]?.content}`
                           )
                         }
-                        className="px-2 py-1 rounded bg-[#1c1c21] hover:bg-[#26262b] text-[#d4d4d8] border border-[#26262b] flex items-center gap-1 cursor-pointer"
+                        className="px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] border border-[var(--color-borde)] flex items-center gap-1 cursor-pointer"
                       >
                         <Copy className="w-3 h-3" />
                         <span>Copiar</span>
@@ -6398,7 +8305,7 @@ export default function App() {
                 {/* COLUMNAS 2, 3, 4...: PISTA CON BARRA DE DESPLAZAMIENTO HORIZONTAL (SCROLLBAR) */}
                 <div
                   id="popup-horizontal-versions-track"
-                  className="flex-1 overflow-x-scroll flex gap-4 p-4 items-stretch scroll-smooth bg-[#0d0d0f]"
+                  className="flex-1 overflow-x-scroll flex gap-4 p-4 items-stretch scroll-smooth bg-[var(--color-fondo)]"
                 >
                   {articleHistoricalVersions.slice(1).map((ver, idx) => {
                     const isHighlighted = activeHistoryYear === ver.version_year;
@@ -6407,19 +8314,19 @@ export default function App() {
                       <div
                         id={`hist-col-${ver.id}`}
                         key={ver.id}
-                        className={`w-[360px] sm:w-[410px] shrink-0 bg-[#121215] rounded-xl flex flex-col border transition-all duration-200 overflow-hidden shadow-lg ${
+                        className={`w-[360px] sm:w-[410px] shrink-0 bg-[var(--color-superficie)] rounded-xl flex flex-col border transition-all duration-200 overflow-hidden shadow-lg ${
                           isHighlighted
-                            ? 'border-[#f4f4f5] ring-1 ring-[#f4f4f5]/40'
-                            : 'border-[#26262b] hover:border-[#3f3f46]'
+                            ? 'border-[var(--color-secundario)] ring-1 ring-[var(--color-secundario)]'
+                            : 'border-[var(--color-borde)] hover:border-[var(--color-borde-fuerte)]'
                         }`}
                       >
-                        <div className="px-3.5 py-2.5 bg-[#18181c] border-b border-[#26262b] flex items-center justify-between gap-2">
+                        <div className="px-3.5 py-2.5 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-[#f4f4f5] flex items-center gap-1">
-                              <Hourglass className="w-3.5 h-3.5 text-[#a1a1aa]" />
+                            <span className="text-xs font-bold text-[var(--color-texto)] flex items-center gap-1">
+                              <Hourglass className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                               Versión {ver.version_year}
                             </span>
-                            <span className="text-[10px] text-[#a1a1aa] font-mono bg-[#0d0d0f] px-2 py-0.5 rounded border border-[#26262b]">
+                            <span className="text-[10px] text-[var(--color-texto-secundario)] font-mono bg-[var(--color-fondo)] px-2 py-0.5 rounded border border-[var(--color-borde)]">
                               {formatValidityRange(
                                 ver.raw_valid_from ?? ver.valid_from,
                                 ver.raw_valid_to ?? ver.valid_to,
@@ -6427,49 +8334,50 @@ export default function App() {
                               )}
                             </span>
                           </div>
-                          <span className="text-[10px] font-semibold text-[#a1a1aa] px-2 py-0.5 rounded bg-[#121215] border border-[#26262b] shrink-0">
+                          <span className="text-[10px] font-semibold text-[var(--color-texto-secundario)] px-2 py-0.5 rounded bg-[var(--color-superficie)] border border-[var(--color-borde)] shrink-0">
                             {ver.is_fe_erratas_replaced ? 'Fe de Erratas' : 'Histórico'}
                           </span>
                         </div>
 
-                        <div className="px-3.5 py-2 bg-[#151518] border-b border-[#26262b] text-[11px] space-y-0.5">
-                          <div className="text-[#d4d4d8] font-semibold line-clamp-1">
+                        <div className="px-3.5 py-2 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] text-[11px] space-y-0.5">
+                          <div className="text-[var(--color-texto)] font-semibold line-clamp-1">
                             {ver.reform_cite}
                           </div>
                           {ver.official_registry && ver.official_registry !== ver.reform_cite && (
-                            <div className="text-[10px] text-[#71717a] truncate">
+                            <div className="text-[10px] text-[var(--color-texto-secundario)] truncate">
                               {ver.official_registry}
                             </div>
                           )}
                         </div>
 
-                        <div className="p-4 overflow-y-auto flex-1 text-xs text-[#d4d4d8] leading-relaxed">
+                        <div className="p-4 overflow-y-auto flex-1 text-xs text-[var(--color-texto)] leading-relaxed">
                           {renderDiffMarkdownContent(
                             ver.content,
-                            immediatePreviousVersion?.content || null
+                            immediatePreviousVersion?.content || null,
+                            ver.table_diff_mode
                           )}
                         </div>
 
                         {openSummaryId === ver.id && (
-                          <div className="p-3 bg-[#18181c] border-t border-[#3f3f46] text-xs text-[#e4e4e7] shrink-0">
+                          <div className="p-3 bg-[var(--color-superficie-secundaria)] border-t border-[var(--color-borde-fuerte)] text-xs text-[var(--color-texto)] shrink-0">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold uppercase text-[#f4f4f5]">
+                              <span className="text-[10px] font-bold uppercase text-[var(--color-texto)]">
                                 Cambio introducido ({ver.version_year})
                               </span>
                               <button
                                 onClick={() => setOpenSummaryId(null)}
-                                className="text-[#a1a1aa] hover:text-white cursor-pointer"
+                                className="text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] cursor-pointer"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                            <p className="text-[11px] text-[#d4d4d8] leading-relaxed">
+                            <p className="text-[11px] text-[var(--color-texto)] leading-relaxed">
                               {ver.summary_change}
                             </p>
                           </div>
                         )}
 
-                        <div className="px-3.5 py-2 bg-[#151518] border-t border-[#26262b] flex flex-wrap items-center justify-between gap-2 text-[10px] text-[#71717a]">
+                        <div className="px-3.5 py-2 bg-[var(--color-superficie-secundaria)] border-t border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-2 text-[10px] text-[var(--color-texto-secundario)]">
                           <span>Versión #{ver.version_number}</span>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {(() => {
@@ -6484,7 +8392,7 @@ export default function App() {
                                   type="button"
                                   onClick={() => handleOpenFullNorm(matchedOrigin.norm, matchedOrigin.articleLabel)}
                                   title={`Abrir norma completa: ${matchedOrigin.norm.title}`}
-                                  className="px-2 py-1 rounded bg-[#27272d] hover:bg-[#32323a] text-[#f4f4f5] border border-[#3f3f46] font-semibold flex items-center gap-1 cursor-pointer transition"
+                                  className="px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] border border-[var(--color-borde-fuerte)] font-semibold flex items-center gap-1 cursor-pointer transition"
                                 >
                                   <BookOpen className="w-3 h-3" />
                                   <span>Ver norma modificatoria completa</span>
@@ -6495,7 +8403,7 @@ export default function App() {
                               onClick={() =>
                                 setOpenSummaryId(openSummaryId === ver.id ? null : ver.id)
                               }
-                              className="px-2 py-1 rounded bg-[#1c1c21] hover:bg-[#26262b] text-[#e4e4e7] border border-[#2e2e36] font-semibold flex items-center gap-1 cursor-pointer"
+                              className="px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] border border-[var(--color-borde)] font-semibold flex items-center gap-1 cursor-pointer"
                             >
                               <FileText className="w-3 h-3" />
                               <span>Cambio introducido</span>
@@ -6506,7 +8414,7 @@ export default function App() {
                                   `${ver.reform_cite} (${ver.official_registry})\n${ver.valid_from} al ${ver.valid_to}\n\n${ver.content}`
                                 )
                               }
-                              className="px-2 py-1 rounded bg-[#1c1c21] hover:bg-[#26262b] text-[#d4d4d8] border border-[#26262b] flex items-center gap-1 cursor-pointer"
+                              className="px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] border border-[var(--color-borde)] flex items-center gap-1 cursor-pointer"
                             >
                               <Copy className="w-3 h-3" />
                               <span>Copiar</span>
@@ -6518,9 +8426,9 @@ export default function App() {
                   })}
 
                   {articleHistoricalVersions.length <= 1 && (
-                    <div className="w-96 flex flex-col items-center justify-center p-8 text-center text-xs text-[#a1a1aa] bg-[#121215] border border-[#26262b] rounded-xl">
-                      <Bookmark className="w-7 h-7 text-[#71717a] mb-2" />
-                      <p className="font-bold text-[#f4f4f5] mb-1">
+                    <div className="w-96 flex flex-col items-center justify-center p-8 text-center text-xs text-[var(--color-texto-secundario)] bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl">
+                      <Bookmark className="w-7 h-7 text-[var(--color-texto-secundario)] mb-2" />
+                      <p className="font-bold text-[var(--color-texto)] mb-1">
                         Sin reformas anteriores registradas
                       </p>
                       <p>
@@ -6535,16 +8443,16 @@ export default function App() {
               {/* SECCIÓN INFERIOR: NORMATIVA CONEXA Y DESARROLLO JERÁRQUICO   */}
               {/* COLAPSADA POR ORDEN JERÁRQUICO + LÍNEA DEL TIEMPO PROPIA (⏳) */}
               {/* ============================================================ */}
-              <div className="p-5 bg-[#121215] space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#26262b]">
+              <div className="p-5 bg-[var(--color-superficie)] space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[var(--color-borde)]">
                   <div>
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#f4f4f5] flex items-center gap-2">
-                      <SplitSquareVertical className="w-4 h-4 text-[#d4d4d8]" />
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--color-texto)] flex items-center gap-2">
+                      <SplitSquareVertical className="w-4 h-4 text-[var(--color-texto)]" />
                       <span>
                         Normativa conexa y desarrollo jerárquico ({activeCurrentArticle.label})
                       </span>
                     </h3>
-                    <p className="text-[11px] text-[#a1a1aa] mt-0.5">
+                    <p className="text-[11px] text-[var(--color-texto-secundario)] mt-0.5">
                       Las categorías inferiores permanecen colapsadas por orden jerárquico. Despliégalas para examinar cada artículo relacionado y consultar su propia línea del tiempo con el reloj de arena (⏳).
                     </p>
                   </div>
@@ -6559,7 +8467,7 @@ export default function App() {
                           tablas: true
                         })
                       }
-                      className="px-2.5 py-1 rounded-md bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-[10px] font-semibold text-[#d4d4d8] cursor-pointer"
+                      className="px-2.5 py-1 rounded-md bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[10px] font-semibold text-[var(--color-texto)] cursor-pointer"
                     >
                       Desplegar jerarquías
                     </button>
@@ -6573,7 +8481,7 @@ export default function App() {
                           tablas: false
                         })
                       }
-                      className="px-2.5 py-1 rounded-md bg-[#18181c] hover:bg-[#1c1c21] border border-[#26262b] text-[10px] font-semibold text-[#a1a1aa] cursor-pointer"
+                      className="px-2.5 py-1 rounded-md bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[10px] font-semibold text-[var(--color-texto-secundario)] cursor-pointer"
                     >
                       Colapsar jerarquías
                     </button>
@@ -6588,6 +8496,12 @@ export default function App() {
                     leyModificatoriaFromRelations.map(item => item.normId || item.normCode)
                   );
                   const leyModificatoriaFromVersions: SecondaryCascadeItem[] = [];
+                  const reglamentoFromVersions: SecondaryCascadeItem[] = [];
+                  const seenRegNormIds = new Set(
+                    activeSecondaryCascade
+                      .filter(item => item.level === 'reglamento')
+                      .map(item => item.normId || item.normCode)
+                  );
                   for (const ver of articleHistoricalVersions) {
                     const matched = findReformTargetNormAndArticle(
                       ver.reform_cite,
@@ -6597,10 +8511,30 @@ export default function App() {
                     );
                     if (!matched) continue;
                     const cat = classifyLibraryNormDetailed(matched.norm).category;
+                    if (cat === 'reglamentos' || cat === 'decretos') {
+                      if (!seenRegNormIds.has(matched.norm.id) && !seenRegNormIds.has(matched.norm.code)) {
+                        seenRegNormIds.add(matched.norm.id);
+                        const artCount = articlesByNormId.get(matched.norm.id) || 0;
+                        reglamentoFromVersions.push({
+                          id: `reg-ver-${matched.norm.id}`,
+                          level: 'reglamento',
+                          levelLabel: cat === 'decretos' ? 'Decreto Ejecutivo Vinculado' : 'Reglamento Vinculado',
+                          normId: matched.norm.id,
+                          normName: matched.norm.title,
+                          normCode: matched.norm.code,
+                          articleLabel: matched.articleLabel || 'Norma completa',
+                          articleTitle: `${matched.norm.title}${artCount > 0 ? ` (${artCount} artículos cargados)` : ''}`,
+                          content: ver.summary_change || ver.reform_cite,
+                          legalStatus: 'vigente',
+                          relationNote: `Reforma vinculada a ${activeCurrentArticle.label} (${ver.official_registry})`,
+                          historicalVersions: []
+                        });
+                      }
+                      continue;
+                    }
                     if (
                       cat === 'resoluciones' ||
                       cat === 'circulares' ||
-                      cat === 'reglamentos' ||
                       cat === 'otras_normas'
                     ) {
                       continue;
@@ -6611,7 +8545,7 @@ export default function App() {
                     leyModificatoriaFromVersions.push({
                       id: `mod-ver-${matched.norm.id}`,
                       level: 'ley_modificatoria',
-                      levelLabel: 'Ley Modificatoria / Reformatoria',
+                      levelLabel: matched.norm.norm_type === 'code' ? 'Código Vinculado' : 'Ley Modificatoria / Reformatoria',
                       normId: matched.norm.id,
                       normName: matched.norm.title,
                       normCode: matched.norm.code,
@@ -6628,9 +8562,10 @@ export default function App() {
                     ...leyModificatoriaFromVersions
                   ];
 
-                  const reglamentoItems = activeSecondaryCascade.filter(
-                    item => item.level === 'reglamento'
-                  );
+                  const reglamentoItems = [
+                    ...activeSecondaryCascade.filter(item => item.level === 'reglamento'),
+                    ...reglamentoFromVersions
+                  ];
                   const resolucionItems: SecondaryCascadeItem[] = [
                     ...activeSecondaryCascade.filter(
                       item => item.level === 'resolucion' || item.level === 'circular'
@@ -6660,10 +8595,10 @@ export default function App() {
                     return (
                       <div
                         key={item.id}
-                        className="bg-[#151518] border border-[#26262b] rounded-xl overflow-hidden transition"
+                        className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-xl overflow-hidden transition"
                       >
                         {/* Cabecera desplegable del artículo relacionado con su propio Reloj de Arena (⏳) a la derecha */}
-                        <div className="px-4 py-3 bg-[#18181c] flex items-center justify-between gap-3">
+                        <div className="px-4 py-3 bg-[var(--color-superficie-secundaria)] flex items-center justify-between gap-3">
                           <button
                             type="button"
                             onClick={() =>
@@ -6675,14 +8610,14 @@ export default function App() {
                             className="flex items-center gap-2.5 text-left flex-1 min-w-0 cursor-pointer"
                           >
                             {isItemOpen ? (
-                              <ChevronDown className="w-4 h-4 text-[#f4f4f5] shrink-0" />
+                              <ChevronDown className="w-4 h-4 text-[var(--color-texto)] shrink-0" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-[#a1a1aa] shrink-0" />
+                              <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)] shrink-0" />
                             )}
-                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#0d0d0f] text-[#d4d4d8] border border-[#26262b] shrink-0">
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)] shrink-0">
                               {item.normCode}
                             </span>
-                            <span className="text-xs font-bold text-[#f4f4f5] truncate">
+                            <span className="text-xs font-bold text-[var(--color-texto)] truncate">
                               {item.articleLabel}: {item.articleTitle}
                             </span>
                           </button>
@@ -6704,8 +8639,8 @@ export default function App() {
                               title="Ver línea del tiempo histórica de este artículo relacionado"
                               className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer ${
                                 isItemHistOpen
-                                  ? 'bg-[#f4f4f5] text-[#0d0d0f] border-[#f4f4f5]'
-                                  : 'bg-[#121215] hover:bg-[#1c1c21] text-[#e4e4e7] border-[#2e2e36]'
+                                  ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
+                                  : 'bg-[var(--color-superficie)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] border-[var(--color-borde)]'
                               }`}
                             >
                               <Hourglass className="w-3.5 h-3.5" />
@@ -6716,13 +8651,13 @@ export default function App() {
 
                         {/* Contenido desplegable del artículo relacionado + su propia barra de Línea del Tiempo */}
                         {isItemOpen && (
-                          <div className="p-4 space-y-3 border-t border-[#26262b] bg-[#121215]">
+                          <div className="p-4 space-y-3 border-t border-[var(--color-borde)] bg-[var(--color-superficie)]">
                             {/* Línea del tiempo propia del artículo inferior (se activa al pulsar su reloj ⏳ o siempre disponible) */}
                             {isItemHistOpen && (
-                              <div className="p-3 rounded-xl bg-[#18181c] border border-[#2e2e36] space-y-2.5">
+                              <div className="p-3 rounded-xl bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] space-y-2.5">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#d4d4d8] flex items-center gap-1.5">
-                                    <Hourglass className="w-3.5 h-3.5 text-[#f4f4f5]" />
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-texto)] flex items-center gap-1.5">
+                                    <Hourglass className="w-3.5 h-3.5 text-[var(--color-texto)]" />
                                     <span>
                                       Evolución Histórica de {item.normCode} • {item.articleLabel}
                                     </span>
@@ -6740,8 +8675,8 @@ export default function App() {
                                         }
                                         className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition cursor-pointer ${
                                           activeVer?.year === v.year
-                                            ? 'bg-[#f4f4f5] text-[#0d0d0f] border-[#f4f4f5] font-bold'
-                                            : 'bg-[#121215] text-[#a1a1aa] border-[#26262b] hover:text-[#f4f4f5]'
+                                            ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)] font-bold'
+                                            : 'bg-[var(--color-superficie)] text-[var(--color-texto-secundario)] border-[var(--color-borde)] hover:text-[var(--color-texto)]'
                                         }`}
                                       >
                                         {v.year} · {v.label}
@@ -6751,24 +8686,24 @@ export default function App() {
                                 </div>
 
                                 {activeVer && (
-                                  <div className="text-[11px] text-[#a1a1aa] flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#26262b]">
+                                  <div className="text-[11px] text-[var(--color-texto-secundario)] flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--color-borde)]">
                                     <span>
-                                      <strong className="text-[#e4e4e7]">Fuente:</strong>{' '}
+                                      <strong className="text-[var(--color-texto)]">Fuente:</strong>{' '}
                                       {activeVer.cite} ({activeVer.validFrom} al {activeVer.validTo})
                                     </span>
-                                    <span className="text-[#d4d4d8]">{activeVer.summary}</span>
+                                    <span className="text-[var(--color-texto)]">{activeVer.summary}</span>
                                   </div>
                                 )}
                               </div>
                             )}
 
-                            <div className="text-xs text-[#e4e4e7] leading-relaxed">
+                            <div className="text-xs text-[var(--color-texto)] leading-relaxed">
                               {renderMarkdownContent(
                                 isItemHistOpen && activeVer ? activeVer.content : item.content
                               )}
                             </div>
 
-                            <div className="pt-2 border-t border-[#26262b]/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#71717a]">
+                            <div className="pt-2 border-t border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--color-texto-secundario)]">
                               <span>Concordancia con {activeCurrentArticle.label}: {item.relationNote}</span>
                               <div className="flex items-center gap-2">
                                 {(() => {
@@ -6781,7 +8716,7 @@ export default function App() {
                                     <button
                                       type="button"
                                       onClick={() => handleOpenFullNorm(targetFullNorm, item.articleLabel)}
-                                      className="px-2 py-1 rounded bg-[#27272d] hover:bg-[#32323a] text-[#f4f4f5] border border-[#3f3f46] font-semibold flex items-center gap-1 cursor-pointer transition"
+                                      className="px-2 py-1 rounded bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)] border border-[var(--color-borde-fuerte)] font-semibold flex items-center gap-1 cursor-pointer transition"
                                     >
                                       <BookOpen className="w-3 h-3" />
                                       <span>Ver norma completa</span>
@@ -6797,7 +8732,7 @@ export default function App() {
                                       }`
                                     )
                                   }
-                                  className="text-[#d4d4d8] hover:underline flex items-center gap-1 cursor-pointer"
+                                  className="text-[var(--color-texto)] hover:underline flex items-center gap-1 cursor-pointer"
                                 >
                                   <Copy className="w-3 h-3" />
                                   <span>Copiar concordancia</span>
@@ -6813,7 +8748,7 @@ export default function App() {
                   return (
                     <div className="space-y-2.5">
                       {/* NIVEL SUPERIOR / PARALELO: LEYES MODIFICATORIAS Y REFORMATORIAS COMPLETAS */}
-                      <div className="bg-[#151518] border border-[#26262b] rounded-xl overflow-hidden">
+                      <div className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-xl overflow-hidden">
                         <button
                           type="button"
                           onClick={() =>
@@ -6822,41 +8757,41 @@ export default function App() {
                               modificatorias: !prev.modificatorias
                             }))
                           }
-                          className="w-full px-4 py-3 bg-[#18181c] hover:bg-[#1c1c21] transition flex items-center justify-between text-left cursor-pointer"
+                          className="w-full px-4 py-3 bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] transition flex items-center justify-between text-left cursor-pointer"
                         >
                           <div className="flex items-center gap-2.5">
                             {popupCascadeGroupsOpen.modificatorias ? (
-                              <ChevronDown className="w-4 h-4 text-[#f4f4f5]" />
+                              <ChevronDown className="w-4 h-4 text-[var(--color-texto)]" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-[#a1a1aa]" />
+                              <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                             )}
-                            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#0d0d0f] text-[#e4e4e7] border border-[#26262b]">
-                              Leyes Modificatorias
+                            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
+                              Leyes y Códigos
                             </span>
-                            <span className="text-xs font-bold text-[#f4f4f5]">
-                              Leyes y Códigos que modifican a {activeCurrentArticle.label} (Abrir norma completa)
+                            <span className="text-xs font-bold text-[var(--color-texto)]">
+                              Leyes y Códigos vinculados a {activeCurrentArticle.label} (Abrir norma completa)
                             </span>
                           </div>
-                          <span className="text-[11px] text-[#a1a1aa] font-mono">
-                            {leyModificatoriaItems.length} ley{leyModificatoriaItems.length === 1 ? '' : 'es'}
+                          <span className="text-[11px] text-[var(--color-texto-secundario)] font-mono">
+                            {leyModificatoriaItems.length} norm.
                           </span>
                         </button>
 
                         {popupCascadeGroupsOpen.modificatorias && (
-                          <div className="p-3 space-y-2.5 border-t border-[#26262b] bg-[#121215]">
+                          <div className="p-3 space-y-2.5 border-t border-[var(--color-borde)] bg-[var(--color-superficie)]">
                             {leyModificatoriaItems.length > 0 ? (
                               leyModificatoriaItems.map(renderCascadeArticleSheet)
                             ) : (
-                              <p className="text-xs text-[#71717a] px-2 py-1">
-                                No se han vinculado otras leyes modificatorias para este artículo.
+                              <p className="text-xs text-[var(--color-texto-secundario)] px-2 py-1">
+                                No se han vinculado otras leyes o códigos para este artículo.
                               </p>
                             )}
                           </div>
                         )}
                       </div>
 
-                      {/* NIVEL JERÁRQUICO 1: REGLAMENTO DE APLICACIÓN (COLAPSADO POR DEFECTO) */}
-                      <div className="bg-[#151518] border border-[#26262b] rounded-xl overflow-hidden">
+                      {/* NIVEL JERÁRQUICO 1: REGLAMENTOS Y DECRETOS EJECUTIVOS (COLAPSADO POR DEFECTO) */}
+                      <div className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-xl overflow-hidden">
                         <button
                           type="button"
                           onClick={() =>
@@ -6865,35 +8800,35 @@ export default function App() {
                               reglamentos: !prev.reglamentos
                             }))
                           }
-                          className="w-full px-4 py-3 bg-[#18181c] hover:bg-[#1c1c21] transition flex items-center justify-between text-left cursor-pointer"
+                          className="w-full px-4 py-3 bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] transition flex items-center justify-between text-left cursor-pointer"
                         >
                           <div className="flex items-center gap-2.5">
                             {popupCascadeGroupsOpen.reglamentos ? (
-                              <ChevronDown className="w-4 h-4 text-[#f4f4f5]" />
+                              <ChevronDown className="w-4 h-4 text-[var(--color-texto)]" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-[#a1a1aa]" />
+                              <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                             )}
-                            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#0d0d0f] text-[#d4d4d8] border border-[#26262b]">
+                            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                               Jerarquía 1
                             </span>
-                            <span className="text-xs font-bold text-[#f4f4f5]">
-                              Reglamento para la Aplicación de la LRTI (Artículos vinculados a {activeCurrentArticle.label})
+                            <span className="text-xs font-bold text-[var(--color-texto)]">
+                              Reglamentos y Decretos Ejecutivos vinculados a {activeCurrentArticle.label}
                             </span>
                           </div>
-                          <span className="text-[11px] text-[#a1a1aa] font-mono">
+                          <span className="text-[11px] text-[var(--color-texto-secundario)] font-mono">
                             {reglamentoItems.length} disp.
                           </span>
                         </button>
 
                         {popupCascadeGroupsOpen.reglamentos && (
-                          <div className="p-3 space-y-2.5 border-t border-[#26262b] bg-[#121215]">
+                          <div className="p-3 space-y-2.5 border-t border-[var(--color-borde)] bg-[var(--color-superficie)]">
                             {reglamentoItems.map(renderCascadeArticleSheet)}
                           </div>
                         )}
                       </div>
 
                       {/* NIVEL JERÁRQUICO 2: RESOLUCIONES Y CIRCULARES DEL SRI (COLAPSADO POR DEFECTO) */}
-                      <div className="bg-[#151518] border border-[#26262b] rounded-xl overflow-hidden">
+                      <div className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-xl overflow-hidden">
                         <button
                           type="button"
                           onClick={() =>
@@ -6902,28 +8837,28 @@ export default function App() {
                               resoluciones: !prev.resoluciones
                             }))
                           }
-                          className="w-full px-4 py-3 bg-[#18181c] hover:bg-[#1c1c21] transition flex items-center justify-between text-left cursor-pointer"
+                          className="w-full px-4 py-3 bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] transition flex items-center justify-between text-left cursor-pointer"
                         >
                           <div className="flex items-center gap-2.5">
                             {popupCascadeGroupsOpen.resoluciones ? (
-                              <ChevronDown className="w-4 h-4 text-[#f4f4f5]" />
+                              <ChevronDown className="w-4 h-4 text-[var(--color-texto)]" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-[#a1a1aa]" />
+                              <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                             )}
-                            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#0d0d0f] text-[#d4d4d8] border border-[#26262b]">
+                            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                               Jerarquía 2
                             </span>
-                            <span className="text-xs font-bold text-[#f4f4f5]">
-                              Resoluciones Generales y Circulares del SRI vinculadas a {activeCurrentArticle.label}
+                            <span className="text-xs font-bold text-[var(--color-texto)]">
+                              Resoluciones Generales y Circulares vinculadas a {activeCurrentArticle.label}
                             </span>
                           </div>
-                          <span className="text-[11px] text-[#a1a1aa] font-mono">
+                          <span className="text-[11px] text-[var(--color-texto-secundario)] font-mono">
                             {resolucionItems.length} res.
                           </span>
                         </button>
 
                         {popupCascadeGroupsOpen.resoluciones && (
-                          <div className="p-3 space-y-2.5 border-t border-[#26262b] bg-[#121215]">
+                          <div className="p-3 space-y-2.5 border-t border-[var(--color-borde)] bg-[var(--color-superficie)]">
                             {resolucionItems.map(renderCascadeArticleSheet)}
                           </div>
                         )}
@@ -6931,7 +8866,7 @@ export default function App() {
 
                       {/* NIVEL JERÁRQUICO 3: TABLAS TRIBUTARIAS OFICIALES DEL ARTÍCULO (COLAPSADO POR DEFECTO) */}
                       {articleTables.length > 0 && (
-                        <div className="bg-[#151518] border border-[#26262b] rounded-xl overflow-hidden">
+                        <div className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-xl overflow-hidden">
                           <button
                             type="button"
                             onClick={() =>
@@ -6940,86 +8875,127 @@ export default function App() {
                                 tablas: !prev.tablas
                               }))
                             }
-                            className="w-full px-4 py-3 bg-[#18181c] hover:bg-[#1c1c21] transition flex items-center justify-between text-left cursor-pointer"
+                            className="w-full px-4 py-3 bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] transition flex items-center justify-between text-left cursor-pointer"
                           >
                             <div className="flex items-center gap-2.5">
                               {popupCascadeGroupsOpen.tablas ? (
-                                <ChevronDown className="w-4 h-4 text-[#f4f4f5]" />
+                                <ChevronDown className="w-4 h-4 text-[var(--color-texto)]" />
                               ) : (
-                                <ChevronRight className="w-4 h-4 text-[#a1a1aa]" />
+                                <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                               )}
-                              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#0d0d0f] text-[#d4d4d8] border border-[#26262b]">
+                              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                                 Jerarquía 3
                               </span>
-                              <span className="text-xs font-bold text-[#f4f4f5]">
+                              <span className="text-xs font-bold text-[var(--color-texto)]">
                                 Serie Histórica de Tablas Tarifarias Oficiales ({activeCurrentArticle.label})
                               </span>
                             </div>
-                            <span className="text-[11px] text-[#a1a1aa] font-mono">
+                            <span className="text-[11px] text-[var(--color-texto-secundario)] font-mono">
                               {articleTables.length} tablas
                             </span>
                           </button>
 
                           {popupCascadeGroupsOpen.tablas && (
-                            <div className="p-3 space-y-3 border-t border-[#26262b] bg-[#121215]">
-                              {articleTables.map(tbl => (
-                                <div
-                                  key={tbl.id}
-                                  className="bg-[#151518] border border-[#26262b] rounded-xl p-4 space-y-2.5"
-                                >
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div>
-                                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#0d0d0f] text-[#e4e4e7] border border-[#26262b]">
-                                        Ejercicio {tbl.fiscal_year} • {tbl.table_code}
-                                      </span>
-                                      <h4 className="text-xs font-bold text-[#f4f4f5] mt-1">
-                                        {tbl.title}
-                                      </h4>
-                                      <p className="text-[11px] text-[#a1a1aa]">{tbl.subtitle}</p>
+                            <div className="p-3 space-y-3 border-t border-[var(--color-borde)] bg-[var(--color-superficie)]">
+                              {articleTables.map(tbl => {
+                                const isTblOpen = expandedTableIds[tbl.id] !== false;
+                                return (
+                                  <div
+                                    key={tbl.id}
+                                    className="bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] rounded-xl p-4 space-y-2.5"
+                                  >
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <div>
+                                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
+                                          Ejercicio {tbl.fiscal_year} • {tbl.table_code}
+                                        </span>
+                                        <h4 className="text-xs font-bold text-[var(--color-texto)] mt-1">
+                                          {tbl.title}
+                                        </h4>
+                                        {tbl.subtitle && (
+                                          <p className="text-[11px] text-[var(--color-texto-secundario)]">{tbl.subtitle}</p>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-mono text-[var(--color-texto-secundario)]">
+                                          Vigencia: {formatEffectiveRange(tbl.effective_during, tbl.fiscal_year)}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setExpandedTableIds(prev => ({
+                                              ...prev,
+                                              [tbl.id]: prev[tbl.id] === false ? true : false
+                                            }))
+                                          }
+                                          className="px-2.5 py-1 rounded-md bg-[var(--color-superficie)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[10px] font-bold text-[var(--color-texto)] inline-flex items-center gap-1 cursor-pointer transition"
+                                        >
+                                          {isTblOpen ? (
+                                            <>
+                                              <Minimize2 className="w-3 h-3" />
+                                              <span>Colapsar</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Maximize2 className="w-3 h-3" />
+                                              <span>Desplegar</span>
+                                            </>
+                                          )}
+                                        </button>
+                                      </div>
                                     </div>
-                                    <span className="text-[10px] font-mono text-[#a1a1aa]">
-                                      Vigencia: {formatEffectiveRange(tbl.effective_during, tbl.fiscal_year)}
-                                    </span>
-                                  </div>
 
-                                  <div className="overflow-x-auto rounded-lg border border-[#26262b]">
-                                    <table className="w-full text-left text-xs">
-                                      <thead className="bg-[#18181c] text-[#a1a1aa] uppercase text-[10px]">
-                                        <tr>
-                                          {tbl.columns_schema.map(col => (
-                                            <th key={col.key} className="py-2 px-3 font-bold">
-                                              {col.label}
-                                            </th>
-                                          ))}
-                                        </tr>
-                                      </thead>
-                                      <tbody className="divide-y divide-[#26262b] bg-[#121215]">
-                                        {tbl.rows_data.map((row, rIdx) => (
-                                          <tr key={rIdx} className="hover:bg-[#18181c]">
-                                            {tbl.columns_schema.map(col => {
-                                              const val = row[col.key];
-                                              return (
-                                                <td key={col.key} className="py-1.5 px-3 text-[#e4e4e7]">
-                                                  {val === null
-                                                    ? 'En adelante'
-                                                    : col.type === 'currency'
-                                                      ? `USD ${Number(val).toLocaleString('en-US', {
-                                                          minimumFractionDigits: 2,
-                                                          maximumFractionDigits: 2
-                                                        })}`
-                                                      : col.type === 'percentage'
-                                                        ? `${val}%`
-                                                        : val}
-                                                </td>
-                                              );
-                                            })}
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
+                                    {isTblOpen && (
+                                      <div className="w-full flex justify-center">
+                                        <div className="w-fit max-w-full overflow-x-auto rounded-lg border border-[var(--color-borde)]">
+                                          <table className="w-auto max-w-full text-left text-xs">
+                                            <thead className="bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] uppercase text-[10px]">
+                                              <tr>
+                                                {tbl.columns_schema.map(col => (
+                                                  <th
+                                                    key={col.key}
+                                                    className={`py-2 px-3 font-bold ${getAdaptiveCellClass(col.label, true)}`}
+                                                  >
+                                                    {col.label}
+                                                  </th>
+                                                ))}
+                                              </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-[var(--color-borde)] bg-[var(--color-superficie)]">
+                                              {tbl.rows_data.map((row, rIdx) => (
+                                                <tr key={rIdx} className="hover:bg-[var(--color-superficie-hover)]">
+                                                  {tbl.columns_schema.map(col => {
+                                                    const val = row[col.key];
+                                                    const displayVal =
+                                                      val === null
+                                                        ? 'En adelante'
+                                                        : col.type === 'currency'
+                                                          ? `USD ${Number(val).toLocaleString('en-US', {
+                                                              minimumFractionDigits: 2,
+                                                              maximumFractionDigits: 2
+                                                            })}`
+                                                          : col.type === 'percentage'
+                                                            ? `${val}%`
+                                                            : val;
+                                                    return (
+                                                      <td
+                                                        key={col.key}
+                                                        className={`py-1.5 px-3 text-[var(--color-texto)] ${getAdaptiveCellClass(displayVal)}`}
+                                                      >
+                                                        {displayVal}
+                                                      </td>
+                                                    );
+                                                  })}
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                         </div>
@@ -7031,7 +9007,7 @@ export default function App() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-5 py-3 bg-[#121215] border-t border-[#26262b] flex items-center justify-between text-xs text-[#a1a1aa] shrink-0">
+            <div className="px-5 py-3 bg-[var(--color-superficie)] border-t border-[var(--color-borde)] flex items-center justify-between text-xs text-[var(--color-texto-secundario)] shrink-0">
               <div className="flex items-center gap-2">
                 <span>
                   Mostrando <strong>{articleHistoricalVersions.length} versiones consolidadas</strong> de{' '}
@@ -7040,7 +9016,7 @@ export default function App() {
               </div>
               <button
                 onClick={() => setIsHistoryModalOpen(false)}
-                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#f4f4f5] hover:bg-white text-[#0d0d0f] transition cursor-pointer"
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition cursor-pointer"
               >
                 Cerrar Pop-up
               </button>
@@ -7051,7 +9027,7 @@ export default function App() {
 
       {/* TOAST DE FEEDBACK DE COPIADO */}
       {copyFeedback && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#81B64C] text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in fade-in slide-in-from-bottom-3 duration-200">
           <Check className="w-4 h-4" />
           <span>¡Cita legal copiada al portapapeles!</span>
         </div>

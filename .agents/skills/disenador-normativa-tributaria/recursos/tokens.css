@@ -1,0 +1,314 @@
+﻿/* ==========================================================================
+   SmartLex Ecuador — Design tokens
+   Fuente de verdad: GUIA_DE_COLORES.md
+   Regla: los componentes solo usan tokens SEMÁNTICOS (--color-*, --espacio-*,
+   --radio-*, --texto-*, ...). Nunca hex ni px sueltos en componentes.
+   Uso con Tailwind 4: importar este archivo después de `@import "tailwindcss";`
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Tokens independientes del tema
+   -------------------------------------------------------------------------- */
+:root {
+  /* Tipografía — se mantiene la actual del proyecto.
+     Para probar otra familia, cambia SOLO estas tres variables (--fuente-*). */
+  --fuente-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --fuente-titulos: 'Inter', 'Montserrat', sans-serif;
+  --fuente-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', 'Consolas', monospace;
+
+  /* Escala tipográfica (px → rem, base 16) */
+  --texto-xs: 0.75rem;    /* 12 — metadatos, pies */
+  --texto-sm: 0.875rem;   /* 14 — tablas, etiquetas */
+  --texto-base: 1rem;     /* 16 — cuerpo */
+  --texto-lectura: 1.0625rem; /* 17 — texto de normas */
+  --texto-lg: 1.125rem;   /* 18 */
+  --texto-xl: 1.25rem;    /* 20 — títulos de sección */
+  --texto-2xl: 1.5rem;    /* 24 */
+  --texto-3xl: 1.875rem;  /* 30 — título de página */
+  --texto-4xl: 2.25rem;   /* 36 — solo portada */
+
+  --interlineado-ajustado: 1.25;
+  --interlineado-base: 1.5;
+  --interlineado-lectura: 1.7;
+  --ancho-lectura: 72ch;
+
+  --peso-normal: 400;
+  --peso-medio: 500;
+  --peso-seccion: 600;
+  --peso-titulo: 700;
+
+  /* Espaciado — rejilla de 8 px (--espacio-1 = 4 px solo para ajustes finos) */
+  --espacio-1: 0.25rem;  /* 4 */
+  --espacio-2: 0.5rem;   /* 8 */
+  --espacio-3: 0.75rem;  /* 12 */
+  --espacio-4: 1rem;     /* 16 */
+  --espacio-5: 1.5rem;   /* 24 */
+  --espacio-6: 2rem;     /* 32 */
+  --espacio-7: 2.5rem;   /* 40 */
+  --espacio-8: 3rem;     /* 48 */
+  --espacio-9: 4rem;     /* 64 */
+
+  /* Radios coherentes */
+  --radio-control: 6px;   /* botones, campos */
+  --radio-panel: 10px;    /* paneles, menús, modales */
+  --radio-etiqueta: 9999px;
+
+  /* Layout */
+  --ancho-sidebar: 16rem;          /* 256 */
+  --ancho-sidebar-plegada: 4rem;   /* 64 */
+  --alto-topbar: 3.5rem;           /* 56 */
+  --ancho-contenido: 80rem;        /* 1280 */
+
+  /* Movimiento */
+  --duracion-rapida: 150ms;
+  --duracion-base: 200ms;
+  --duracion-lenta: 250ms;
+  --curva-suave: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Capas */
+  --z-sidebar: 30;
+  --z-topbar: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+}
+
+/* --------------------------------------------------------------------------
+   2. Modo claro (por defecto)
+   -------------------------------------------------------------------------- */
+:root,
+html.theme-light {
+  color-scheme: light;
+
+  /* Marca */
+  --color-principal: #2A2D33;
+  --color-principal-hover: #3E4249;
+  --color-texto-sobre-principal: #FFFFFF;
+  --color-secundario: #047857;            /* ÚNICO acento */
+  --color-secundario-hover: #065F46;
+  --color-secundario-suave: #ECFDF5;
+  --color-secundario-borde: #A7F3D0;
+  --color-texto-sobre-secundario: #FFFFFF;
+  --degradado-metalico: linear-gradient(135deg, #3E4249 0%, #2A2D33 100%);
+
+  /* Superficies */
+  --color-fondo: #F7F8FA;
+  --color-superficie: #FFFFFF;
+  --color-superficie-secundaria: #EEF0F4;
+  --color-superficie-hover: #EEF0F4;
+
+  /* Texto */
+  --color-texto: #1B1E23;
+  --color-texto-secundario: #585D66;
+  --color-icono-sutil: #767B85;           /* no usar en texto pequeño */
+
+  /* Bordes */
+  --color-borde: #DCE0E6;
+  --color-borde-fuerte: #C5CBD4;
+
+  /* Estados (semáforo legal): solo para comunicar estado */
+  --color-exito: #047857;
+  --color-exito-fondo: #ECFDF5;
+  --color-aviso: #B45309;
+  --color-aviso-fondo: #FFFBEB;
+  --color-error: #B91C1C;
+  --color-error-fondo: #FEF2F2;
+  --color-info: #2B5B84;
+  --color-info-fondo: #EFF6FF;
+
+  /* Selección y foco */
+  --color-seleccion-fondo: #A7F3D0;
+  --color-seleccion-texto: #1B1E23;
+  --anillo-foco: 0 0 0 2px var(--color-superficie), 0 0 0 4px var(--color-secundario);
+
+  /* Elevación: un único nivel visible */
+  --sombra-1: 0 1px 2px rgb(27 30 35 / 0.06), 0 4px 12px rgb(27 30 35 / 0.06);
+  --sombra-overlay: 0 8px 24px rgb(27 30 35 / 0.12);
+  --color-velo: rgb(17 19 23 / 0.4);
+
+  /* Skeleton */
+  --color-skeleton: #EEF0F4;
+  --color-skeleton-brillo: #F7F8FA;
+
+  /* Gráficos: escala monocromática esmeralda + neutro de contexto */
+  --grafico-1: #065F46;
+  --grafico-2: #047857;
+  --grafico-3: #10B981;
+  --grafico-4: #6EE7B7;
+  --grafico-5: #A7F3D0;
+  --grafico-contexto: #C5CBD4;
+  --grafico-rejilla: #EEF0F4;
+}
+
+/* --------------------------------------------------------------------------
+   3. Modo oscuro
+   -------------------------------------------------------------------------- */
+html.theme-dark {
+  color-scheme: dark;
+
+  --color-principal: #2A2D33;
+  --color-principal-hover: #3E4249;
+  --color-texto-sobre-principal: #F3F4F6;
+  --color-secundario: #34D399;
+  --color-secundario-hover: #6EE7B7;
+  --color-secundario-suave: #0F2922;
+  --color-secundario-borde: #065F46;
+  --color-texto-sobre-secundario: #111317; /* nunca blanco sobre menta */
+  --degradado-metalico: linear-gradient(135deg, #3E4249 0%, #2A2D33 100%);
+
+  --color-fondo: #111317;
+  --color-superficie: #1C1F26;
+  --color-superficie-secundaria: #2A2D33;
+  --color-superficie-hover: #2A2D33;
+
+  --color-texto: #F3F4F6;
+  --color-texto-secundario: #9CA3AF;
+  --color-icono-sutil: #767B85;
+
+  --color-borde: #2E333D;
+  --color-borde-fuerte: #3E4249;
+
+  --color-exito: #34D399;
+  --color-exito-fondo: #0F2922;
+  --color-aviso: #FBBF24;
+  --color-aviso-fondo: #2B210B;
+  --color-error: #F87171;
+  --color-error-fondo: #2D1416;
+  --color-info: #60A5FA;
+  --color-info-fondo: #132033;
+
+  --color-seleccion-fondo: #34D399;
+  --color-seleccion-texto: #111317;
+  --anillo-foco: 0 0 0 2px var(--color-fondo), 0 0 0 4px var(--color-secundario);
+
+  --sombra-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.25);
+  --sombra-overlay: 0 8px 24px rgb(0 0 0 / 0.45);
+  --color-velo: rgb(0 0 0 / 0.6);
+
+  --color-skeleton: #2A2D33;
+  --color-skeleton-brillo: #2E333D;
+
+  --grafico-1: #34D399;
+  --grafico-2: #6EE7B7;
+  --grafico-3: #A7F3D0;
+  --grafico-4: #059669;
+  --grafico-5: #065F46;
+  --grafico-contexto: #3E4249;
+  --grafico-rejilla: #2E333D;
+}
+
+/* --------------------------------------------------------------------------
+   4. Mapeo a Tailwind CSS 4 → clases con prefijo "sl-": bg-sl-superficie,
+      text-sl-texto-secundario, border-sl-borde, bg-sl-secundario, rounded-panel,
+      shadow-1, font-sans, font-heading, font-mono. El prefijo evita que la
+      variable de Tailwind se llame igual que el token (referencia circular).
+      `inline` hace que las clases lean la variable en tiempo de ejecución,
+      así el cambio de tema funciona sin recompilar.
+   -------------------------------------------------------------------------- */
+@theme inline {
+  --color-sl-principal: var(--color-principal);
+  --color-sl-principal-hover: var(--color-principal-hover);
+  --color-sl-secundario: var(--color-secundario);
+  --color-sl-secundario-hover: var(--color-secundario-hover);
+  --color-sl-secundario-suave: var(--color-secundario-suave);
+  --color-sl-sobre-secundario: var(--color-texto-sobre-secundario);
+  --color-sl-fondo: var(--color-fondo);
+  --color-sl-superficie: var(--color-superficie);
+  --color-sl-superficie-secundaria: var(--color-superficie-secundaria);
+  --color-sl-texto: var(--color-texto);
+  --color-sl-texto-secundario: var(--color-texto-secundario);
+  --color-sl-icono-sutil: var(--color-icono-sutil);
+  --color-sl-borde: var(--color-borde);
+  --color-sl-borde-fuerte: var(--color-borde-fuerte);
+  --color-sl-exito: var(--color-exito);
+  --color-sl-exito-fondo: var(--color-exito-fondo);
+  --color-sl-aviso: var(--color-aviso);
+  --color-sl-aviso-fondo: var(--color-aviso-fondo);
+  --color-sl-error: var(--color-error);
+  --color-sl-error-fondo: var(--color-error-fondo);
+  --color-sl-info: var(--color-info);
+  --color-sl-info-fondo: var(--color-info-fondo);
+
+  --font-sans: var(--fuente-sans);
+  --font-heading: var(--fuente-titulos);
+  --font-mono: var(--fuente-mono);
+
+  --radius-control: var(--radio-control);
+  --radius-panel: var(--radio-panel);
+  --shadow-1: var(--sombra-1);
+  --shadow-overlay: var(--sombra-overlay);
+}
+
+/* --------------------------------------------------------------------------
+   5. Base global
+   -------------------------------------------------------------------------- */
+html {
+  font-family: var(--fuente-sans);
+  font-size: 100%;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-seleccion-fondo);
+  color: var(--color-seleccion-texto);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--anillo-foco);
+  border-radius: var(--radio-control);
+}
+
+/* Evita que la barra superior fija tape el elemento enfocado (WCAG 2.4.11) */
+html {
+  scroll-padding-top: calc(var(--alto-topbar) + var(--espacio-4));
+}
+
+/* Cifras y referencias legales */
+.cifra {
+  font-family: var(--fuente-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Texto de normas */
+.texto-norma {
+  max-width: var(--ancho-lectura);
+  font-size: var(--texto-lectura);
+  line-height: var(--interlineado-lectura);
+}
+
+/* Skeleton */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-skeleton) 0%,
+    var(--color-skeleton-brillo) 50%,
+    var(--color-skeleton) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radio-control);
+  animation: skeleton-brillo 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-brillo {
+  from { background-position: 100% 0; }
+  to   { background-position: -100% 0; }
+}
+
+/* Movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton {
+    animation: none;
+  }
+}

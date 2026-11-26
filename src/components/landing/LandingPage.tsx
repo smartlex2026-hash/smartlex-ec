@@ -32,14 +32,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   };
 
   return (
-    <div
-      className={`relative min-h-screen overflow-x-hidden transition-colors duration-300 ${
-        isDark
-          ? 'bg-[#0d0d0f] text-[#f4f4f5] selection:bg-[#26262b] selection:text-white'
-          : 'bg-[#fafafa] text-[#09090b] selection:bg-[#18181b] selection:text-white'
-      }`}
-    >
-      {/* 1. Fondo minimalista monocromático (Claro por defecto / Oscuro en modo noche) */}
+    <div className="relative min-h-screen overflow-x-hidden transition-colors duration-300 bg-[var(--color-fondo)] text-[var(--color-texto)]">
+      {/* 1. Fondo sobrio gris plomo + acento esmeralda */}
       <AtmosphericBackground isDark={isDark} />
 
       {/* 2. Barra de Navegación superior con botón de Modo Noche / Modo Claro */}

@@ -1,212 +1,380 @@
-/* SmartLex Ecuador — Minimalist Monochrome Theme (Light by Default + Dark Night Mode) */
+/* SmartLex Ecuador — Sistema Oficial de Colores (Gris Plomo Metalizado + Verde Esmeralda)
+ * Fuente de verdad: GUIA_DE_COLORES.md
+ * Modo Claro por defecto (:root / html.theme-light) + Modo Oscuro (html.theme-dark)
+ */
 
 :root,
 html.theme-light {
   color-scheme: light;
+
+  /* Marca */
+  --color-principal: #2A2D33;
+  --color-principal-hover: #3E4249;
+  --color-texto-sobre-principal: #FFFFFF;
+  --color-secundario: #047857;
+  --color-secundario-hover: #065F46;
+  --color-secundario-suave: #ECFDF5;
+  --color-secundario-borde: #A7F3D0;
+  --color-texto-sobre-secundario: #FFFFFF;
+  --degradado-plomo: linear-gradient(135deg, #3E4249 0%, #2A2D33 100%);
+
+  /* Superficies y fondos */
+  --color-fondo: #F7F8FA;
+  --color-superficie: #FFFFFF;
+  --color-superficie-secundaria: #EEF0F4;
+  --color-superficie-hover: #E4E7EC;
+
+  /* Textos e iconos */
+  --color-texto: #1B1E23;
+  --color-texto-secundario: #585D66;
+  --color-icono-sutil: #767B85;
+
+  /* Bordes */
+  --color-borde: #DCE0E6;
+  --color-borde-fuerte: #C5CBD4;
+
+  /* Estados (semáforo legal y tributario) */
+  --color-exito: #047857;
+  --color-exito-texto: #065F46;
+  --color-exito-fondo: #ECFDF5;
+  --color-exito-borde: #A7F3D0;
+
+  --color-aviso: #B45309;
+  --color-aviso-fondo: #FFFBEB;
+  --color-aviso-borde: #FDE68A;
+
+  --color-error: #B91C1C;
+  --color-error-fondo: #FEF2F2;
+  --color-error-borde: #FECACA;
+
+  --color-info: #2B5B84;
+  --color-info-fondo: #EFF6FF;
+  --color-info-borde: #BFDBFE;
+
+  /* Selección de texto */
+  --color-seleccion-fondo: #A7F3D0;
+  --color-seleccion-texto: #1B1E23;
+
+  /* Barra superior translúcida */
+  --color-header-fondo: rgba(255, 255, 255, 0.92);
 }
 
 html.theme-dark {
   color-scheme: dark;
+
+  /* Marca */
+  --color-principal: #2A2D33;
+  --color-principal-hover: #3E4249;
+  --color-texto-sobre-principal: #F3F4F6;
+  --color-secundario: #34D399;
+  --color-secundario-hover: #6EE7B7;
+  --color-secundario-suave: #0F2922;
+  --color-secundario-borde: #065F46;
+  --color-texto-sobre-secundario: #111317;
+  --degradado-plomo: linear-gradient(135deg, #3E4249 0%, #2A2D33 100%);
+
+  /* Superficies y fondos */
+  --color-fondo: #111317;
+  --color-superficie: #1C1F26;
+  --color-superficie-secundaria: #2A2D33;
+  --color-superficie-hover: #3E4249;
+
+  /* Textos e iconos */
+  --color-texto: #F3F4F6;
+  --color-texto-secundario: #9CA3AF;
+  --color-icono-sutil: #767B85;
+
+  /* Bordes */
+  --color-borde: #2E333D;
+  --color-borde-fuerte: #3E4249;
+
+  /* Estados (semáforo legal y tributario) */
+  --color-exito: #34D399;
+  --color-exito-texto: #34D399;
+  --color-exito-fondo: #0F2922;
+  --color-exito-borde: #065F46;
+
+  --color-aviso: #FBBF24;
+  --color-aviso-fondo: #2B210B;
+  --color-aviso-borde: #78350F;
+
+  --color-error: #F87171;
+  --color-error-fondo: #2D1416;
+  --color-error-borde: #7F1D1D;
+
+  --color-info: #60A5FA;
+  --color-info-fondo: #132033;
+  --color-info-borde: #1E3A5F;
+
+  /* Selección de texto */
+  --color-seleccion-fondo: #34D399;
+  --color-seleccion-texto: #111317;
+
+  /* Barra superior translúcida */
+  --color-header-fondo: rgba(17, 19, 23, 0.92);
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: #fafafa;
-  color: #09090b;
+  background-color: var(--color-fondo);
+  color: var(--color-texto);
   margin: 0;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-html.theme-dark body {
-  background-color: #0d0d0f;
-  color: #f4f4f5;
+::selection {
+  background-color: var(--color-seleccion-fondo);
+  color: var(--color-seleccion-texto);
 }
 
 .font-heading {
   font-family: 'Inter', 'Montserrat', sans-serif;
 }
 
-/* Custom sleek minimalist scrollbars */
+/* Barras de desplazamiento sobrias coordinadas con la paleta */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f4f4f5;
+  background: var(--color-superficie-secundaria);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c4c4cc;
+  background: var(--color-borde-fuerte);
   border-radius: 5px;
-  border: 2px solid #f4f4f5;
+  border: 2px solid var(--color-superficie-secundaria);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1aa;
+  background: var(--color-icono-sutil);
 }
 
-html.theme-dark ::-webkit-scrollbar-track {
-  background: #121215;
-}
-
-html.theme-dark ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-  border-radius: 5px;
-  border: 2px solid #121215;
-}
-
-html.theme-dark ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
-}
-
-/* Automatic Light Mode adaptation for Portal monochromatic classes when html.theme-light is active */
-html.theme-light .bg-\[\#0d0d0f\],
-html.theme-light .bg-\[\#302E2B\] {
-  background-color: #fafafa !important;
-}
-
-html.theme-light .bg-\[\#121215\],
-html.theme-light .bg-\[\#121215\]\/70,
-html.theme-light .bg-\[\#21201D\],
-html.theme-light .bg-\[\#262522\] {
-  background-color: #ffffff !important;
-}
-
-html.theme-light .bg-\[\#151518\],
-html.theme-light .bg-\[\#151518\]\/95,
-html.theme-light .bg-\[\#151518\]\/70,
-html.theme-light .bg-\[\#151518\]\/60,
-html.theme-light .bg-\[\#16161a\],
-html.theme-light .bg-\[\#1a1a1f\],
-html.theme-light .bg-\[\#1B1A17\],
-html.theme-light .bg-\[\#1C1B18\] {
-  background-color: #f4f4f5 !important;
-}
-
-html.theme-light .bg-\[\#18181c\],
-html.theme-light .bg-\[\#1c1c21\],
-html.theme-light .bg-\[\#27272d\],
-html.theme-light .bg-\[\#2A2926\] {
-  background-color: #f4f4f5 !important;
-}
-
-html.theme-light .bg-\[\#26262b\],
-html.theme-light .bg-\[\#32323a\],
-html.theme-light .bg-\[\#35332F\],
-html.theme-light .bg-\[\#383632\] {
-  background-color: #e4e4e7 !important;
-}
-
-html.theme-light .text-\[\#f4f4f5\],
-html.theme-light .text-\[\#e4e4e7\],
-html.theme-light .text-\[\#DFDFDE\],
-html.theme-light .text-\[\#E5E3DF\] {
-  color: #000000 !important;
-}
-
-html.theme-light .text-\[\#d4d4d8\],
-html.theme-light .text-\[\#BAB8B5\] {
-  color: #111113 !important;
-}
-
-html.theme-light .text-\[\#a1a1aa\],
-html.theme-light .text-\[\#71717a\],
-html.theme-light .text-\[\#9E9C98\] {
-  color: #3f3f46 !important;
-}
-
-html.theme-light .border-\[\#26262b\],
-html.theme-light .border-\[\#26262b\]\/60,
-html.theme-light .border-\[\#26262b\]\/80,
-html.theme-light .border-\[\#2e2e36\],
-html.theme-light .border-\[\#3f3f46\],
-html.theme-light .border-\[\#3C3A36\],
-html.theme-light .border-\[\#3C3A36\]\/60 {
-  border-color: #e4e4e7 !important;
-}
-
-html.theme-light .divide-\[\#26262b\] > :not([hidden]) ~ :not([hidden]),
-html.theme-light .divide-\[\#3C3A36\] > :not([hidden]) ~ :not([hidden]) {
-  border-color: #e4e4e7 !important;
-}
-
-/* Efectos hover delicados y suaves en Modo Claro (evita que los botones se oscurezcan a negro) */
-html.theme-light .hover\:bg-\[\#151518\]:hover,
-html.theme-light .hover\:bg-\[\#18181c\]:hover,
-html.theme-light .hover\:bg-\[\#1a1a1f\]:hover,
-html.theme-light .hover\:bg-\[\#1c1c21\]:hover,
-html.theme-light .hover\:bg-\[\#262522\]:hover,
-html.theme-light .hover\:bg-\[\#302E2B\]:hover {
-  background-color: #eef0f4 !important;
-}
-
-html.theme-light .hover\:bg-\[\#26262b\]:hover,
-html.theme-light .hover\:bg-\[\#32323a\]:hover,
-html.theme-light .hover\:bg-\[\#35332F\]:hover,
-html.theme-light .hover\:bg-\[\#383632\]:hover,
-html.theme-light .hover\:bg-\[\#3C3A36\]:hover,
-html.theme-light .hover\:bg-\[\#3C3A36\]\/60:hover {
-  background-color: #e4e7ec !important;
-}
-
-html.theme-light .hover\:text-\[\#f4f4f5\]:hover,
-html.theme-light .hover\:text-\[\#e4e4e7\]:hover,
-html.theme-light .hover\:text-\[\#d4d4d8\]:hover,
-html.theme-light .hover\:text-white:hover,
-html.theme-light .group:hover .group-hover\:text-white {
-  color: #000000 !important;
-}
-
-html.theme-light .hover\:border-\[\#3f3f46\]:hover,
-html.theme-light .hover\:border-\[\#52525b\]:hover {
-  border-color: #cbd5e1 !important;
-}
-
-/* Primary inverted buttons in Light Mode keep high contrast */
-html.theme-light .bg-\[\#f4f4f5\].text-\[\#0d0d0f\] {
-  background-color: #18181b !important;
-  color: #ffffff !important;
-}
-
-html.theme-light .bg-\[\#f4f4f5\].text-\[\#0d0d0f\]:hover {
-  background-color: #27272a !important;
-  color: #ffffff !important;
-}
-
-/* Minimalist primary & secondary buttons */
+/* Botón principal de acción (Verde Esmeralda oficial con alto contraste) */
+.btn-smartlex-primary,
 .btn-chess-green {
-  background-color: #18181b;
-  border: 1px solid #27272a;
-  color: #ffffff;
+  background-color: var(--color-secundario);
+  border: 1px solid var(--color-secundario);
+  color: var(--color-texto-sobre-secundario);
   font-weight: 700;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
-html.theme-dark .btn-chess-green {
-  background-color: #f4f4f5;
-  border: 1px solid #e4e4e7;
-  color: #0d0d0f;
-}
-
+.btn-smartlex-primary:hover,
 .btn-chess-green:hover {
-  opacity: 0.92;
+  background-color: var(--color-secundario-hover);
+  border-color: var(--color-secundario-hover);
 }
 
+.btn-smartlex-primary:active,
 .btn-chess-green:active {
   transform: translateY(1px);
 }
 
+/* Botón secundario sobrio (Superficie neutra / Gris Plomo) */
+.btn-smartlex-secondary,
 .btn-chess-dark {
-  background-color: #f4f4f5;
-  border: 1px solid #d4d4d8;
-  color: #18181b;
+  background-color: var(--color-superficie-secundaria);
+  border: 1px solid var(--color-borde);
+  color: var(--color-texto);
   font-weight: 600;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-html.theme-dark .btn-chess-dark {
-  background-color: #1c1c21;
-  border: 1px solid #26262b;
-  color: #e4e4e7;
+.btn-smartlex-secondary:hover,
+.btn-chess-dark:hover {
+  background-color: var(--color-superficie-hover);
+  border-color: var(--color-borde-fuerte);
+}
+
+/* Botón marca plomo oscuro (para acciones sobrias de contraste) */
+.btn-smartlex-lead {
+  background: var(--degradado-plomo);
+  border: 1px solid var(--color-principal-hover);
+  color: var(--color-texto-sobre-principal);
+  font-weight: 700;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-smartlex-lead:hover {
+  opacity: 0.96;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-principal) 28%, transparent);
+}
+
+.btn-smartlex-lead:active {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Alto contraste en tablas en Modo Claro preservando los colores de estado (rojo/verde/ámbar) */
+html.theme-light table thead:not([class*="error"]):not([class*="exito"]):not([class*="secundario"]),
+html.theme-light table thead:not([class*="error"]):not([class*="exito"]):not([class*="secundario"]) th,
+html.theme-light table td:not([class*="error"]):not([class*="exito"]):not([class*="secundario"]):not([class*="aviso"]) {
+  color: var(--color-texto);
+}
+
+/* ============================================================================
+ * MOVIMIENTOS DELICADOS Y BOTONES CTA DINÁMICOS (LANDING PAGE)
+ * ============================================================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes sl-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sl-cta-sheen {
+  0%,
+  74% {
+    transform: translateX(-150%) skewX(-20deg);
+    opacity: 0;
+  }
+  82% {
+    opacity: 0.32;
+  }
+  100% {
+    transform: translateX(260%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+
+.sl-hero-enter {
+  animation: sl-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sl-delay-1 {
+  animation-delay: 70ms;
+}
+
+.sl-delay-2 {
+  animation-delay: 140ms;
+}
+
+.sl-delay-3 {
+  animation-delay: 210ms;
+}
+
+.sl-delay-4 {
+  animation-delay: 280ms;
+}
+
+.sl-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.sl-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sl-tab-fade {
+  animation: sl-fade-up 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Botón principal dinámico con destello diagonal sutil */
+.btn-cta-smartlex {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-secundario);
+  color: var(--color-texto-sobre-secundario);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, background-color 0.2s ease;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--color-secundario) 22%, transparent);
+}
+
+.btn-cta-smartlex:hover {
+  background-color: var(--color-secundario-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-secundario) 32%, transparent);
+}
+
+.btn-cta-smartlex:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.btn-cta-smartlex::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: translateX(-150%) skewX(-20deg);
+  animation: sl-cta-sheen 4.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Botón secundario con respuesta viva */
+.btn-cta-secondary {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-cta-secondary:hover {
+  transform: translateY(-1.5px);
+  border-color: var(--color-borde-fuerte);
+  background-color: var(--color-superficie-secundaria);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-principal) 10%, transparent);
+}
+
+.btn-cta-secondary:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* Elevación sutil en tarjetas interactivas */
+.sl-card-interactive {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.sl-card-interactive:hover {
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .sl-hero-enter,
+  .sl-tab-fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .sl-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+
+  .btn-cta-smartlex,
+  .btn-cta-secondary,
+  .btn-smartlex-lead,
+  .sl-card-interactive {
+    transition: none;
+  }
+
+  .btn-cta-smartlex:hover,
+  .btn-cta-secondary:hover,
+  .btn-smartlex-lead:hover,
+  .sl-card-interactive:hover {
+    transform: none;
+  }
+
+  .btn-cta-smartlex::after {
+    animation: none;
+    display: none;
+  }
 }

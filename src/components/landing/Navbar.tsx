@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RubikCubeLogo } from '../common/RubikCubeLogo';
-import { ArrowRight, Menu, X, Sun, Moon } from 'lucide-react';
+import { ArrowRight, Menu, X, Sun, Moon, BookOpen } from 'lucide-react';
 
 interface NavbarProps {
   onOpenRegister: () => void;
@@ -20,19 +20,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header
-      className={`sticky top-0 z-50 w-full border-b backdrop-blur-xl transition-colors duration-300 ${
-        isDark
-          ? 'border-[#26262b] bg-[#0d0d0f]/90 text-[#f4f4f5]'
-          : 'border-[#e4e4e7] bg-white/90 text-[#09090b]'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Logotipo (clic para ir directo a la Biblioteca) */}
+    <header className="sticky top-0 z-50 w-full h-16 border-b border-[var(--color-borde)] bg-[var(--color-header-fondo)] text-[var(--color-texto)] backdrop-blur-md transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-4">
+        {/* Marca */}
         <button
           type="button"
           title="Ir al inicio de la Biblioteca Normativa"
-          className="flex items-center gap-3 cursor-pointer group text-left"
+          className="flex items-center gap-2.5 cursor-pointer group text-left shrink-0"
           onClick={() => {
             if (onEnterLibrary) {
               onEnterLibrary();
@@ -41,232 +35,177 @@ export const Navbar: React.FC<NavbarProps> = ({
             }
           }}
         >
-          <div
-            className={`relative flex items-center justify-center p-1.5 rounded-xl border transition-all duration-200 ${
-              isDark
-                ? 'bg-[#151518] border-[#26262b] group-hover:border-[#3f3f46]'
-                : 'bg-[#f4f4f5] border-[#e4e4e7] group-hover:border-[#a1a1aa]'
-            }`}
-          >
-            <RubikCubeLogo size={32} />
+          <div className="flex items-center justify-center p-1.5 rounded-lg border border-[var(--color-borde)] bg-[var(--color-superficie)] group-hover:border-[var(--color-secundario)] transition-colors duration-200">
+            <RubikCubeLogo size={28} />
           </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span
-                className={`font-extrabold text-xl tracking-tight font-heading ${
-                  isDark ? 'text-[#f4f4f5]' : 'text-[#09090b]'
-                }`}
-              >
-                SmartLex<span className="text-[#3ECF8E]">EC</span>
-              </span>
-              <span
-                className={`px-1.5 py-0.5 text-[10px] font-bold rounded border uppercase tracking-wider ${
-                  isDark
-                    ? 'bg-[#151518] text-[#d4d4d8] border-[#26262b]'
-                    : 'bg-[#f4f4f5] text-[#3f3f46] border-[#d4d4d8]'
-                }`}
-              >
-                Ecuador
-              </span>
-            </div>
-            <p className={`text-[11px] font-medium ${isDark ? 'text-[#a1a1aa]' : 'text-[#52525b]'}`}>
-              Ecosistema de Integración Legal
-            </p>
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold text-lg tracking-tight font-heading text-[var(--color-texto)]">
+              SmartLex<span className="text-[var(--color-secundario)]">EC</span>
+            </span>
+            <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold rounded border uppercase tracking-wider bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border-[var(--color-borde)]">
+              Ecuador
+            </span>
           </div>
         </button>
 
-        {/* Enlaces de escritorio */}
-        <nav className="hidden md:flex items-center gap-8">
+        {/* Navegación principal centrada (escritorio) */}
+        <nav aria-label="Navegación principal" className="hidden lg:flex items-center gap-7">
           <a
             href="#hero"
-            className={`text-sm font-medium transition-colors ${
-              isDark ? 'text-[#a1a1aa] hover:text-[#f4f4f5]' : 'text-[#52525b] hover:text-[#09090b]'
-            }`}
+            className="text-sm font-medium transition-all duration-200 text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:-translate-y-px"
           >
             Inicio
           </a>
           <a
             href="#integracion"
-            className={`text-sm font-medium transition-colors ${
-              isDark ? 'text-[#a1a1aa] hover:text-[#f4f4f5]' : 'text-[#52525b] hover:text-[#09090b]'
-            }`}
+            className="text-sm font-medium transition-all duration-200 text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:-translate-y-px"
           >
-            Integración Legal
+            Integración
           </a>
           <a
             href="#pilares"
-            className={`text-sm font-medium transition-colors ${
-              isDark ? 'text-[#a1a1aa] hover:text-[#f4f4f5]' : 'text-[#52525b] hover:text-[#09090b]'
-            }`}
+            className="text-sm font-medium transition-all duration-200 text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:-translate-y-px"
           >
-            Ecosistema
+            Módulos
           </a>
           <a
             href="#planes"
-            className={`text-sm font-medium transition-colors ${
-              isDark ? 'text-[#a1a1aa] hover:text-[#f4f4f5]' : 'text-[#52525b] hover:text-[#09090b]'
-            }`}
+            className="text-sm font-medium transition-all duration-200 text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:-translate-y-px"
           >
             Planes
           </a>
-          <a
-            href="https://chat.whatsapp.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${
-              isDark ? 'text-[#e4e4e7] hover:text-white' : 'text-[#18181b] hover:text-black'
-            }`}
-          >
-            <span
-              className={`inline-block w-2 h-2 rounded-full ${
-                isDark ? 'bg-[#e4e4e7]' : 'bg-[#18181b]'
-              }`}
-            />
-            Canal WhatsApp
-          </a>
+          {onEnterLibrary && (
+            <button
+              type="button"
+              onClick={onEnterLibrary}
+              className="text-sm font-medium transition-all duration-200 text-[var(--color-texto-secundario)] hover:text-[var(--color-secundario)] hover:-translate-y-px inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Biblioteca</span>
+            </button>
+          )}
         </nav>
 
-        {/* Acciones de escritorio + Botón de Modo Noche / Modo Claro */}
-        <div className="hidden md:flex items-center gap-3">
+        {/* Acciones de escritorio y tablet */}
+        <div className="hidden md:flex items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={onToggleTheme}
             title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
             aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
-            className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
-              isDark
-                ? 'bg-[#151518] border-[#26262b] text-[#e4e4e7] hover:bg-[#1c1c21] hover:border-[#3f3f46]'
-                : 'bg-[#f4f4f5] border-[#e4e4e7] text-[#18181b] hover:bg-[#e4e4e7]'
-            }`}
+            className="w-9 h-9 rounded-lg border border-[var(--color-borde)] bg-[var(--color-superficie)] text-[var(--color-texto)] hover:bg-[var(--color-superficie-secundaria)] hover:border-[var(--color-borde-fuerte)] transition-colors duration-200 cursor-pointer flex items-center justify-center"
           >
-            {isDark ? (
-              <>
-                <Sun className="w-4 h-4 text-[#f4f4f5]" />
-                <span className="hidden lg:inline">Modo Claro</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-4 h-4 text-[#18181b]" />
-                <span className="hidden lg:inline">Modo Noche</span>
-              </>
-            )}
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
           <button
+            type="button"
             onClick={onOpenLogin}
-            className={`px-4 py-2 text-sm font-semibold transition-colors cursor-pointer ${
-              isDark ? 'text-[#d4d4d8] hover:text-white' : 'text-[#3f3f46] hover:text-[#09090b]'
-            }`}
+            className="btn-cta-secondary px-3.5 h-9 rounded-lg text-sm font-semibold cursor-pointer text-[var(--color-texto)] border border-transparent"
           >
-            Iniciar Sesión
+            Iniciar sesión
           </button>
+
           <button
+            type="button"
             onClick={onOpenRegister}
-            className={`group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer shadow-sm ${
-              isDark
-                ? 'text-[#06140d] bg-[#3ECF8E] hover:bg-[#5ddba5]'
-                : 'text-white bg-[#18181b] hover:bg-[#27272a]'
-            }`}
+            className="btn-cta-smartlex group px-4 h-9 rounded-lg font-bold text-sm cursor-pointer inline-flex items-center gap-1.5"
           >
-            <span>Crear Cuenta Gratis</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            <span>Crear cuenta gratis</span>
+            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
           </button>
         </div>
 
-        {/* Controles móviles: Icono de Modo Noche + Menú */}
+        {/* Controles móviles */}
         <div className="flex md:hidden items-center gap-2">
           <button
             type="button"
             onClick={onToggleTheme}
             title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
-            className={`p-2 rounded-lg border ${
-              isDark
-                ? 'bg-[#151518] border-[#26262b] text-[#f4f4f5]'
-                : 'bg-[#f4f4f5] border-[#e4e4e7] text-[#18181b]'
-            }`}
+            aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo noche'}
+            className="w-9 h-9 rounded-lg border border-[var(--color-borde)] bg-[var(--color-superficie)] text-[var(--color-texto)] flex items-center justify-center cursor-pointer"
           >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
           <button
+            type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`p-2 rounded-lg ${
-              isDark ? 'text-[#a1a1aa] hover:text-white' : 'text-[#52525b] hover:text-black'
-            }`}
+            aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            className="w-9 h-9 rounded-lg border border-[var(--color-borde)] bg-[var(--color-superficie)] text-[var(--color-texto)] flex items-center justify-center cursor-pointer"
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
       {/* Menú desplegable móvil */}
       {mobileMenuOpen && (
-        <div
-          className={`md:hidden border-b px-4 pt-2 pb-6 space-y-4 ${
-            isDark ? 'border-[#26262b] bg-[#0d0d0f]/95' : 'border-[#e4e4e7] bg-white/95'
-          }`}
-        >
-          <div className="flex flex-col space-y-3 pt-2">
+        <div className="md:hidden border-b border-[var(--color-borde)] bg-[var(--color-superficie)] px-4 py-4 space-y-4 shadow-lg sl-tab-fade">
+          <nav className="flex flex-col divide-y divide-[var(--color-borde)]">
             <a
               href="#hero"
               onClick={() => setMobileMenuOpen(false)}
-              className={`text-base font-medium py-2 border-b ${
-                isDark ? 'text-[#e4e4e7] border-[#26262b]' : 'text-[#18181b] border-[#e4e4e7]'
-              }`}
+              className="text-sm font-medium py-2.5 text-[var(--color-texto)]"
             >
               Inicio
             </a>
             <a
               href="#integracion"
               onClick={() => setMobileMenuOpen(false)}
-              className={`text-base font-medium py-2 border-b ${
-                isDark ? 'text-[#e4e4e7] border-[#26262b]' : 'text-[#18181b] border-[#e4e4e7]'
-              }`}
+              className="text-sm font-medium py-2.5 text-[var(--color-texto)]"
             >
-              Integración Legal
+              Integración
             </a>
             <a
               href="#pilares"
               onClick={() => setMobileMenuOpen(false)}
-              className={`text-base font-medium py-2 border-b ${
-                isDark ? 'text-[#e4e4e7] border-[#26262b]' : 'text-[#18181b] border-[#e4e4e7]'
-              }`}
+              className="text-sm font-medium py-2.5 text-[var(--color-texto)]"
             >
-              Ecosistema
+              Módulos
             </a>
             <a
               href="#planes"
               onClick={() => setMobileMenuOpen(false)}
-              className={`text-base font-medium py-2 border-b ${
-                isDark ? 'text-[#e4e4e7] border-[#26262b]' : 'text-[#18181b] border-[#e4e4e7]'
-              }`}
+              className="text-sm font-medium py-2.5 text-[var(--color-texto)]"
             >
               Planes
             </a>
-          </div>
-          <div className="flex flex-col gap-3 pt-2">
+            {onEnterLibrary && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onEnterLibrary();
+                }}
+                className="text-sm font-semibold py-2.5 text-left text-[var(--color-secundario)] flex items-center gap-2 cursor-pointer"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Entrar a la Biblioteca</span>
+              </button>
+            )}
+          </nav>
+
+          <div className="grid grid-cols-1 gap-2.5 pt-2">
             <button
+              type="button"
               onClick={() => {
                 setMobileMenuOpen(false);
                 onOpenLogin();
               }}
-              className={`w-full py-2.5 text-center text-sm font-semibold border rounded-xl ${
-                isDark
-                  ? 'text-[#e4e4e7] border-[#26262b] bg-[#151518]'
-                  : 'text-[#18181b] border-[#d4d4d8] bg-[#f4f4f5]'
-              }`}
+              className="btn-cta-secondary w-full py-2.5 text-center text-sm font-semibold border border-[var(--color-borde)] bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] rounded-lg cursor-pointer"
             >
-              Iniciar Sesión
+              Iniciar sesión
             </button>
             <button
+              type="button"
               onClick={() => {
                 setMobileMenuOpen(false);
                 onOpenRegister();
               }}
-              className={`w-full py-2.5 text-center text-sm font-bold rounded-xl ${
-                isDark ? 'text-[#0d0d0f] bg-[#f4f4f5]' : 'text-white bg-[#18181b]'
-              }`}
+              className="btn-cta-smartlex group w-full py-2.5 text-center text-sm font-bold rounded-lg cursor-pointer inline-flex items-center justify-center gap-1.5"
             >
-              Crear Cuenta Gratis (Plan Free)
+              <span>Crear cuenta gratis</span>
+              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
             </button>
           </div>
         </div>

@@ -6,8 +6,6 @@ import {
   Mail,
   Lock,
   User,
-  Building2,
-  CheckCircle2,
   AlertCircle,
   Eye,
   EyeOff,
@@ -40,11 +38,8 @@ export const RegisterWhatsAppForm: React.FC<RegisterWhatsAppFormProps> = ({
 
   // Normalizador de teléfono de WhatsApp para Ecuador (+593)
   const formatEcuadorPhone = (raw: string): string => {
-    // Quitar espacios, guiones y caracteres no numéricos
     const digits = raw.replace(/\D/g, '');
-    // Si empieza por 593, quitarlo para unificar
     let clean = digits.startsWith('593') ? digits.slice(3) : digits;
-    // Si empieza con 0 (ej: 0991234567), quitar el 0 inicial
     if (clean.startsWith('0')) {
       clean = clean.slice(1);
     }
@@ -55,7 +50,6 @@ export const RegisterWhatsAppForm: React.FC<RegisterWhatsAppFormProps> = ({
     e.preventDefault();
     setErrorMsg(null);
 
-    // Validaciones
     if (!fullName.trim()) {
       setErrorMsg('Por favor, ingresa tu nombre y apellido.');
       return;
@@ -70,13 +64,11 @@ export const RegisterWhatsAppForm: React.FC<RegisterWhatsAppFormProps> = ({
     }
 
     const normalizedPhone = formatEcuadorPhone(whatsappRaw);
-    // Validación: +593 seguido de 9 dígitos (total 13 caracteres)
     if (normalizedPhone.length !== 13 || !normalizedPhone.startsWith('+5939')) {
       setErrorMsg('Por favor ingresa un número celular de Ecuador válido (ej: 099 123 4567).');
       return;
     }
 
-    // Validación obligatoria de Cédula o RUC
     const cleanId = idNumber.replace(/\D/g, '');
     const isSinRuc = taxpayerClass === 'sin_ruc';
 
@@ -92,7 +84,6 @@ export const RegisterWhatsAppForm: React.FC<RegisterWhatsAppFormProps> = ({
       }
     }
 
-    // Cálculo automático del 9.º dígito (posición 8 en base 0)
     const ninthDigit = cleanId.length >= 9 ? parseInt(cleanId[8], 10) : null;
     const finalRuc = !isSinRuc && cleanId.length === 10 ? `${cleanId}001` : cleanId;
 
@@ -104,7 +95,6 @@ export const RegisterWhatsAppForm: React.FC<RegisterWhatsAppFormProps> = ({
     setLoading(true);
 
     try {
-      // 1. Registro con Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password: password,
@@ -124,7 +114,6 @@ export const RegisterWhatsAppForm: React.FC<RegisterWhatsAppFormProps> = ({
 
       const userId = authData.user?.id;
       if (userId) {
-        // 2. Inserción o actualización en public.profiles
         const { error: profileError } = await supabase.from('profiles').upsert(
           {
             id: userId,
@@ -147,7 +136,6 @@ export const RegisterWhatsAppForm: React.FC<RegisterWhatsAppFormProps> = ({
           console.warn('Nota al actualizar perfil:', profileError.message);
         }
 
-        // Disparo de bienvenida por WhatsApp en N8N
         try {
           await fetch('https://n8n.smartlexec.cloud/webhook/smartlex-bienvenida-whatsapp', {
             method: 'POST',
@@ -182,196 +170,201 @@ export const RegisterWhatsAppForm: React.FC<RegisterWhatsAppFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-left">
       {errorMsg && (
-        <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+        <div className="p-3 rounded-lg bg-[var(--color-error-fondo)] border border-[var(--color-error-borde)] text-[var(--color-error)] text-xs flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Nombre completo */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-300 mb-1.5">Nombre y Apellido</label>
-        <div className="relative">
-          <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            required
-            value={fullName}
-            onChange={e => setFullName(e.target.value)}
-            placeholder="Ej: Oswaldo Cárdenas"
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-          />
-        </div>
-      </div>
-
-      {/* Correo electrónico */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-300 mb-1.5">Correo Electrónico</label>
-        <div className="relative">
-          <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="tu-correo@ejemplo.com"
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-          />
-        </div>
-      </div>
-
-      {/* Contraseña */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-300 mb-1.5">Contraseña (Mínimo 6 caracteres)</label>
-        <div className="relative">
-          <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type={showPassword ? 'text' : 'password'}
-            required
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
-          >
-            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        </div>
-      </div>
-
-      {/* WhatsApp ecuatoriano obligatorio */}
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-            <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-            Número de WhatsApp (Requerido)
+      {/* Fila 1: Nombre y Correo */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div>
+          <label className="block text-xs font-semibold text-[var(--color-texto)] mb-1.5">
+            Nombre y apellido
           </label>
-          <span className="text-[10px] text-slate-400 font-medium">Alertas fiscales y vencimientos</span>
-        </div>
-        <div className="flex rounded-xl overflow-hidden border border-emerald-600/40 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 bg-slate-900">
-          <div className="flex items-center gap-1.5 px-3 bg-emerald-950/40 text-emerald-300 text-xs font-bold border-r border-emerald-900/50">
-            <span>🇪🇨</span>
-            <span>+593</span>
+          <div className="relative">
+            <User className="w-4 h-4 text-[var(--color-icono-sutil)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              placeholder="Ej: Oswaldo Cárdenas"
+              className="w-full h-10 pl-9 pr-3 rounded-lg bg-[var(--color-fondo)] border border-[var(--color-borde)] text-[var(--color-texto)] placeholder:text-[var(--color-icono-sutil)] text-sm focus:outline-none focus:border-[var(--color-secundario)] focus:ring-1 focus:ring-[var(--color-secundario)]"
+            />
           </div>
-          <input
-            type="tel"
-            required
-            value={whatsappRaw}
-            onChange={e => setWhatsappRaw(e.target.value)}
-            placeholder="099 123 4567"
-            className="w-full px-3.5 py-2.5 bg-transparent text-white text-sm focus:outline-none"
-          />
         </div>
-        <p className="text-[10px] text-slate-400 mt-1">
-          Escribe tu número celular de 9 o 10 dígitos. Te enviaremos alertas oficiales por WhatsApp.
-        </p>
-      </div>
 
-      {/* Desplegables de Segmentación Tributaria */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-        {/* Desplegable 1: Tipo de Contribuyente */}
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1.5">Tipo de Contribuyente</label>
-          <select
-            value={taxpayerNature}
-            onChange={e => setTaxpayerNature(e.target.value as TaxpayerNature)}
-            className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-purple-500 cursor-pointer"
-          >
-            <option value="persona_natural">Persona Natural</option>
-            <option value="sociedad">Sociedad (Persona Jurídica)</option>
-          </select>
+          <label className="block text-xs font-semibold text-[var(--color-texto)] mb-1.5">
+            Correo electrónico
+          </label>
+          <div className="relative">
+            <Mail className="w-4 h-4 text-[var(--color-icono-sutil)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="tu-correo@ejemplo.com"
+              className="w-full h-10 pl-9 pr-3 rounded-lg bg-[var(--color-fondo)] border border-[var(--color-borde)] text-[var(--color-texto)] placeholder:text-[var(--color-icono-sutil)] text-sm focus:outline-none focus:border-[var(--color-secundario)] focus:ring-1 focus:ring-[var(--color-secundario)]"
+            />
+          </div>
         </div>
+      </div>
 
-        {/* Desplegable 2: Clase / Régimen */}
+      {/* Fila 2: Contraseña y WhatsApp */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1.5">Clase / Régimen Fiscal</label>
-          <select
-            value={taxpayerClass}
-            onChange={e => setTaxpayerClass(e.target.value as TaxpayerClass)}
-            className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-purple-500 cursor-pointer"
-          >
-            <option value="sin_ruc">Persona Natural sin RUC (Jurista / Estudiante / Dependiente)</option>
-            <option value="no_obligado_contabilidad">Régimen General - No obligado a contabilidad</option>
-            <option value="obligado_contabilidad">Régimen General - Obligado a llevar contabilidad</option>
-            <option value="rimpe_emprendedor">RIMPE - Emprendedor</option>
-            <option value="rimpe_negocio_popular">RIMPE - Negocio Popular</option>
-            <option value="contribuyente_especial">Contribuyente Especial</option>
-            <option value="gran_contribuyente">Gran Contribuyente</option>
-          </select>
+          <label className="block text-xs font-semibold text-[var(--color-texto)] mb-1.5">
+            Contraseña (mín. 6)
+          </label>
+          <div className="relative">
+            <Lock className="w-4 h-4 text-[var(--color-icono-sutil)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              required
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full h-10 pl-9 pr-10 rounded-lg bg-[var(--color-fondo)] border border-[var(--color-borde)] text-[var(--color-texto)] placeholder:text-[var(--color-icono-sutil)] text-sm focus:outline-none focus:border-[var(--color-secundario)] focus:ring-1 focus:ring-[var(--color-secundario)]"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-icono-sutil)] hover:text-[var(--color-texto)] cursor-pointer"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--color-texto)] mb-1.5">
+            <MessageCircle className="w-3.5 h-3.5 text-[var(--color-secundario)] shrink-0" />
+            <span>WhatsApp Ecuador</span>
+          </label>
+          <div className="flex h-10 rounded-lg overflow-hidden border border-[var(--color-borde)] focus-within:border-[var(--color-secundario)] focus-within:ring-1 focus-within:ring-[var(--color-secundario)] bg-[var(--color-fondo)]">
+            <div className="flex items-center gap-1 px-2.5 bg-[var(--color-secundario-suave)] text-[var(--color-exito-texto)] text-xs font-bold border-r border-[var(--color-borde)] shrink-0">
+              <span>🇪🇨</span>
+              <span>+593</span>
+            </div>
+            <input
+              type="tel"
+              required
+              value={whatsappRaw}
+              onChange={e => setWhatsappRaw(e.target.value)}
+              placeholder="099 123 4567"
+              className="w-full h-full px-3 bg-transparent text-[var(--color-texto)] placeholder:text-[var(--color-icono-sutil)] text-sm focus:outline-none"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Campo Cédula o RUC obligatorio */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-          {taxpayerClass === 'sin_ruc' ? 'Número de Cédula (Obligatorio)' : 'Número de RUC o Cédula (Obligatorio)'}
-        </label>
-        <div className="relative">
-          <FileText className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            required
-            maxLength={taxpayerClass === 'sin_ruc' ? 10 : 13}
-            value={idNumber}
-            onChange={e => setIdNumber(e.target.value.replace(/\D/g, ''))}
-            placeholder={taxpayerClass === 'sin_ruc' ? 'Ej: 1712345678 (10 dígitos)' : 'Ej: 1712345678001 (13 dígitos)'}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-          />
+      {/* Bloque agrupado: Datos tributarios */}
+      <div className="rounded-xl bg-[var(--color-fondo)] border border-[var(--color-borde)] p-3.5 space-y-3">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-texto-secundario)]">
+          Datos tributarios para tus alertas
         </div>
-        <p className="text-[10px] text-slate-400 mt-1">
-          {taxpayerClass === 'sin_ruc'
-            ? 'Tu 9.º dígito se detectará automáticamente para recordarte el Anexo de Gastos Personales y la Declaración de Renta.'
-            : 'Tu 9.º dígito se detectará automáticamente para calcular tus calendarios de vencimiento del SRI.'}
-        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-texto)] mb-1.5">
+              Tipo de contribuyente
+            </label>
+            <select
+              value={taxpayerNature}
+              onChange={e => setTaxpayerNature(e.target.value as TaxpayerNature)}
+              className="w-full h-10 px-3 rounded-lg bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[var(--color-texto)] text-xs focus:outline-none focus:border-[var(--color-secundario)] cursor-pointer"
+            >
+              <option value="persona_natural">Persona Natural</option>
+              <option value="sociedad">Sociedad (Persona Jurídica)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-texto)] mb-1.5">
+              Régimen fiscal
+            </label>
+            <select
+              value={taxpayerClass}
+              onChange={e => setTaxpayerClass(e.target.value as TaxpayerClass)}
+              className="w-full h-10 px-3 rounded-lg bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[var(--color-texto)] text-xs focus:outline-none focus:border-[var(--color-secundario)] cursor-pointer"
+            >
+              <option value="sin_ruc">Persona Natural sin RUC (Jurista / Estudiante)</option>
+              <option value="no_obligado_contabilidad">Régimen General - No obligado a contabilidad</option>
+              <option value="obligado_contabilidad">Régimen General - Obligado a contabilidad</option>
+              <option value="rimpe_emprendedor">RIMPE - Emprendedor</option>
+              <option value="rimpe_negocio_popular">RIMPE - Negocio Popular</option>
+              <option value="contribuyente_especial">Contribuyente Especial</option>
+              <option value="gran_contribuyente">Gran Contribuyente</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-[var(--color-texto)] mb-1.5">
+            {taxpayerClass === 'sin_ruc' ? 'Número de Cédula (Obligatorio)' : 'Número de RUC o Cédula (Obligatorio)'}
+          </label>
+          <div className="relative">
+            <FileText className="w-4 h-4 text-[var(--color-icono-sutil)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              required
+              maxLength={taxpayerClass === 'sin_ruc' ? 10 : 13}
+              value={idNumber}
+              onChange={e => setIdNumber(e.target.value.replace(/\D/g, ''))}
+              placeholder={taxpayerClass === 'sin_ruc' ? 'Ej: 1712345678 (10 dígitos)' : 'Ej: 1712345678001 (13 dígitos)'}
+              className="w-full h-10 pl-9 pr-3 rounded-lg bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[var(--color-texto)] placeholder:text-[var(--color-icono-sutil)] text-sm font-mono focus:outline-none focus:border-[var(--color-secundario)] focus:ring-1 focus:ring-[var(--color-secundario)]"
+            />
+          </div>
+          <p className="text-[11px] text-[var(--color-texto-secundario)] mt-1.5">
+            {taxpayerClass === 'sin_ruc'
+              ? 'Detectamos tu 9.º dígito para recordarte Gastos Personales y Declaración de Renta.'
+              : 'Detectamos automáticamente tu 9.º dígito para los vencimientos del SRI.'}
+          </p>
+        </div>
       </div>
 
-      {/* Casilla de Consentimiento / Opt-In Legal */}
-      <div className="pt-2">
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={optIn}
-            onChange={e => setOptIn(e.target.checked)}
-            className="mt-0.5 rounded border-slate-700 bg-slate-900 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer"
-          />
-          <span className="text-[11px] text-slate-300 leading-tight">
-            Acepto recibir alertas tributarias inmediatas, reformas del Registro Oficial y recordatorios de vencimiento
-            según mi régimen vía WhatsApp.
-          </span>
-        </label>
-      </div>
+      {/* Consentimiento */}
+      <label className="flex items-start gap-2.5 cursor-pointer pt-0.5">
+        <input
+          type="checkbox"
+          checked={optIn}
+          onChange={e => setOptIn(e.target.checked)}
+          className="mt-0.5 rounded border-[var(--color-borde-fuerte)] bg-[var(--color-fondo)] accent-[var(--color-secundario)] w-4 h-4 cursor-pointer shrink-0"
+        />
+        <span className="text-xs text-[var(--color-texto-secundario)] leading-snug">
+          Acepto recibir alertas tributarias, reformas del Registro Oficial y vencimientos según mi régimen vía WhatsApp.
+        </span>
+      </label>
 
-      {/* Botón de Enviar */}
-      <div className="pt-3">
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-purple-600 hover:bg-purple-500 disabled:opacity-50 transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] flex items-center justify-center gap-2 cursor-pointer"
-        >
-          {loading ? (
-            <span>Creando cuenta gratuita...</span>
-          ) : (
-            <>
-              <ShieldCheck className="w-4 h-4 text-emerald-300" />
-              <span>Activar mi Cuenta Gratuita (Plan Free)</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
-      </div>
+      {/* Botón principal */}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full h-11 rounded-lg font-bold text-sm bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] disabled:opacity-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+      >
+        {loading ? (
+          <span>Creando cuenta gratuita...</span>
+        ) : (
+          <>
+            <ShieldCheck className="w-4 h-4" />
+            <span>Activar mi cuenta gratuita (Plan Free)</span>
+            <ArrowRight className="w-4 h-4" />
+          </>
+        )}
+      </button>
 
-      {/* Enlace para cambiar a Iniciar Sesión */}
-      <div className="text-center pt-2">
-        <p className="text-xs text-slate-400">
+      {/* Enlace a Login */}
+      <div className="text-center pt-2 border-t border-[var(--color-borde)]">
+        <p className="text-xs text-[var(--color-texto-secundario)]">
           ¿Ya tienes cuenta en SmartLex?{' '}
           <button
             type="button"
             onClick={onSwitchToLogin}
-            className="text-purple-400 hover:text-purple-300 font-semibold underline cursor-pointer"
+            className="text-[var(--color-secundario)] hover:text-[var(--color-secundario-hover)] font-semibold cursor-pointer"
           >
             Inicia sesión aquí
           </button>
@@ -380,4 +373,3 @@ export const RegisterWhatsAppForm: React.FC<RegisterWhatsAppFormProps> = ({
     </form>
   );
 };
-
