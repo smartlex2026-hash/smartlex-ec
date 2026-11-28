@@ -1,0 +1,210 @@
+{
+  "name": "SmartLex - Cola 1x1 a Registros Oficiales",
+  "nodes": [
+    {
+      "id": "node-schedule-15m",
+      "name": "Schedule15m",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [-760, 0],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-list-dest",
+      "name": "ListarDestino",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [-520, 0],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1iGsrTFHEHDjrBzP",
+          "name": "Google Drive SmartLex"
+        }
+      },
+      "parameters": {
+        "resource": "fileFolder",
+        "operation": "search",
+        "returnAll": false,
+        "limit": 10,
+        "filter": {
+          "folderId": {
+            "mode": "id",
+            "value": "1S56kJ7IkCQRD4SdV1b7x9cOnCOPWVZ2p"
+          },
+          "whatToSearch": "files",
+          "includeTrashed": false
+        }
+      }
+    },
+    {
+      "id": "node-check-empty",
+      "name": "VerificarVacia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-280, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all() || [];\nconst realFiles = items.filter((item) => item.json && item.json.id);\nreturn [{\n  json: {\n    isEmpty: realFiles.length === 0,\n    activeCount: realFiles.length\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-if-empty",
+      "name": "SiEstaVacia",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-40, 0],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-is-empty",
+              "leftValue": "={{ $json.isEmpty }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-list-queue",
+      "name": "ListarCola",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [200, -80],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1iGsrTFHEHDjrBzP",
+          "name": "Google Drive SmartLex"
+        }
+      },
+      "parameters": {
+        "resource": "fileFolder",
+        "operation": "search",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "mode": "id",
+            "value": "17G_e_eNgjez73OIV_4yaf-4ybzfy-ZWs"
+          },
+          "whatToSearch": "files",
+          "includeTrashed": false
+        }
+      }
+    },
+    {
+      "id": "node-pick-one",
+      "name": "ElegirUnPDF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, -80],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all() || [];\nconst pdfs = items\n  .map((item) => item.json || {})\n  .filter((j) => {\n    if (!j.id) return false;\n    const mime = String(j.mimeType || '').toLowerCase();\n    const name = String(j.name || '').toLowerCase();\n    return mime === 'application/pdf' || name.endsWith('.pdf');\n  });\n\nif (pdfs.length === 0) {\n  return [];\n}\n\nconst extractDateScore = (name) => {\n  const m = String(name || '').match(/(?:^|_)(\\d{4})(\\d{2})(\\d{2})(?:_|\\.|$)/);\n  return m ? Number(`${m[1]}${m[2]}${m[3]}`) : Number.MAX_SAFE_INTEGER;\n};\n\npdfs.sort((a, b) => {\n  const diff = extractDateScore(a.name) - extractDateScore(b.name);\n  if (diff !== 0) return diff;\n  return String(a.name || '').localeCompare(String(b.name || ''));\n});\n\nconst nextFile = pdfs[0];\nreturn [{\n  json: {\n    fileId: nextFile.id,\n    fileName: nextFile.name,\n    pendingCount: pdfs.length\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-move-one",
+      "name": "MoverPDF",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [680, -80],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1iGsrTFHEHDjrBzP",
+          "name": "Google Drive SmartLex"
+        }
+      },
+      "parameters": {
+        "resource": "file",
+        "operation": "move",
+        "fileId": {
+          "mode": "id",
+          "value": "={{ $json.fileId }}"
+        },
+        "driveId": {
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "mode": "id",
+          "value": "1S56kJ7IkCQRD4SdV1b7x9cOnCOPWVZ2p"
+        }
+      }
+    },
+    {
+      "id": "node-trigger-ingesta",
+      "name": "DispararIngestaPDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, -80],
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.smartlexec.cloud/webhook/smartlex-ingesta-pdf",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source_mode: 'gdrive', google_drive_file_id: $('ElegirUnPDF').item.json.fileId, file_name: $('ElegirUnPDF').item.json.fileName, folder_category: '00_registros_oficiales' }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule15m": {
+      "main": [[{ "node": "ListarDestino", "type": "main", "index": 0 }]]
+    },
+    "ListarDestino": {
+      "main": [[{ "node": "VerificarVacia", "type": "main", "index": 0 }]]
+    },
+    "VerificarVacia": {
+      "main": [[{ "node": "SiEstaVacia", "type": "main", "index": 0 }]]
+    },
+    "SiEstaVacia": {
+      "main": [
+        [{ "node": "ListarCola", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "ListarCola": {
+      "main": [[{ "node": "ElegirUnPDF", "type": "main", "index": 0 }]]
+    },
+    "ElegirUnPDF": {
+      "main": [[{ "node": "MoverPDF", "type": "main", "index": 0 }]]
+    },
+    "MoverPDF": {
+      "main": [[{ "node": "DispararIngestaPDF", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Guayaquil"
+  }
+}

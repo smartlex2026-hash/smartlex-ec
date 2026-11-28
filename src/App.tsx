@@ -209,10 +209,10 @@ export const LegalStatusButton: React.FC<{
 }> = ({ status, size = 'md' }) => {
   const sizeClasses =
     size === 'sm'
-      ? 'px-2.5 py-0.5 text-[10px] rounded-md gap-1.5'
+      ? 'px-1.5 py-0 text-[9.5px] rounded gap-1 leading-tight'
       : size === 'lg'
-        ? 'px-3 py-1 text-xs rounded-lg gap-2'
-        : 'px-2.5 py-1 text-[11px] rounded-md gap-1.5';
+        ? 'px-2.5 py-0.5 text-[10px] rounded-md gap-1.5'
+        : 'px-2 py-0.5 text-[10px] rounded gap-1';
 
   if (status === 'vigente') {
     return (
@@ -235,7 +235,7 @@ export const LegalStatusButton: React.FC<{
         <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-secundario)] shadow-[0_0_6px_rgba(62,207,142,0.85)] shrink-0" />
         <span>Vigente</span>
         <span className="text-[var(--color-texto-secundario)]">·</span>
-        <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-aviso)] shadow-[0_0_6px_rgba(245,158,11,0.85)] shrink-0" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#FACC15] shadow-[0_0_6px_rgba(250,204,21,0.85)] shrink-0" />
         <span>Reformado</span>
       </span>
     );
@@ -848,7 +848,7 @@ const renderWordDiffBlock = (oldText: string, newText: string, keyPrefix: string
   if (!oldText && !newText) return null;
   const bodySegments = computeWordDiff(oldText || '', newText || '');
   return (
-    <div key={keyPrefix} className="text-xs leading-relaxed text-[var(--color-texto)] whitespace-pre-line text-justify w-full">
+    <div key={keyPrefix} className="text-[10px] leading-relaxed text-[var(--color-texto)] whitespace-pre-line text-justify w-full">
       {bodySegments.map((seg, idx) => {
         if (seg.type === 'equal') {
           return <React.Fragment key={idx}>{seg.text}</React.Fragment>;
@@ -917,7 +917,7 @@ const renderSolidColoredTable = (
             {badgeLabel}
           </div>
         )}
-        <table className="w-auto max-w-full text-left text-xs">
+        <table className="w-auto max-w-full text-left text-[10px]">
         {tbl.header.length > 0 && (
           <thead className={`bg-[var(--color-superficie-secundaria)] ${headTextClass} uppercase text-[11px] font-extrabold border-b border-[var(--color-borde)]`}>
             <tr>
@@ -1004,7 +1004,7 @@ const renderTableDiffBlock = (
   return (
     <div key={key} className="my-3 w-full flex justify-center">
       <div className="w-fit max-w-full overflow-x-auto rounded-xl border border-[var(--color-borde)] bg-[var(--color-superficie)] shadow-md">
-        <table className="w-auto max-w-full text-left text-xs">
+        <table className="w-auto max-w-full text-left text-[10px]">
         {currTbl.header.length > 0 && (
           <thead className="bg-[var(--color-superficie-secundaria)] text-[var(--color-secundario)] uppercase text-[11px] font-extrabold border-b border-[var(--color-borde)]">
             <tr>
@@ -4164,7 +4164,7 @@ export default function App() {
               <RubikCubeLogo size={26} />
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-heading text-base sm:text-lg font-extrabold tracking-tight text-[var(--color-texto)]">
+              <span className="font-heading text-[13px] sm:text-[14px] font-extrabold tracking-tight text-[var(--color-texto)]">
                 SmartLex<span className="text-[var(--color-secundario)]">EC</span>
               </span>
               <span className="hidden 2xl:inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)]">
@@ -4184,7 +4184,7 @@ export default function App() {
                 setActiveTab('reader');
                 setReaderSubView('library');
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === 'reader' && readerSubView === 'library'
                   ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] shadow-xs'
                   : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
@@ -4200,7 +4200,7 @@ export default function App() {
                 setActiveTab('reader');
                 setReaderSubView('document');
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === 'reader' && readerSubView === 'document'
                   ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] shadow-xs'
                   : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
@@ -4213,7 +4213,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setActiveTab('tables')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === 'tables'
                   ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] shadow-xs'
                   : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
@@ -4235,7 +4235,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setActiveTab('calculators')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === 'calculators'
                   ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] shadow-xs'
                   : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
@@ -4248,7 +4248,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setActiveTab('chat')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === 'chat'
                   ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] shadow-xs'
                   : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
@@ -4265,7 +4265,7 @@ export default function App() {
             <button
               type="button"
               onClick={handleGoToPricingPage}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-xs font-bold border border-[var(--color-secundario-borde)] bg-[var(--color-secundario-suave)] text-[var(--color-exito-texto)] hover:bg-[var(--color-secundario)] hover:text-[var(--color-texto-sobre-secundario)] hover:border-[var(--color-secundario)] transition-colors cursor-pointer whitespace-nowrap"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-[10px] font-bold border border-[var(--color-secundario-borde)] bg-[var(--color-secundario-suave)] text-[var(--color-exito-texto)] hover:bg-[var(--color-secundario)] hover:text-[var(--color-texto-sobre-secundario)] hover:border-[var(--color-secundario)] transition-colors cursor-pointer whitespace-nowrap"
             >
               <Crown className="w-3.5 h-3.5 shrink-0" />
               <span>{currentPlan === 'free' ? 'Obtener Premium' : 'Subir de plan'}</span>
@@ -4290,7 +4290,7 @@ export default function App() {
                 aria-expanded={toolsMenuOpen}
                 aria-haspopup="menu"
                 title="Herramientas y administración"
-                className={`px-2.5 h-9 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`px-2.5 h-9 rounded-lg border text-[10px] font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
                   toolsMenuOpen || activeTab === 'reviewer'
                     ? 'border-[var(--color-secundario)] bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
                     : 'border-[var(--color-borde)] bg-[var(--color-fondo)] hover:bg-[var(--color-superficie-hover)] text-[var(--color-texto)]'
@@ -4328,7 +4328,7 @@ export default function App() {
                       setActiveTab('reviewer');
                       setToolsMenuOpen(false);
                     }}
-                    className={`w-full px-2.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                    className={`w-full px-2.5 py-2 rounded-lg text-[10px] font-semibold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
                       activeTab === 'reviewer'
                         ? 'bg-[var(--color-secundario-suave)] text-[var(--color-exito-texto)]'
                         : 'text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)]'
@@ -4352,7 +4352,7 @@ export default function App() {
                       setIsUploadModalOpen(true);
                       setToolsMenuOpen(false);
                     }}
-                    className="w-full px-2.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition-colors cursor-pointer"
+                    className="w-full px-2.5 py-2 rounded-lg text-[10px] font-semibold flex items-center gap-2 text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition-colors cursor-pointer"
                   >
                     <Upload className="w-4 h-4 shrink-0 text-[var(--color-secundario)]" />
                     <span>Subir PDF normativo</span>
@@ -4407,7 +4407,7 @@ export default function App() {
                         setToolsMenuOpen(false);
                         setCurrentView('landing');
                       }}
-                      className="w-full px-2.5 py-2 rounded-lg text-xs font-medium flex items-center gap-2 text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition-colors cursor-pointer"
+                      className="w-full px-2.5 py-2 rounded-lg text-[10px] font-medium flex items-center gap-2 text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition-colors cursor-pointer"
                     >
                       <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                       <span>Volver a la página de inicio</span>
@@ -4431,7 +4431,7 @@ export default function App() {
                     type="button"
                     onClick={handleSignOut}
                     title="Cerrar sesión"
-                    className="px-2.5 h-9 rounded-lg text-xs font-medium text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-2.5 h-9 rounded-lg text-[10px] font-medium text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span className="hidden xl:inline">Salir</span>
@@ -4441,7 +4441,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleOpenLogin}
-                  className="px-3.5 h-9 rounded-lg text-xs font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition-colors cursor-pointer"
+                  className="px-3.5 h-9 rounded-lg text-[10px] font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition-colors cursor-pointer"
                 >
                   Ingresar
                 </button>
@@ -4472,7 +4472,7 @@ export default function App() {
                   setReaderSubView('library');
                   setPortalMobileMenuOpen(false);
                 }}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
+                className={`px-3 py-2 rounded-lg text-[10px] font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
                   activeTab === 'reader' && readerSubView === 'library'
                     ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
                     : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
@@ -4489,7 +4489,7 @@ export default function App() {
                   setReaderSubView('document');
                   setPortalMobileMenuOpen(false);
                 }}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
+                className={`px-3 py-2 rounded-lg text-[10px] font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
                   activeTab === 'reader' && readerSubView === 'document'
                     ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
                     : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
@@ -4505,7 +4505,7 @@ export default function App() {
                   setActiveTab('tables');
                   setPortalMobileMenuOpen(false);
                 }}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between gap-1.5 border transition-colors cursor-pointer ${
+                className={`px-3 py-2 rounded-lg text-[10px] font-semibold flex items-center justify-between gap-1.5 border transition-colors cursor-pointer ${
                   activeTab === 'tables'
                     ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
                     : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
@@ -4524,7 +4524,7 @@ export default function App() {
                   setActiveTab('calculators');
                   setPortalMobileMenuOpen(false);
                 }}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
+                className={`px-3 py-2 rounded-lg text-[10px] font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
                   activeTab === 'calculators'
                     ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
                     : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
@@ -4540,7 +4540,7 @@ export default function App() {
                   setActiveTab('chat');
                   setPortalMobileMenuOpen(false);
                 }}
-                className={`col-span-2 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
+                className={`col-span-2 px-3 py-2 rounded-lg text-[10px] font-semibold flex items-center gap-2 border transition-colors cursor-pointer ${
                   activeTab === 'chat'
                     ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
                     : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border-[var(--color-borde)]'
@@ -4554,7 +4554,7 @@ export default function App() {
             <button
               type="button"
               onClick={handleGoToPricingPage}
-              className="w-full py-2.5 px-3 rounded-lg text-xs font-bold border border-[var(--color-secundario-borde)] bg-[var(--color-secundario-suave)] text-[var(--color-exito-texto)] flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 px-3 rounded-lg text-[10px] font-bold border border-[var(--color-secundario-borde)] bg-[var(--color-secundario-suave)] text-[var(--color-exito-texto)] flex items-center justify-center gap-2 cursor-pointer"
             >
               <Crown className="w-4 h-4 shrink-0" />
               <span>{currentPlan === 'free' ? 'Obtener Premium' : 'Subir de plan'}</span>
@@ -4605,7 +4605,7 @@ export default function App() {
             <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--color-borde)]">
               {currentUser ? (
                 <>
-                  <span className="text-xs text-[var(--color-texto-secundario)] truncate">
+                  <span className="text-[10px] text-[var(--color-texto-secundario)] truncate">
                     {userProfile?.whatsapp_phone || currentUser.email}
                   </span>
                   <button
@@ -4614,7 +4614,7 @@ export default function App() {
                       setPortalMobileMenuOpen(false);
                       handleSignOut();
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--color-borde)] bg-[var(--color-fondo)] text-[var(--color-texto)] inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                    className="px-3 py-1.5 rounded-lg text-[10px] font-semibold border border-[var(--color-borde)] bg-[var(--color-fondo)] text-[var(--color-texto)] inline-flex items-center gap-1.5 cursor-pointer shrink-0"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>Salir</span>
@@ -4627,7 +4627,7 @@ export default function App() {
                     setPortalMobileMenuOpen(false);
                     handleOpenLogin();
                   }}
-                  className="w-full py-2.5 rounded-lg text-xs font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] cursor-pointer"
+                  className="w-full py-2.5 rounded-lg text-[10px] font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] cursor-pointer"
                 >
                   Ingresar a tu cuenta
                 </button>
@@ -4639,7 +4639,7 @@ export default function App() {
 
       {/* TOAST NOTIFICATION */}
       {checkoutToast && (
-        <div className="bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] text-[var(--color-texto)] px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2">
+        <div className="bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] text-[var(--color-texto)] px-4 py-2 text-[10px] font-semibold flex items-center justify-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-[var(--color-texto)]" />
           <span>{checkoutToast}</span>
         </div>
@@ -4663,7 +4663,7 @@ export default function App() {
                       <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-texto-secundario)]">
                         Pantalla 1 • Explorador Jerárquico
                       </span>
-                      <h2 className="text-sm font-bold text-[var(--color-texto)] mt-0.5">
+                      <h2 className="text-[11px] font-bold text-[var(--color-texto)] mt-0.5">
                         Biblioteca Normativa y Tributaria
                       </h2>
                     </div>
@@ -4689,7 +4689,7 @@ export default function App() {
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Filtrar cuerpo legal, impuesto o artículo..."
-                      className="w-full bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] focus:border-[var(--color-borde-fuerte)] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none"
+                      className="w-full bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] focus:border-[var(--color-borde-fuerte)] rounded-lg pl-8 pr-3 py-1.5 text-[10px] text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none"
                     />
                   </div>
                 </div>
@@ -4714,7 +4714,7 @@ export default function App() {
                           <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                         )}
                         <FolderOpen className="w-4 h-4 text-[var(--color-texto)]" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-texto)]">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-texto)]">
                           Grupo 1: Normativa
                         </span>
                       </div>
@@ -4798,7 +4798,7 @@ export default function App() {
                                             setSearchValidFrom('');
                                             setSearchValidTo('');
                                           }}
-                                          className={`w-full px-2.5 py-2 rounded-lg text-xs transition flex items-center justify-between gap-2 text-left cursor-pointer border ${
+                                          className={`w-full px-2.5 py-2 rounded-lg text-[10px] transition flex items-center justify-between gap-2 text-left cursor-pointer border ${
                                             isActiveCat
                                               ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border-[var(--color-borde-fuerte)] font-semibold'
                                               : 'text-[var(--color-texto-secundario)] border-transparent hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)]'
@@ -4855,7 +4855,7 @@ export default function App() {
                           <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
                         )}
                         <Scale className="w-4 h-4 text-[var(--color-texto)]" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-texto)]">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-texto)]">
                           Grupo 2: Tributos
                         </span>
                       </div>
@@ -4938,7 +4938,7 @@ export default function App() {
                                         [taxItem.defaultArt]: true
                                       }));
                                     }}
-                                    className={`w-full text-left px-3 py-2 rounded-lg text-xs transition flex items-center justify-between cursor-pointer border ${
+                                    className={`w-full text-left px-3 py-2 rounded-lg text-[10px] transition flex items-center justify-between cursor-pointer border ${
                                       isSelected
                                         ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border-[var(--color-borde-fuerte)] font-semibold'
                                         : 'text-[var(--color-texto-secundario)] border-transparent hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)]'
@@ -4987,7 +4987,7 @@ export default function App() {
                                   setSelectedTaxFilter('GENERAL');
                                   setEbookNavMode('tax');
                                 }}
-                                className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition flex items-center justify-between cursor-pointer border ${
+                                className={`w-full text-left px-3 py-1.5 rounded-lg text-[10px] transition flex items-center justify-between cursor-pointer border ${
                                   selectedTaxFilter === 'GENERAL'
                                     ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border-[var(--color-borde-fuerte)] font-semibold'
                                     : 'text-[var(--color-texto-secundario)] border-transparent hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)]'
@@ -5003,7 +5003,7 @@ export default function App() {
                                   onClick={() =>
                                     setSelectedConceptId(selectedConceptId === c.id ? null : c.id)
                                   }
-                                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition flex items-center justify-between cursor-pointer border ${
+                                  className={`w-full text-left px-3 py-1.5 rounded-lg text-[10px] transition flex items-center justify-between cursor-pointer border ${
                                     selectedConceptId === c.id
                                       ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border-[var(--color-borde-fuerte)] font-semibold'
                                       : 'text-[var(--color-texto-secundario)] border-transparent hover:bg-[var(--color-superficie-hover)] hover:text-[var(--color-texto)]'
@@ -5078,15 +5078,15 @@ export default function App() {
                                   {catMeta.label}
                                 </span>
                               </div>
-                              <h1 className="font-heading text-2xl font-extrabold text-[var(--color-texto)] tracking-tight">
+                              <h1 className="font-heading text-[19px] font-extrabold text-[var(--color-texto)] tracking-tight">
                                 {catMeta.label}
                               </h1>
-                              <p className="text-xs text-[var(--color-texto-secundario)] max-w-2xl leading-relaxed">
+                              <p className="text-[10px] text-[var(--color-texto-secundario)] max-w-2xl leading-relaxed">
                                 Selecciona una tarjeta para consultar la <strong className="text-[var(--color-texto)]">Ficha de la Ley</strong> (índice, tablas y trazabilidad) o abre directamente el texto normativo consolidado.
                               </p>
                             </div>
                             <div className="shrink-0 flex items-center gap-2">
-                              <span className="text-xs px-3 py-1.5 rounded-xl bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[var(--color-texto)] font-mono">
+                              <span className="text-[10px] px-3 py-1.5 rounded-xl bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[var(--color-texto)] font-mono">
                                 {categoryNorms.length} {categoryNorms.length === 1 ? 'cuerpo cargado' : 'cuerpos cargados'}
                               </span>
                             </div>
@@ -5096,10 +5096,10 @@ export default function App() {
                         {/* Cuadrícula de Tarjetas de Normas */}
                         {categoryNorms.length === 0 ? (
                           <div className="bg-[var(--color-superficie-secundaria)] border border-dashed border-[var(--color-borde)] rounded-2xl p-10 text-center space-y-2">
-                            <div className="text-sm font-bold text-[var(--color-texto)]">
+                            <div className="text-[11px] font-bold text-[var(--color-texto)]">
                               Aún no hay cuerpos normativos en «{scopeTitle} · {catMeta.label}»
                             </div>
-                            <p className="text-xs text-[var(--color-texto-secundario)] max-w-md mx-auto">
+                            <p className="text-[10px] text-[var(--color-texto-secundario)] max-w-md mx-auto">
                               {q
                                 ? 'Prueba a limpiar el filtro de búsqueda en el panel izquierdo.'
                                 : 'Cuando incorpores documentos de esta categoría desde «Subir PDF» o Google Drive, aparecerán aquí automáticamente como tarjetas navegables.'}
@@ -5186,15 +5186,15 @@ export default function App() {
 
                                     {cardMeta ? (
                                       <>
-                                        <h2 className="text-base sm:text-lg font-extrabold text-[var(--color-texto)] group-hover:text-[var(--color-texto)] tracking-tight leading-snug break-words">
+                                        <h2 className="text-[13px] sm:text-[14px] font-extrabold text-[var(--color-texto)] group-hover:text-[var(--color-texto)] tracking-tight leading-snug break-words">
                                           {cardMeta.heading}
                                         </h2>
-                                        <p className="text-xs font-light text-[var(--color-texto-secundario)] leading-relaxed line-clamp-2 max-w-4xl">
+                                        <p className="text-[10px] font-light text-[var(--color-texto-secundario)] leading-relaxed line-clamp-2 max-w-4xl">
                                           {cardMeta.description}
                                         </p>
                                       </>
                                     ) : (
-                                      <h2 className="text-sm sm:text-base font-extrabold text-[var(--color-texto)] group-hover:text-[var(--color-texto)] leading-snug">
+                                      <h2 className="text-[11px] sm:text-[13px] font-extrabold text-[var(--color-texto)] group-hover:text-[var(--color-texto)] leading-snug">
                                         {n.title}
                                       </h2>
                                     )}
@@ -5214,7 +5214,7 @@ export default function App() {
                                               info.category === 'decretos' ? 'regulation' : 'decree'
                                             );
                                           }}
-                                          className="px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde-fuerte)] text-[var(--color-texto)] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                                          className="px-3 py-2 rounded-lg text-[10px] font-semibold bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde-fuerte)] text-[var(--color-texto)] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                                           title={
                                             info.category === 'decretos'
                                               ? 'Ascender este decreto a la categoría Reglamentos'
@@ -5242,7 +5242,7 @@ export default function App() {
                                         setLibraryPreviewTab('summary');
                                         setLibraryRightView('ficha');
                                       }}
-                                      className="px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[var(--color-texto)] transition flex items-center gap-1.5 cursor-pointer"
+                                      className="px-3 py-2 rounded-lg text-[10px] font-semibold bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[var(--color-texto)] transition flex items-center gap-1.5 cursor-pointer"
                                     >
                                       <Layers className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                                       <span>Ficha de la Ley</span>
@@ -5253,7 +5253,7 @@ export default function App() {
                                         e.stopPropagation();
                                         handleOpenFullNorm(n);
                                       }}
-                                      className="px-3.5 py-2 rounded-lg text-xs font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition flex items-center gap-1.5 cursor-pointer"
+                                      className="px-3.5 py-2 rounded-lg text-[10px] font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition flex items-center gap-1.5 cursor-pointer"
                                     >
                                       <BookOpen className="w-3.5 h-3.5" />
                                       <span>Abrir Documento</span>
@@ -5276,7 +5276,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setLibraryRightView('cards')}
-                          className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-xs font-semibold text-[var(--color-texto)] flex items-center gap-1.5 transition cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[10px] font-semibold text-[var(--color-texto)] flex items-center gap-1.5 transition cursor-pointer"
                         >
                           <span>
                             ← Volver a{' '}
@@ -5316,16 +5316,16 @@ export default function App() {
                           return (
                             <>
                               <div className="flex items-center gap-2 flex-wrap">
-                                <h1 className="font-heading text-2xl font-extrabold text-[var(--color-texto)] tracking-tight break-words">
+                                <h1 className="font-heading text-[19px] font-extrabold text-[var(--color-texto)] tracking-tight break-words">
                                   {fichaMeta.heading}
                                 </h1>
                                 {activeFichaNorm.publication_date && (
-                                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[var(--color-texto-secundario)]">
+                                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[var(--color-texto-secundario)]">
                                     {activeFichaNorm.publication_date}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs font-light text-[var(--color-texto-secundario)] max-w-3xl leading-relaxed">
+                              <p className="text-[10px] font-light text-[var(--color-texto-secundario)] max-w-3xl leading-relaxed">
                                 {fichaMeta.description}
                               </p>
                             </>
@@ -5333,10 +5333,10 @@ export default function App() {
                         }
                         return (
                           <>
-                            <h1 className="font-heading text-2xl font-extrabold text-[var(--color-texto)] tracking-tight">
+                            <h1 className="font-heading text-[19px] font-extrabold text-[var(--color-texto)] tracking-tight">
                               {activeFichaNorm?.title || 'Ley de Régimen Tributario Interno (LRTI)'}
                             </h1>
-                            <p className="text-xs text-[var(--color-texto-secundario)] max-w-2xl leading-relaxed">
+                            <p className="text-[10px] text-[var(--color-texto-secundario)] max-w-2xl leading-relaxed">
                               {selectedTaxFilter !== 'ALL'
                                 ? TAX_SCOPES[selectedTaxFilter].description
                                 : activeFichaNorm?.code === 'RALRTI'
@@ -5374,7 +5374,7 @@ export default function App() {
                                 fichaInfo.category === 'decretos' ? 'regulation' : 'decree'
                               )
                             }
-                            className="px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-[var(--color-superficie)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde-fuerte)] text-[var(--color-texto)] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-wait shadow-sm"
+                            className="px-3.5 py-2.5 rounded-xl text-[10px] font-semibold bg-[var(--color-superficie)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde-fuerte)] text-[var(--color-texto)] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-wait shadow-sm"
                           >
                             <ShieldCheck className="w-4 h-4 text-[var(--color-secundario)]" />
                             <span>
@@ -5397,7 +5397,7 @@ export default function App() {
                           }
                           setReaderSubView('document');
                         }}
-                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition flex items-center gap-2 cursor-pointer shadow-lg"
+                        className="px-4 py-2.5 rounded-xl text-[10px] font-bold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition flex items-center gap-2 cursor-pointer shadow-lg"
                       >
                         <BookOpen className="w-4 h-4" />
                         <span>Abrir Documento</span>
@@ -5412,7 +5412,7 @@ export default function App() {
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-texto-secundario)]">
                         Artículos Disponibles
                       </div>
-                      <div className="text-xl font-extrabold text-[var(--color-texto)] mt-1">
+                      <div className="text-[16px] font-extrabold text-[var(--color-texto)] mt-1">
                         {selectedTaxFilter === 'ALL'
                           ? currentArticles.length
                           : taxFilteredArticles.length}
@@ -5426,7 +5426,7 @@ export default function App() {
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-texto-secundario)]">
                         Títulos y Capítulos
                       </div>
-                      <div className="text-xl font-extrabold text-[var(--color-texto)] mt-1">
+                      <div className="text-[16px] font-extrabold text-[var(--color-texto)] mt-1">
                         {ebookTree.length} Títulos
                       </div>
                       <div className="text-[10px] text-[var(--color-texto-secundario)] mt-0.5">
@@ -5438,7 +5438,7 @@ export default function App() {
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-texto-secundario)]">
                         Tablas Tarifarias
                       </div>
-                      <div className="text-xl font-extrabold text-[var(--color-texto)] mt-1">
+                      <div className="text-[16px] font-extrabold text-[var(--color-texto)] mt-1">
                         {tables.length} Tablas
                       </div>
                       <div className="text-[10px] text-[var(--color-texto-secundario)] mt-0.5">
@@ -5450,7 +5450,7 @@ export default function App() {
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-texto-secundario)]">
                         Trazabilidad Temporal
                       </div>
-                      <div className="text-xl font-extrabold text-[var(--color-texto)] mt-1 flex items-center gap-1.5">
+                      <div className="text-[16px] font-extrabold text-[var(--color-texto)] mt-1 flex items-center gap-1.5">
                         <Hourglass className="w-4 h-4 text-[var(--color-texto)]" />
                         <span>Activa</span>
                       </div>
@@ -5467,7 +5467,7 @@ export default function App() {
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => setLibraryPreviewTab('summary')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold transition cursor-pointer ${
                           libraryPreviewTab === 'summary'
                             ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
                             : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
@@ -5477,7 +5477,7 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => setLibraryPreviewTab('tables')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold transition cursor-pointer ${
                           libraryPreviewTab === 'tables'
                             ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
                             : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
@@ -5487,7 +5487,7 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => setLibraryPreviewTab('reforms')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold transition cursor-pointer ${
                           libraryPreviewTab === 'reforms'
                             ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
                             : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
@@ -5519,7 +5519,7 @@ export default function App() {
                             >
                               <div className="flex items-center justify-between gap-3">
                                 <div>
-                                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-texto)]">
+                                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-texto)]">
                                     {titleNode.titleText}
                                   </h3>
                                   <p className="text-[11px] text-[var(--color-texto-secundario)] mt-0.5">
@@ -5593,7 +5593,7 @@ export default function App() {
                                   {tbl.rows_data.length} tramos
                                 </span>
                               </div>
-                              <h4 className="text-xs font-bold text-[var(--color-texto)] mt-2">{tbl.title}</h4>
+                              <h4 className="text-[10px] font-bold text-[var(--color-texto)] mt-2">{tbl.title}</h4>
                               <p className="text-[11px] text-[var(--color-texto-secundario)] mt-0.5 line-clamp-2">
                                 {tbl.subtitle}
                               </p>
@@ -5638,7 +5638,7 @@ export default function App() {
                                   }}
                                   className="text-left min-w-0 flex-1 cursor-pointer"
                                 >
-                                  <div className="text-xs font-bold text-[var(--color-texto)] truncate flex items-center gap-1.5">
+                                  <div className="text-[10px] font-bold text-[var(--color-texto)] truncate flex items-center gap-1.5">
                                     <span className="truncate">
                                       {art.display_label || art.label}
                                       {art.title ? `: ${art.title}` : ''}
@@ -5686,7 +5686,7 @@ export default function App() {
                 <div className="flex items-center gap-3 flex-wrap">
                   <button
                     onClick={() => setReaderSubView('library')}
-                    className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-xs font-semibold text-[var(--color-texto)] flex items-center gap-1.5 transition cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[10px] font-semibold text-[var(--color-texto)] flex items-center gap-1.5 transition cursor-pointer"
                   >
                     <span>← Volver a la Biblioteca</span>
                   </button>
@@ -5707,7 +5707,7 @@ export default function App() {
                               <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                                 {docInfo.badge}
                               </span>
-                              <span className="text-sm font-extrabold text-[var(--color-texto)] tracking-tight">
+                              <span className="text-[11px] font-extrabold text-[var(--color-texto)] tracking-tight">
                                 {docMeta.heading}
                               </span>
                               {docNorm.publication_date && (
@@ -5723,7 +5723,7 @@ export default function App() {
                         );
                       }
                       return (
-                        <div className="flex items-center gap-2 text-xs flex-wrap">
+                        <div className="flex items-center gap-2 text-[10px] flex-wrap">
                           <span className="font-bold text-[var(--color-texto)]">
                             {docNorm?.title || 'Ley de Régimen Tributario Interno (LRTI)'}
                           </span>
@@ -5752,7 +5752,7 @@ export default function App() {
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Buscar artículo o término..."
-                      className="w-full bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] focus:border-[var(--color-borde-fuerte)] rounded-lg pl-8 pr-2.5 py-1 text-xs text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none"
+                      className="w-full bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] focus:border-[var(--color-borde-fuerte)] rounded-lg pl-8 pr-2.5 py-1 text-[10px] text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none"
                     />
                   </div>
 
@@ -5793,7 +5793,7 @@ export default function App() {
 
               {/* Barra opcional de filtro por fechas */}
               {(showAdvancedDateSearch || searchValidFrom || searchValidTo) && (
-                <div className="px-5 py-2.5 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+                <div className="px-5 py-2.5 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-3 text-[10px] shrink-0">
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-texto)]">
                       Vigencia histórica (Art. 11 CT):
@@ -6086,11 +6086,11 @@ export default function App() {
                   className="col-span-12 md:col-span-8 lg:col-span-9 bg-[var(--color-superficie)] overflow-y-auto p-0 min-h-0"
                 >
                   {loading ? (
-                    <div className="p-12 text-center text-xs text-[var(--color-texto-secundario)]">
+                    <div className="p-12 text-center text-[10px] text-[var(--color-texto-secundario)]">
                       Cargando texto normativo consolidado...
                     </div>
                   ) : (ebookNavMode === 'tax' ? taxFilteredArticles : currentArticles).length === 0 ? (
-                    <div className="p-12 text-center text-xs text-[var(--color-texto-secundario)]">
+                    <div className="p-12 text-center text-[10px] text-[var(--color-texto-secundario)]">
                       No hay artículos que coincidan con el filtro actual.
                     </div>
                   ) : (
@@ -6112,13 +6112,13 @@ export default function App() {
                                 key={art.id}
                                 className={isActiveArt ? 'bg-[var(--color-superficie-secundaria)]' : 'bg-[var(--color-superficie)]'}
                               >
-                                {/* ENCABEZADO DEL ARTÍCULO: STICKY TOP-0 AL RAS SUPERIOR SIN ESPACIOS NI SALTOS */}
+                                {/* ENCABEZADO DEL ARTÍCULO: STICKY TOP-0 AL RAS SUPERIOR, ULTRA COMPACTO */}
                                 <div
                                   className={`${
                                     isSheetOpen
                                       ? 'sticky top-0 z-20 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)]'
                                       : 'bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)]'
-                                  } px-5 lg:px-7 py-3 flex items-center justify-between gap-3`}
+                                  } px-4 lg:px-6 py-1.5 flex items-center justify-between gap-2`}
                                 >
                                   {/* Botón izquierdo para desplegar / contraer el artículo */}
                                   <button
@@ -6131,50 +6131,42 @@ export default function App() {
                                         [art.label]: nextState
                                       }));
                                     }}
-                                    className="flex items-center gap-3 text-left flex-1 min-w-0 cursor-pointer"
+                                    title={[art.parent_title, art.parent_chapter].filter(Boolean).join(' • ') || art.title || art.label}
+                                    className="flex items-center gap-2 text-left flex-1 min-w-0 cursor-pointer"
                                   >
-                                    <div className="w-6 h-6 rounded-md bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] flex items-center justify-center shrink-0">
+                                    <div className="w-5 h-5 rounded bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] flex items-center justify-center shrink-0">
                                       {isSheetOpen ? (
-                                        <ChevronDown className="w-4 h-4 text-[var(--color-texto)]" />
+                                        <ChevronDown className="w-3.5 h-3.5 text-[var(--color-texto)]" />
                                       ) : (
-                                        <ChevronRight className="w-4 h-4 text-[var(--color-texto-secundario)]" />
+                                        <ChevronRight className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                                       )}
                                     </div>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-baseline gap-2 flex-wrap">
-                                        <span className="text-sm font-extrabold text-[var(--color-texto)] shrink-0">
-                                          {art.display_label || art.label}
+                                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                      <span className="text-sm font-bold text-[var(--color-texto)] shrink-0 leading-tight">
+                                        {art.display_label || art.label}
+                                      </span>
+                                      {art.title && (
+                                        <span
+                                          title={art.title}
+                                          className="text-sm font-bold text-[var(--color-texto)] truncate min-w-0 leading-tight"
+                                        >
+                                          — {art.title}
                                         </span>
-                                        {art.title && (
-                                          <span
-                                            title={art.title}
-                                            className="text-xs sm:text-[13px] font-semibold text-[var(--color-texto-secundario)] line-clamp-2 leading-snug"
-                                          >
-                                            — {art.title}
-                                          </span>
-                                        )}
-                                        {art.is_innumerado && art.after_article && (
-                                          <span
-                                            title={`Código interno de orden: ${art.identifier || art.label}`}
-                                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)]"
-                                          >
-                                            {art.innumerado_order || 1} tras Art. {art.after_article}
-                                          </span>
-                                        )}
-                                        <LegalStatusButton status={art.legal_status} size="sm" />
-                                      </div>
-                                      {(art.parent_title || art.parent_chapter) && (
-                                        <div className="text-[10px] text-[var(--color-texto-secundario)] truncate mt-0.5">
-                                          {[art.parent_title, art.parent_chapter]
-                                            .filter(Boolean)
-                                            .join(' • ')}
-                                        </div>
                                       )}
+                                      {art.is_innumerado && art.after_article && (
+                                        <span
+                                          title={`Código interno de orden: ${art.identifier || art.label}`}
+                                          className="text-[9px] font-semibold px-1 py-0 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)] shrink-0 leading-tight"
+                                        >
+                                          {art.innumerado_order || 1} tras Art. {art.after_article}
+                                        </span>
+                                      )}
+                                      <LegalStatusButton status={art.legal_status} size="sm" />
                                     </div>
                                   </button>
 
                                   {/* COSTADO DERECHO DEL ARTÍCULO: BOTÓN FUENTE Y BOTÓN HISTÓRICO (⏳) */}
-                                  <div className="flex items-center gap-2 shrink-0">
+                                  <div className="flex items-center gap-1.5 shrink-0">
                                     <button
                                       type="button"
                                       onClick={e => {
@@ -6193,13 +6185,13 @@ export default function App() {
                                         }));
                                       }}
                                       title="Desplegar u ocultar fuente, vigencia y opciones del artículo"
-                                      className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm ${
+                                      className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold flex items-center gap-1 transition cursor-pointer shadow-sm leading-tight ${
                                         isSourceOpen
                                           ? 'bg-[var(--color-superficie-secundaria)] border-[var(--color-secundario-borde)] text-[var(--color-secundario)]'
                                           : 'bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border-[var(--color-borde-fuerte)] text-[var(--color-texto)] hover:text-[var(--color-texto)]'
                                       }`}
                                     >
-                                      <FileText className="w-3.5 h-3.5" />
+                                      <FileText className="w-3 h-3" />
                                       <span>Fuente</span>
                                     </button>
 
@@ -6217,11 +6209,11 @@ export default function App() {
                                         setIsHistoryModalOpen(true);
                                       }}
                                       title="Ver evolución temporal y normativa conexa jerárquica (Pop-up)"
-                                      className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde-fuerte)] text-[var(--color-texto)] text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                                      className="px-2 py-0.5 rounded-md bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde-fuerte)] text-[var(--color-texto)] text-[10px] font-semibold flex items-center gap-1 transition cursor-pointer shadow-sm leading-tight"
                                     >
-                                      <Hourglass className="w-3.5 h-3.5 text-[var(--color-texto)]" />
+                                      <Hourglass className="w-3 h-3 text-[var(--color-texto)]" />
                                       <span className="hidden sm:inline">Histórico</span>
-                                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] font-mono">
+                                      <span className="text-[9px] px-1 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] font-mono">
                                         {verCount}
                                       </span>
                                     </button>
@@ -6280,6 +6272,11 @@ export default function App() {
                                               {art.official_registry && (
                                                 <span className="text-[var(--color-texto-secundario)]">
                                                   Fuente: {art.official_registry}
+                                                </span>
+                                              )}
+                                              {(art.parent_title || art.parent_chapter) && (
+                                                <span className="text-[var(--color-texto-secundario)]">
+                                                  {[art.parent_title, art.parent_chapter].filter(Boolean).join(' • ')}
                                                 </span>
                                               )}
                                               {showLawName && (
@@ -6716,16 +6713,16 @@ export default function App() {
                         {tbl.table_code}
                       </span>
                     </div>
-                    <h3 className="font-heading text-base font-extrabold text-[var(--color-texto)] mt-1 leading-snug">
+                    <h3 className="font-heading text-[13px] font-extrabold text-[var(--color-texto)] mt-1 leading-snug">
                       {tbl.title}
                     </h3>
                     {originInfo.emitterHeading ? (
-                      <p className="text-xs text-[var(--color-texto-secundario)] mt-0.5">
+                      <p className="text-[10px] text-[var(--color-texto-secundario)] mt-0.5">
                         <span className="font-semibold text-[var(--color-texto)]">Emitida por:</span>{' '}
                         {originInfo.emitterHeading}
                       </p>
                     ) : tbl.subtitle ? (
-                      <p className="text-xs text-[var(--color-texto-secundario)] mt-0.5">{tbl.subtitle}</p>
+                      <p className="text-[10px] text-[var(--color-texto-secundario)] mt-0.5">{tbl.subtitle}</p>
                     ) : null}
                   </div>
                 </div>
@@ -6756,7 +6753,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => handleNavigateToTableOrigin(tbl)}
-                        className="btn-chess-dark px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer"
+                        className="btn-chess-dark px-3.5 py-1.5 rounded-lg text-[10px] flex items-center gap-1.5 cursor-pointer"
                       >
                         <BookOpen className="w-3.5 h-3.5" />
                         <span>{originInfo.buttonLabel}</span>
@@ -6766,7 +6763,7 @@ export default function App() {
 
                   <div className="w-full flex justify-center">
                     <div className="w-fit max-w-full overflow-x-auto rounded-xl border border-[var(--color-borde)]">
-                      <table className="w-auto max-w-full text-left text-xs">
+                      <table className="w-auto max-w-full text-left text-[10px]">
                         <thead className="bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] uppercase text-[11px]">
                           <tr>
                             {tbl.columns_schema.map(col => (
@@ -6809,7 +6806,7 @@ export default function App() {
                   </div>
 
                   {tbl.notes && (
-                    <div className="text-xs text-[var(--color-texto-secundario)] bg-[var(--color-superficie)] p-3 rounded-lg border border-[var(--color-borde)]">
+                    <div className="text-[10px] text-[var(--color-texto-secundario)] bg-[var(--color-superficie)] p-3 rounded-lg border border-[var(--color-borde)]">
                       <strong className="text-[var(--color-secundario)]">Base Legal:</strong> {tbl.notes}
                     </div>
                   )}
@@ -6830,7 +6827,7 @@ export default function App() {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Table2 className="w-4 h-4 text-[var(--color-secundario)]" />
-                      <h2 className="font-heading text-sm font-black text-[var(--color-texto)]">
+                      <h2 className="font-heading text-[11px] font-black text-[var(--color-texto)]">
                         Índice de Tablas
                       </h2>
                     </div>
@@ -6887,7 +6884,7 @@ export default function App() {
                       value={tableSearchQuery}
                       onChange={e => setTableSearchQuery(e.target.value)}
                       placeholder="Filtrar por nombre, impuesto o año..."
-                      className="w-full pl-8 pr-8 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-xs text-[var(--color-texto)] placeholder:text-[var(--color-texto-secundario)] focus:outline-none focus:border-[var(--color-secundario)]"
+                      className="w-full pl-8 pr-8 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[10px] text-[var(--color-texto)] placeholder:text-[var(--color-texto-secundario)] focus:outline-none focus:border-[var(--color-secundario)]"
                     />
                     {tableSearchQuery && (
                       <button
@@ -6904,7 +6901,7 @@ export default function App() {
                 {/* Árbol limpio de Tributos -> Tablas directas (sin subcategorías intermedias) */}
                 <nav className="overflow-y-auto p-2.5 space-y-1 flex-1">
                   {visibleGroups.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-[var(--color-texto-secundario)]">
+                    <div className="p-4 text-center text-[10px] text-[var(--color-texto-secundario)]">
                       No hay tablas que coincidan con el filtro actual.
                     </div>
                   ) : (
@@ -6939,7 +6936,7 @@ export default function App() {
                               ) : (
                                 <ChevronRight className="w-3.5 h-3.5 text-[var(--color-texto-secundario)] shrink-0" />
                               )}
-                              <span className="text-xs font-extrabold truncate">
+                              <span className="text-[10px] font-extrabold truncate">
                                 {group.label}
                               </span>
                             </div>
@@ -7014,7 +7011,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('calculators')}
-                    className="btn-chess-green w-full px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer"
+                    className="btn-chess-green w-full px-3 py-2 rounded-xl text-[10px] flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Calculator className="w-3.5 h-3.5" />
                     <span>Abrir Calculadoras Conectadas</span>
@@ -7031,10 +7028,10 @@ export default function App() {
                     <div className="w-12 h-12 rounded-2xl bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] flex items-center justify-center mx-auto">
                       <Table2 className="w-6 h-6 text-[var(--color-secundario)]" />
                     </div>
-                    <h1 className="font-heading text-xl font-black text-[var(--color-texto)]">
+                    <h1 className="font-heading text-[16px] font-black text-[var(--color-texto)]">
                       Tablas Tributarias del Ecuador
                     </h1>
-                    <p className="text-xs text-[var(--color-texto-secundario)] max-w-lg mx-auto leading-relaxed">
+                    <p className="text-[10px] text-[var(--color-texto-secundario)] max-w-lg mx-auto leading-relaxed">
                       Usa el índice de la izquierda para elegir un tributo o seleccionar directamente una tabla específica.
                     </p>
                   </div>
@@ -7052,7 +7049,7 @@ export default function App() {
                             {rightPanelTables.length} {rightPanelTables.length === 1 ? 'tabla' : 'tablas'}
                           </span>
                         </div>
-                        <p className="text-xs text-[var(--color-texto-secundario)] mt-0.5">
+                        <p className="text-[10px] text-[var(--color-texto-secundario)] mt-0.5">
                           {activeSeriesEntry
                             ? showInactiveTablesTab
                               ? 'Tabla vigente arriba y sus versiones históricas debajo. Puedes colapsar cada tabla desde su cabecera.'
@@ -7066,7 +7063,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setSelectedTableSeriesKey(null)}
-                            className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-xs font-semibold text-[var(--color-texto)] flex items-center gap-1.5 cursor-pointer transition"
+                            className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[10px] font-semibold text-[var(--color-texto)] flex items-center gap-1.5 cursor-pointer transition"
                           >
                             <Layers className="w-3.5 h-3.5" />
                             <span>
@@ -7084,7 +7081,7 @@ export default function App() {
                                 return next;
                               });
                             }}
-                            className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-xs font-semibold text-[var(--color-texto)] flex items-center gap-1.5 cursor-pointer transition"
+                            className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[10px] font-semibold text-[var(--color-texto)] flex items-center gap-1.5 cursor-pointer transition"
                           >
                             <Maximize2 className="w-3.5 h-3.5" />
                             <span>Desplegar todas</span>
@@ -7100,7 +7097,7 @@ export default function App() {
                                 return next;
                               });
                             }}
-                            className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-xs font-semibold text-[var(--color-texto)] flex items-center gap-1.5 cursor-pointer transition"
+                            className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[10px] font-semibold text-[var(--color-texto)] flex items-center gap-1.5 cursor-pointer transition"
                           >
                             <Minimize2 className="w-3.5 h-3.5" />
                             <span>Contraer todas</span>
@@ -7111,7 +7108,7 @@ export default function App() {
 
                     {/* Tarjetas colapsadas de la tabla/serie elegida (o de todo el tributo si eligió la categoría padre) */}
                     {rightPanelTables.length === 0 ? (
-                      <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-8 text-center text-xs text-[var(--color-texto-secundario)]">
+                      <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-8 text-center text-[10px] text-[var(--color-texto-secundario)]">
                         No hay tablas visibles con el filtro de vigencia actual. Activa &ldquo;Históricas / Derog.&rdquo; en el índice izquierdo para ver años anteriores.
                       </div>
                     ) : (
@@ -7137,10 +7134,10 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <Lock className="w-6 h-6 text-[var(--color-aviso)]" />
                 <div>
-                  <h3 className="text-sm font-extrabold text-[var(--color-texto)]">
+                  <h3 className="text-[11px] font-extrabold text-[var(--color-texto)]">
                     Calculadoras Tributarias Exclusivas del Plan Plus (USD 9.99/mes)
                   </h3>
-                  <p className="text-xs text-[var(--color-texto-secundario)]">
+                  <p className="text-[10px] text-[var(--color-texto-secundario)]">
                     Activa la vista del Plan Plus para usar todas las calculadoras conectadas en
                     tiempo real a public.normative_tables.
                   </p>
@@ -7148,7 +7145,7 @@ export default function App() {
               </div>
               <button
                 onClick={() => setCurrentPlan('professional')}
-                className="btn-chess-green px-4 py-2 rounded-lg text-xs cursor-pointer"
+                className="btn-chess-green px-4 py-2 rounded-lg text-[10px] cursor-pointer"
               >
                 Simular Plan Plus ($9.99)
               </button>
@@ -7167,13 +7164,13 @@ export default function App() {
                     <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)]">
                       Art. 36 y Art. 10 LRTI
                     </span>
-                    <h3 className="font-heading text-base font-extrabold text-[var(--color-texto)] mt-1">
+                    <h3 className="font-heading text-[13px] font-extrabold text-[var(--color-texto)] mt-1">
                       1. Impuesto a la Renta PN + Rebaja Gastos Personales
                     </h3>
                   </div>
                 </div>
 
-                <div className="space-y-3 text-xs">
+                <div className="space-y-3 text-[10px]">
                   <div>
                     <label className="block text-[var(--color-texto-secundario)] mb-1 font-bold">
                       Ingresos Gravados Anuales (USD)
@@ -7225,7 +7222,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-[var(--color-superficie)] rounded-xl p-4 border border-[var(--color-borde)] space-y-2 text-xs">
+              <div className="bg-[var(--color-superficie)] rounded-xl p-4 border border-[var(--color-borde)] space-y-2 text-[10px]">
                 <div className="flex justify-between">
                   <span className="text-[var(--color-texto-secundario)]">Base Imponible Gravada:</span>
                   <span className="font-bold">USD {irCalculation.baseImponible.toFixed(2)}</span>
@@ -7244,7 +7241,7 @@ export default function App() {
                   <span>(-) Rebaja Gastos Personales (18%):</span>
                   <span className="font-bold">- USD {irCalculation.rebajaGastos.toFixed(2)}</span>
                 </div>
-                <div className="border-t border-[var(--color-borde)] pt-2 flex justify-between text-sm font-black">
+                <div className="border-t border-[var(--color-borde)] pt-2 flex justify-between text-[11px] font-black">
                   <span>Impuesto Neto a Pagar (Form 102):</span>
                   <span className="text-[var(--color-secundario)]">
                     USD {irCalculation.impuestoPagar.toFixed(2)}
@@ -7260,12 +7257,12 @@ export default function App() {
                   <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)]">
                     Art. 97.6 LRTI
                   </span>
-                  <h3 className="font-heading text-base font-extrabold text-[var(--color-texto)] mt-1">
+                  <h3 className="font-heading text-[13px] font-extrabold text-[var(--color-texto)] mt-1">
                     2. Calculadora RIMPE Emprendedor / Negocio Popular
                   </h3>
                 </div>
 
-                <div className="space-y-3 text-xs">
+                <div className="space-y-3 text-[10px]">
                   <div>
                     <label className="block text-[var(--color-texto-secundario)] mb-1 font-bold">
                       Ingresos Brutos Anuales (USD 0 a USD 300,000)
@@ -7284,7 +7281,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-[var(--color-superficie)] rounded-xl p-4 border border-[var(--color-borde)] space-y-2 text-xs">
+              <div className="bg-[var(--color-superficie)] rounded-xl p-4 border border-[var(--color-borde)] space-y-2 text-[10px]">
                 <div className="flex justify-between">
                   <span className="text-[var(--color-texto-secundario)]">Régimen Aplicable:</span>
                   <span className="font-bold text-[var(--color-secundario)]">
@@ -7301,7 +7298,7 @@ export default function App() {
                     {rimpeCalculation.marginalRate}%
                   </span>
                 </div>
-                <div className="border-t border-[var(--color-borde)] pt-2 flex justify-between text-sm font-black">
+                <div className="border-t border-[var(--color-borde)] pt-2 flex justify-between text-[11px] font-black">
                   <span>Impuesto RIMPE Causado:</span>
                   <span className="text-[var(--color-secundario)]">
                     USD {rimpeCalculation.impuestoTotal.toFixed(2)}
@@ -7317,12 +7314,12 @@ export default function App() {
                   <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)]">
                     Art. 37 LRTI + Anexo ADI
                   </span>
-                  <h3 className="font-heading text-base font-extrabold text-[var(--color-texto)] mt-1">
+                  <h3 className="font-heading text-[13px] font-extrabold text-[var(--color-texto)] mt-1">
                     3. Retención de Dividendos Societarios
                   </h3>
                 </div>
 
-                <div className="space-y-3 text-xs">
+                <div className="space-y-3 text-[10px]">
                   <div>
                     <label className="block text-[var(--color-texto-secundario)] mb-1 font-bold">
                       Dividendo Distribuido al Accionista Residente (USD)
@@ -7341,7 +7338,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-[var(--color-superficie)] rounded-xl p-4 border border-[var(--color-borde)] space-y-2 text-xs">
+              <div className="bg-[var(--color-superficie)] rounded-xl p-4 border border-[var(--color-borde)] space-y-2 text-[10px]">
                 <div className="flex justify-between">
                   <span className="text-[var(--color-texto-secundario)]">Dividendo Gravado (40%):</span>
                   <span className="font-bold">
@@ -7352,7 +7349,7 @@ export default function App() {
                   <span className="text-[var(--color-texto-secundario)]">Tarifa Marginal Aplicada:</span>
                   <span className="font-bold text-[var(--color-aviso)]">{dividendCalculation.rate}%</span>
                 </div>
-                <div className="border-t border-[var(--color-borde)] pt-2 flex justify-between text-sm font-black">
+                <div className="border-t border-[var(--color-borde)] pt-2 flex justify-between text-[11px] font-black">
                   <span>Retención a Practicar (Form 103):</span>
                   <span className="text-[var(--color-secundario)]">
                     USD {dividendCalculation.retencion.toFixed(2)}
@@ -7374,7 +7371,7 @@ export default function App() {
               <div className="flex items-center gap-2.5">
                 <Sparkles className="w-5 h-5 text-[var(--color-secundario)]" />
                 <div>
-                  <h2 className="text-sm font-extrabold text-[var(--color-texto)]">
+                  <h2 className="text-[11px] font-extrabold text-[var(--color-texto)]">
                     Asistente Jurídico-Tributario SmartLex IA (Google Gemini RAG)
                   </h2>
                   <p className="text-[11px] text-[var(--color-texto-secundario)]">
@@ -7383,7 +7380,7 @@ export default function App() {
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-[var(--color-fondo)] border border-[var(--color-secundario)] text-[var(--color-secundario)]">
+                <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-[var(--color-fondo)] border border-[var(--color-secundario)] text-[var(--color-secundario)]">
                   {chatUsed} / 100 consultas usadas este mes
                 </span>
               </div>
@@ -7396,7 +7393,7 @@ export default function App() {
                   className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-xs leading-relaxed whitespace-pre-line ${m.role === 'user'
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-[10px] leading-relaxed whitespace-pre-line ${m.role === 'user'
                       ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] font-semibold'
                       : 'bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]'
                       }`}
@@ -7421,12 +7418,12 @@ export default function App() {
                     ? 'Pregunta sobre deducciones, retenciones, casilleros o vigencia de artículos...'
                     : 'El Chatbot IA requiere Plan Plus (USD 9.99/mes)'
                 }
-                className="flex-1 bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-xl px-4 py-2.5 text-xs text-[var(--color-texto)] outline-none focus:border-[var(--color-secundario)]"
+                className="flex-1 bg-[var(--color-fondo)] border border-[var(--color-borde)] rounded-xl px-4 py-2.5 text-[10px] text-[var(--color-texto)] outline-none focus:border-[var(--color-secundario)]"
               />
               <button
                 type="submit"
                 disabled={currentPlan !== 'professional'}
-                className="btn-chess-green px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="btn-chess-green px-4 py-2.5 rounded-xl text-[10px] flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
                 <span>Consultar</span>
@@ -7443,27 +7440,27 @@ export default function App() {
         <div className="max-w-6xl mx-auto w-full p-6 space-y-6">
           <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-5 flex items-center justify-between">
             <div>
-              <span className="text-xs font-extrabold uppercase text-[var(--color-secundario)] flex items-center gap-1.5">
+              <span className="text-[10px] font-extrabold uppercase text-[var(--color-secundario)] flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-[var(--color-secundario)]" />
                 Auditoría Colaborativa • Control de Calidad Humano
               </span>
-              <h1 className="font-heading text-xl font-black text-[var(--color-texto)] mt-1">
+              <h1 className="font-heading text-[16px] font-black text-[var(--color-texto)] mt-1">
                 Bandeja de Discrepancias y Reportes Notificados
               </h1>
-              <p className="text-xs text-[var(--color-texto-secundario)]">
+              <p className="text-[10px] text-[var(--color-texto-secundario)]">
                 Los artículos extraídos por la IA se publican directamente en producción. Aquí los revisores auditan y corrigen puntualmente las incidencias y sugerencias reportadas por los usuarios.
               </p>
             </div>
             <div className="flex items-center gap-2.5">
               <button
                 onClick={() => setIsUploadModalOpen(true)}
-                className="btn-chess-green px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer font-bold shadow-md"
+                className="btn-chess-green px-3.5 py-2 rounded-lg text-[10px] flex items-center gap-1.5 cursor-pointer font-bold shadow-md"
               >
                 <Plus className="w-4 h-4" /> Nueva Ingesta de Norma (PDF)
               </button>
               <button
                 onClick={fetchAllData}
-                className="btn-chess-dark px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer"
+                className="btn-chess-dark px-3.5 py-2 rounded-lg text-[10px] flex items-center gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" /> Actualizar Bandeja
               </button>
@@ -7474,7 +7471,7 @@ export default function App() {
             {/* Discrepancias Reportadas por Usuarios */}
             <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-extrabold text-[var(--color-texto)] flex items-center gap-2">
+                <h3 className="text-[11px] font-extrabold text-[var(--color-texto)] flex items-center gap-2">
                   <Flag className="w-4 h-4 text-[var(--color-error)]" />
                   <span>Discrepancias Notificadas por Usuarios ({discrepancies.filter(d => d.status === 'pending').length})</span>
                 </h3>
@@ -7484,11 +7481,11 @@ export default function App() {
               </div>
 
               {discrepancies.filter(d => d.status === 'pending').length === 0 ? (
-                <div className="p-8 text-center text-xs text-[var(--color-secundario)] bg-[var(--color-superficie)] border border-[var(--color-secundario-borde)] rounded-xl space-y-2">
+                <div className="p-8 text-center text-[10px] text-[var(--color-secundario)] bg-[var(--color-superficie)] border border-[var(--color-secundario-borde)] rounded-xl space-y-2">
                   <div className="w-10 h-10 rounded-full bg-[var(--color-secundario-suave)] text-[var(--color-secundario)] flex items-center justify-center mx-auto mb-1">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <p className="font-bold text-[var(--color-texto)] text-sm">¡Sin discrepancias pendientes!</p>
+                  <p className="font-bold text-[var(--color-texto)] text-[11px]">¡Sin discrepancias pendientes!</p>
                   <p className="text-[var(--color-texto-secundario)]">
                     Todo el repositorio normativo se encuentra sin errores o inconsistencias reportadas por los usuarios.
                   </p>
@@ -7509,7 +7506,7 @@ export default function App() {
                           className="bg-[var(--color-superficie)] border border-[var(--color-error-borde)] rounded-xl p-4 space-y-3 shadow-md"
                         >
                           <div className="flex items-center justify-between flex-wrap gap-2">
-                            <span className="text-xs font-bold text-[var(--color-texto)] flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-[var(--color-texto)] flex items-center gap-1.5">
                               <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[var(--color-secundario-suave)] text-[var(--color-secundario)] border border-[var(--color-secundario-borde)]">
                                 {disc.article_label}
                               </span>
@@ -7520,7 +7517,7 @@ export default function App() {
                             </span>
                           </div>
 
-                          <div className="p-3 rounded-lg bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-xs text-[var(--color-texto)] leading-relaxed">
+                          <div className="p-3 rounded-lg bg-[var(--color-superficie-secundaria)] border border-[var(--color-borde)] text-[10px] text-[var(--color-texto)] leading-relaxed">
                             <strong className="text-[var(--color-aviso)]">Observación del usuario: </strong>
                             "{disc.user_comment}"
                           </div>
@@ -7584,10 +7581,10 @@ export default function App() {
 
             {/* Norm Discovery Queue */}
             <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl p-5 space-y-4">
-              <h3 className="text-sm font-extrabold text-[var(--color-texto)]">
+              <h3 className="text-[11px] font-extrabold text-[var(--color-texto)]">
                 Radar de Normas Citadas Aún No Cargadas (public.norm_discovery)
               </h3>
-              <p className="text-xs text-[var(--color-texto-secundario)]">
+              <p className="text-[10px] text-[var(--color-texto-secundario)]">
                 Cuando una reforma menciona una Ley o Resolución que aún no está en las 7 carpetas
                 de Google Drive / Supabase Storage, el agente la registra aquí automáticamente:
               </p>
@@ -7599,14 +7596,14 @@ export default function App() {
                     className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-4 space-y-1.5"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-extrabold text-[var(--color-secundario)]">
+                      <span className="text-[10px] font-extrabold text-[var(--color-secundario)]">
                         {d.referenced_code} — {d.referenced_title}
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--color-aviso-fondo)] text-[var(--color-aviso)]">
                         Estado: {d.status}
                       </span>
                     </div>
-                    <p className="text-xs text-[var(--color-texto-secundario)]">
+                    <p className="text-[10px] text-[var(--color-texto-secundario)]">
                       Cita detectada: &ldquo;{d.citation_context}&rdquo;
                     </p>
                     <p className="text-[11px] text-[var(--color-texto-secundario)]">
@@ -7627,14 +7624,14 @@ export default function App() {
       {showAddConceptModal && (
         <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
           <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl max-w-md w-full p-6 space-y-4">
-            <h3 className="font-heading text-lg font-black text-[var(--color-texto)]">
+            <h3 className="font-heading text-[14px] font-black text-[var(--color-texto)]">
               Expandir Eje Vertical (Nuevo Concepto Tributario)
             </h3>
-            <p className="text-xs text-[var(--color-texto-secundario)]">
+            <p className="text-[10px] text-[var(--color-texto-secundario)]">
               La arquitectura de SmartLex es 100% dinámica: cualquier concepto agregado aquí se
               guarda en <code>public.tax_concepts</code> sin tocar código.
             </p>
-            <form onSubmit={handleAddConcept} className="space-y-3 text-xs">
+            <form onSubmit={handleAddConcept} className="space-y-3 text-[10px]">
               <div>
                 <label className="block font-bold text-[var(--color-texto-secundario)] mb-1">Código Único</label>
                 <input
@@ -7671,11 +7668,11 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setShowAddConceptModal(false)}
-                  className="btn-chess-dark px-4 py-2 rounded-lg text-xs"
+                  className="btn-chess-dark px-4 py-2 rounded-lg text-[10px]"
                 >
                   Cancelar
                 </button>
-                <button type="submit" className="btn-chess-green px-4 py-2 rounded-lg text-xs">
+                <button type="submit" className="btn-chess-green px-4 py-2 rounded-lg text-[10px]">
                   Guardar en Supabase
                 </button>
               </div>
@@ -7692,23 +7689,23 @@ export default function App() {
           <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-2xl max-w-3xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[var(--color-borde)] pb-4">
               <div>
-                <span className="text-xs font-extrabold uppercase text-[var(--color-secundario)]">
+                <span className="text-[10px] font-extrabold uppercase text-[var(--color-secundario)]">
                   Pasarela WebCheckout PlacetoPay + WhatsApp Cloud API
                 </span>
-                <h2 className="font-heading text-xl font-black text-[var(--color-texto)]">
+                <h2 className="font-heading text-[16px] font-black text-[var(--color-texto)]">
                   Planes SmartLex Ecuador y Perfil de Alertas Tributarias
                 </h2>
               </div>
               <button
                 onClick={() => setShowSubModal(false)}
-                className="btn-chess-dark px-3 py-1.5 rounded-lg text-xs"
+                className="btn-chess-dark px-3 py-1.5 rounded-lg text-[10px]"
               >
                 Cerrar
               </button>
             </div>
 
             {/* WhatsApp & 9th RUC Digit Config */}
-            <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-[10px]">
               <div>
                 <label className="block font-bold text-[var(--color-texto-secundario)] mb-1">
                   WhatsApp para Alertas y Link de Pago
@@ -7759,9 +7756,9 @@ export default function App() {
               {/* FREE */}
               <div className="bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl p-5 flex flex-col justify-between">
                 <div>
-                  <span className="text-xs font-bold uppercase text-[var(--color-texto-secundario)]">Plan Gratuito</span>
-                  <div className="text-2xl font-black text-[var(--color-texto)] mt-1">USD 0.00</div>
-                  <ul className="mt-4 space-y-2 text-xs text-[var(--color-texto-secundario)]">
+                  <span className="text-[10px] font-bold uppercase text-[var(--color-texto-secundario)]">Plan Gratuito</span>
+                  <div className="text-[19px] font-black text-[var(--color-texto)] mt-1">USD 0.00</div>
+                  <ul className="mt-4 space-y-2 text-[10px] text-[var(--color-texto-secundario)]">
                     <li>✓ Código Tributario, LRTI y RLRTI vigentes</li>
                     <li>✓ Semáforo visual de vigencia</li>
                     <li className="text-[var(--color-texto-secundario)] line-through">✗ Columnas históricas de reformas</li>
@@ -7773,7 +7770,7 @@ export default function App() {
                     setCurrentPlan('free');
                     setShowSubModal(false);
                   }}
-                  className="btn-chess-dark w-full py-2 rounded-lg text-xs mt-5 cursor-pointer"
+                  className="btn-chess-dark w-full py-2 rounded-lg text-[10px] mt-5 cursor-pointer"
                 >
                   Usar Plan Gratuito
                 </button>
@@ -7782,14 +7779,14 @@ export default function App() {
               {/* PRO $4.99 */}
               <div className="bg-[var(--color-superficie)] border-2 border-[var(--color-aviso)] rounded-xl p-5 flex flex-col justify-between">
                 <div>
-                  <span className="text-xs font-extrabold uppercase text-[var(--color-aviso)]">
+                  <span className="text-[10px] font-extrabold uppercase text-[var(--color-aviso)]">
                     Plan Pro • Investigador
                   </span>
-                  <div className="text-2xl font-black text-[var(--color-texto)] mt-1">
-                    USD 4.99 <span className="text-xs font-normal text-[var(--color-texto-secundario)]">/ mes</span>
+                  <div className="text-[19px] font-black text-[var(--color-texto)] mt-1">
+                    USD 4.99 <span className="text-[10px] font-normal text-[var(--color-texto-secundario)]">/ mes</span>
                   </div>
                   <div className="text-[11px] text-[var(--color-aviso)]">o USD 49.99 / año (ahorra 2 meses)</div>
-                  <ul className="mt-4 space-y-2 text-xs text-[var(--color-texto)]">
+                  <ul className="mt-4 space-y-2 text-[10px] text-[var(--color-texto)]">
                     <li>✓ Todo el Plan Gratuito</li>
                     <li>✓ Columnas paralelas de reformas históricas</li>
                     <li>✓ Cascada completa (Resoluciones y Circulares SRI)</li>
@@ -7798,7 +7795,7 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => handleGeneratePlacetoPaySession('premium', 4.99)}
-                  className="w-full py-2.5 rounded-lg text-xs font-extrabold bg-[var(--color-aviso)] text-[#111317] mt-5 cursor-pointer"
+                  className="w-full py-2.5 rounded-lg text-[10px] font-extrabold bg-[var(--color-aviso)] text-[#111317] mt-5 cursor-pointer"
                 >
                   Generar Link PlacetoPay ($4.99)
                 </button>
@@ -7807,14 +7804,14 @@ export default function App() {
               {/* PLUS $9.99 */}
               <div className="bg-[var(--color-superficie)] border-2 border-[var(--color-secundario)] rounded-xl p-5 flex flex-col justify-between">
                 <div>
-                  <span className="text-xs font-extrabold uppercase text-[var(--color-secundario)]">
+                  <span className="text-[10px] font-extrabold uppercase text-[var(--color-secundario)]">
                     Plan Plus • Corporativo Total
                   </span>
-                  <div className="text-2xl font-black text-[var(--color-texto)] mt-1">
-                    USD 9.99 <span className="text-xs font-normal text-[var(--color-texto-secundario)]">/ mes</span>
+                  <div className="text-[19px] font-black text-[var(--color-texto)] mt-1">
+                    USD 9.99 <span className="text-[10px] font-normal text-[var(--color-texto-secundario)]">/ mes</span>
                   </div>
                   <div className="text-[11px] text-[var(--color-secundario)]">o USD 99.99 / año (ahorra 2 meses)</div>
-                  <ul className="mt-4 space-y-2 text-xs text-[var(--color-texto)]">
+                  <ul className="mt-4 space-y-2 text-[10px] text-[var(--color-texto)]">
                     <li>✓ Todo el Plan Pro</li>
                     <li>✓ Calculadoras SRI Interactivas (IR, RIMPE, Dividendos)</li>
                     <li>✓ Formularios, Casilleros y Anexos (ATS, RDEP, ADI)</li>
@@ -7824,7 +7821,7 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => handleGeneratePlacetoPaySession('professional', 9.99)}
-                  className="btn-chess-green w-full py-2.5 rounded-lg text-xs mt-5 cursor-pointer"
+                  className="btn-chess-green w-full py-2.5 rounded-lg text-[10px] mt-5 cursor-pointer"
                 >
                   Generar Link PlacetoPay ($9.99)
                 </button>
@@ -7844,7 +7841,7 @@ export default function App() {
                 <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--color-secundario-suave)] text-[var(--color-secundario)] border border-[var(--color-secundario-borde)]">
                   {floatingEbookModal.levelLabel}
                 </span>
-                <span className="text-xs font-bold text-[var(--color-texto)]">
+                <span className="text-[10px] font-bold text-[var(--color-texto)]">
                   {floatingEbookModal.normCode} — {floatingEbookModal.articleLabel}
                 </span>
               </div>
@@ -7865,13 +7862,13 @@ export default function App() {
                 <span>Norma fuente: </span>
                 <strong className="text-[var(--color-texto)]">{floatingEbookModal.normName}</strong>
               </div>
-              <h2 className="text-base font-black text-[var(--color-texto)] mt-1">
+              <h2 className="text-[13px] font-black text-[var(--color-texto)] mt-1">
                 {floatingEbookModal.articleLabel}: {floatingEbookModal.articleTitle}
               </h2>
             </div>
 
             {/* Modal Body: Solamente el texto del artículo en mención */}
-            <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs text-[var(--color-texto)] leading-relaxed">
+            <div className="p-6 overflow-y-auto space-y-4 flex-1 text-[10px] text-[var(--color-texto)] leading-relaxed">
               {renderMarkdownContent(floatingEbookModal.content)}
               <div className="p-3 rounded-lg bg-[var(--color-superficie)] border border-[var(--color-borde)] text-[11px] text-[var(--color-texto-secundario)] mt-4">
                 <strong className="text-[var(--color-secundario)]">Nota de concordancia: </strong>
@@ -7891,14 +7888,14 @@ export default function App() {
                       `${floatingEbookModal.normCode} ${floatingEbookModal.articleLabel}: ${floatingEbookModal.articleTitle}\n\n${floatingEbookModal.content}`
                     )
                   }
-                  className="px-3 py-1.5 rounded-lg bg-[var(--color-fondo)] hover:bg-[var(--color-superficie-hover)] text-xs font-bold text-[var(--color-texto)] flex items-center gap-1.5 transition cursor-pointer border border-[var(--color-borde)]"
+                  className="px-3 py-1.5 rounded-lg bg-[var(--color-fondo)] hover:bg-[var(--color-superficie-hover)] text-[10px] font-bold text-[var(--color-texto)] flex items-center gap-1.5 transition cursor-pointer border border-[var(--color-borde)]"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>Copiar Cita</span>
                 </button>
                 <button
                   onClick={() => setFloatingEbookModal(null)}
-                  className="btn-chess-green px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer"
+                  className="btn-chess-green px-4 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer"
                 >
                   Cerrar Ventana
                 </button>
@@ -7918,10 +7915,10 @@ export default function App() {
                   <Flag className="w-5 h-5 text-[var(--color-error)]" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-base font-bold text-[var(--color-texto)]">
+                  <h3 className="font-heading text-[13px] font-bold text-[var(--color-texto)]">
                     Notificar Discrepancia o Sugerencia
                   </h3>
-                  <p className="text-xs text-[var(--color-secundario)] font-semibold">
+                  <p className="text-[10px] text-[var(--color-secundario)] font-semibold">
                     {reportingArticle.label}{reportingArticle.title ? `: ${reportingArticle.title}` : ''}
                   </p>
                 </div>
@@ -7935,14 +7932,14 @@ export default function App() {
             </div>
 
             {/* Contexto prellenado del artículo para no obligar al usuario o revisor a reescribir */}
-            <div className="p-3 rounded-xl bg-[var(--color-superficie)] border border-[var(--color-borde)] space-y-2 text-xs">
+            <div className="p-3 rounded-xl bg-[var(--color-superficie)] border border-[var(--color-borde)] space-y-2 text-[10px]">
               <div className="flex items-center justify-between text-[11px] text-[var(--color-texto-secundario)]">
                 <span>Norma: <strong className="text-[var(--color-texto)]">{reportingArticle.norms?.title || 'Ley de Régimen Tributario Interno'}</strong></span>
                 <span className="px-2 py-0.5 rounded bg-[var(--color-secundario-suave)] text-[var(--color-secundario)] font-bold border border-[var(--color-secundario-borde)] text-[10px]">
                   {reportingArticle.legal_status === 'vigente_reformado' ? 'Vigente y Reformado' : reportingArticle.legal_status === 'derogado' ? 'Derogado' : 'Vigente'}
                 </span>
               </div>
-              <div className="text-[var(--color-texto)] font-bold text-xs">
+              <div className="text-[var(--color-texto)] font-bold text-[10px]">
                 {reportingArticle.label}{reportingArticle.title ? `: ${reportingArticle.title}` : ''}
               </div>
               <div className="p-2 bg-[var(--color-superficie-secundaria)] rounded-lg border border-[var(--color-borde)] text-[11px] text-[var(--color-texto-secundario)] italic line-clamp-3">
@@ -7952,13 +7949,13 @@ export default function App() {
 
             <form onSubmit={handleSubmitDiscrepancy} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[var(--color-texto)] mb-1.5">
+                <label className="block text-[10px] font-bold text-[var(--color-texto)] mb-1.5">
                   Tipo de incidencia:
                 </label>
                 <select
                   value={reportType}
                   onChange={e => setReportType(e.target.value)}
-                  className="w-full bg-[var(--color-superficie)] border border-[var(--color-borde)] focus:border-[var(--color-secundario)] rounded-lg px-3 py-2 text-xs text-[var(--color-texto)] outline-none cursor-pointer"
+                  className="w-full bg-[var(--color-superficie)] border border-[var(--color-borde)] focus:border-[var(--color-secundario)] rounded-lg px-3 py-2 text-[10px] text-[var(--color-texto)] outline-none cursor-pointer"
                 >
                   <option value="errata">✏️ Error tipográfico o errata en el texto</option>
                   <option value="missing_content">📄 Falta un literal, inciso o sección</option>
@@ -7969,7 +7966,7 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[var(--color-texto)] mb-1.5">
+                <label className="block text-[10px] font-bold text-[var(--color-texto)] mb-1.5">
                   Describe el error o tu sugerencia:
                 </label>
                 <textarea
@@ -7978,12 +7975,12 @@ export default function App() {
                   value={reportComment}
                   onChange={e => setReportComment(e.target.value)}
                   placeholder="Explícanos qué has detectado (ej: En el literal b la tarifa debería ser 25% según el R.O. 478...)"
-                  className="w-full bg-[var(--color-superficie)] border border-[var(--color-borde)] focus:border-[var(--color-secundario)] rounded-lg p-3 text-xs text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none resize-none leading-relaxed"
+                  className="w-full bg-[var(--color-superficie)] border border-[var(--color-borde)] focus:border-[var(--color-secundario)] rounded-lg p-3 text-[10px] text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none resize-none leading-relaxed"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[var(--color-texto)] mb-1.5">
+                <label className="block text-[10px] font-bold text-[var(--color-texto)] mb-1.5">
                   Tu contacto o email (opcional para darte seguimiento):
                 </label>
                 <input
@@ -7991,7 +7988,7 @@ export default function App() {
                   value={reportUserContact}
                   onChange={e => setReportUserContact(e.target.value)}
                   placeholder="ej: abogado@tuempresa.com o 0991234567"
-                  className="w-full bg-[var(--color-superficie)] border border-[var(--color-borde)] focus:border-[var(--color-secundario)] rounded-lg px-3 py-2 text-xs text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none"
+                  className="w-full bg-[var(--color-superficie)] border border-[var(--color-borde)] focus:border-[var(--color-secundario)] rounded-lg px-3 py-2 text-[10px] text-[var(--color-texto)] placeholder-[var(--color-icono-sutil)] outline-none"
                 />
               </div>
 
@@ -7999,14 +7996,14 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsReportModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-[10px] font-semibold text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)] hover:bg-[var(--color-superficie-hover)] transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingReport || !reportComment.trim()}
-                  className="btn-chess-green px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
+                  className="btn-chess-green px-4 py-2 rounded-lg text-[10px] font-bold flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>{isSubmittingReport ? 'Enviando...' : 'Enviar Reporte'}</span>
@@ -8032,7 +8029,7 @@ export default function App() {
                     <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] border border-[var(--color-borde)]">
                       Pantalla 3 • Evolución Temporal y Normativa Conexa
                     </span>
-                    <span className="text-xs font-extrabold text-[var(--color-texto)]">
+                    <span className="text-sm font-bold text-[var(--color-texto)]">
                       {activeCurrentArticle.display_label || activeCurrentArticle.label}
                       {activeCurrentArticle.title ? `: ${activeCurrentArticle.title}` : ''}
                     </span>
@@ -8175,7 +8172,7 @@ export default function App() {
                   } shrink-0 bg-[var(--color-superficie)] border-r-2 border-[var(--color-borde-fuerte)] flex flex-col shadow-xl z-20 transition-all duration-200`}
                 >
                   <div className="px-3.5 py-2.5 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] flex items-center justify-between">
-                    <span className="inline-flex items-center gap-2 text-xs font-bold text-[var(--color-texto)]">
+                    <span className="inline-flex items-center gap-2 text-[10px] font-bold text-[var(--color-texto)]">
                       <span className="w-2 h-2 rounded-full bg-[var(--color-secundario)] shrink-0" />
                       Vigente Hoy ({articleHistoricalVersions[0]?.version_year || 2009})
                     </span>
@@ -8222,7 +8219,7 @@ export default function App() {
                   </div>
 
                   {/* Texto Íntegro Actual con Resaltado Diferencial respecto a la versión inmediata anterior */}
-                  <div className="p-4 overflow-y-auto flex-1 text-xs text-[var(--color-texto)] leading-relaxed space-y-2.5">
+                  <div className="p-4 overflow-y-auto flex-1 text-[10px] text-[var(--color-texto)] leading-relaxed space-y-2.5">
                     {renderDiffMarkdownContent(
                       articleHistoricalVersions[0]?.content || activeCurrentArticle.content,
                       articleHistoricalVersions[1]?.content || null,
@@ -8231,7 +8228,7 @@ export default function App() {
                   </div>
 
                   {openSummaryId === (articleHistoricalVersions[0]?.id || 'vigente') && (
-                    <div className="p-3 bg-[var(--color-superficie-secundaria)] border-t border-[var(--color-borde-fuerte)] text-xs text-[var(--color-texto)] shrink-0">
+                    <div className="p-3 bg-[var(--color-superficie-secundaria)] border-t border-[var(--color-borde-fuerte)] text-[10px] text-[var(--color-texto)] shrink-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[10px] font-bold uppercase text-[var(--color-texto)]">
                           Resumen del cambio vigente ({articleHistoricalVersions[0]?.version_year})
@@ -8322,7 +8319,7 @@ export default function App() {
                       >
                         <div className="px-3.5 py-2.5 bg-[var(--color-superficie-secundaria)] border-b border-[var(--color-borde)] flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-[var(--color-texto)] flex items-center gap-1">
+                            <span className="text-[10px] font-bold text-[var(--color-texto)] flex items-center gap-1">
                               <Hourglass className="w-3.5 h-3.5 text-[var(--color-texto-secundario)]" />
                               Versión {ver.version_year}
                             </span>
@@ -8350,7 +8347,7 @@ export default function App() {
                           )}
                         </div>
 
-                        <div className="p-4 overflow-y-auto flex-1 text-xs text-[var(--color-texto)] leading-relaxed">
+                        <div className="p-4 overflow-y-auto flex-1 text-[10px] text-[var(--color-texto)] leading-relaxed">
                           {renderDiffMarkdownContent(
                             ver.content,
                             immediatePreviousVersion?.content || null,
@@ -8359,7 +8356,7 @@ export default function App() {
                         </div>
 
                         {openSummaryId === ver.id && (
-                          <div className="p-3 bg-[var(--color-superficie-secundaria)] border-t border-[var(--color-borde-fuerte)] text-xs text-[var(--color-texto)] shrink-0">
+                          <div className="p-3 bg-[var(--color-superficie-secundaria)] border-t border-[var(--color-borde-fuerte)] text-[10px] text-[var(--color-texto)] shrink-0">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-[10px] font-bold uppercase text-[var(--color-texto)]">
                                 Cambio introducido ({ver.version_year})
@@ -8426,7 +8423,7 @@ export default function App() {
                   })}
 
                   {articleHistoricalVersions.length <= 1 && (
-                    <div className="w-96 flex flex-col items-center justify-center p-8 text-center text-xs text-[var(--color-texto-secundario)] bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl">
+                    <div className="w-96 flex flex-col items-center justify-center p-8 text-center text-[10px] text-[var(--color-texto-secundario)] bg-[var(--color-superficie)] border border-[var(--color-borde)] rounded-xl">
                       <Bookmark className="w-7 h-7 text-[var(--color-texto-secundario)] mb-2" />
                       <p className="font-bold text-[var(--color-texto)] mb-1">
                         Sin reformas anteriores registradas
@@ -8446,7 +8443,7 @@ export default function App() {
               <div className="p-5 bg-[var(--color-superficie)] space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[var(--color-borde)]">
                   <div>
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--color-texto)] flex items-center gap-2">
+                    <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--color-texto)] flex items-center gap-2">
                       <SplitSquareVertical className="w-4 h-4 text-[var(--color-texto)]" />
                       <span>
                         Normativa conexa y desarrollo jerárquico ({activeCurrentArticle.label})
@@ -8617,7 +8614,7 @@ export default function App() {
                             <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)] shrink-0">
                               {item.normCode}
                             </span>
-                            <span className="text-xs font-bold text-[var(--color-texto)] truncate">
+                            <span className="text-[10px] font-bold text-[var(--color-texto)] truncate">
                               {item.articleLabel}: {item.articleTitle}
                             </span>
                           </button>
@@ -8697,7 +8694,7 @@ export default function App() {
                               </div>
                             )}
 
-                            <div className="text-xs text-[var(--color-texto)] leading-relaxed">
+                            <div className="text-[10px] text-[var(--color-texto)] leading-relaxed">
                               {renderMarkdownContent(
                                 isItemHistOpen && activeVer ? activeVer.content : item.content
                               )}
@@ -8768,7 +8765,7 @@ export default function App() {
                             <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                               Leyes y Códigos
                             </span>
-                            <span className="text-xs font-bold text-[var(--color-texto)]">
+                            <span className="text-[10px] font-bold text-[var(--color-texto)]">
                               Leyes y Códigos vinculados a {activeCurrentArticle.label} (Abrir norma completa)
                             </span>
                           </div>
@@ -8782,7 +8779,7 @@ export default function App() {
                             {leyModificatoriaItems.length > 0 ? (
                               leyModificatoriaItems.map(renderCascadeArticleSheet)
                             ) : (
-                              <p className="text-xs text-[var(--color-texto-secundario)] px-2 py-1">
+                              <p className="text-[10px] text-[var(--color-texto-secundario)] px-2 py-1">
                                 No se han vinculado otras leyes o códigos para este artículo.
                               </p>
                             )}
@@ -8811,7 +8808,7 @@ export default function App() {
                             <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                               Jerarquía 1
                             </span>
-                            <span className="text-xs font-bold text-[var(--color-texto)]">
+                            <span className="text-[10px] font-bold text-[var(--color-texto)]">
                               Reglamentos y Decretos Ejecutivos vinculados a {activeCurrentArticle.label}
                             </span>
                           </div>
@@ -8848,7 +8845,7 @@ export default function App() {
                             <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                               Jerarquía 2
                             </span>
-                            <span className="text-xs font-bold text-[var(--color-texto)]">
+                            <span className="text-[10px] font-bold text-[var(--color-texto)]">
                               Resoluciones Generales y Circulares vinculadas a {activeCurrentArticle.label}
                             </span>
                           </div>
@@ -8886,7 +8883,7 @@ export default function App() {
                               <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                                 Jerarquía 3
                               </span>
-                              <span className="text-xs font-bold text-[var(--color-texto)]">
+                              <span className="text-[10px] font-bold text-[var(--color-texto)]">
                                 Serie Histórica de Tablas Tarifarias Oficiales ({activeCurrentArticle.label})
                               </span>
                             </div>
@@ -8909,7 +8906,7 @@ export default function App() {
                                         <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--color-fondo)] text-[var(--color-texto)] border border-[var(--color-borde)]">
                                           Ejercicio {tbl.fiscal_year} • {tbl.table_code}
                                         </span>
-                                        <h4 className="text-xs font-bold text-[var(--color-texto)] mt-1">
+                                        <h4 className="text-[10px] font-bold text-[var(--color-texto)] mt-1">
                                           {tbl.title}
                                         </h4>
                                         {tbl.subtitle && (
@@ -8948,7 +8945,7 @@ export default function App() {
                                     {isTblOpen && (
                                       <div className="w-full flex justify-center">
                                         <div className="w-fit max-w-full overflow-x-auto rounded-lg border border-[var(--color-borde)]">
-                                          <table className="w-auto max-w-full text-left text-xs">
+                                          <table className="w-auto max-w-full text-left text-[10px]">
                                             <thead className="bg-[var(--color-superficie-secundaria)] text-[var(--color-texto-secundario)] uppercase text-[10px]">
                                               <tr>
                                                 {tbl.columns_schema.map(col => (
@@ -9007,7 +9004,7 @@ export default function App() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-5 py-3 bg-[var(--color-superficie)] border-t border-[var(--color-borde)] flex items-center justify-between text-xs text-[var(--color-texto-secundario)] shrink-0">
+            <div className="px-5 py-3 bg-[var(--color-superficie)] border-t border-[var(--color-borde)] flex items-center justify-between text-[10px] text-[var(--color-texto-secundario)] shrink-0">
               <div className="flex items-center gap-2">
                 <span>
                   Mostrando <strong>{articleHistoricalVersions.length} versiones consolidadas</strong> de{' '}
@@ -9016,7 +9013,7 @@ export default function App() {
               </div>
               <button
                 onClick={() => setIsHistoryModalOpen(false)}
-                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition cursor-pointer"
+                className="px-4 py-1.5 rounded-lg text-[10px] font-semibold bg-[var(--color-secundario)] hover:bg-[var(--color-secundario-hover)] text-[var(--color-texto-sobre-secundario)] transition cursor-pointer"
               >
                 Cerrar Pop-up
               </button>
@@ -9027,7 +9024,7 @@ export default function App() {
 
       {/* TOAST DE FEEDBACK DE COPIADO */}
       {copyFeedback && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-bold animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-[10px] font-bold animate-in fade-in slide-in-from-bottom-3 duration-200">
           <Check className="w-4 h-4" />
           <span>¡Cita legal copiada al portapapeles!</span>
         </div>
