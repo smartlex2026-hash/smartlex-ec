@@ -2235,6 +2235,7 @@ export default function App() {
   const [searchValidTo, setSearchValidTo] = useState<string>('');
   const [selectedArticleLabel, setSelectedArticleLabel] = useState<string>('Art. 1');
   const [ebookNavMode, setEbookNavMode] = useState<'index' | 'tax' | 'flat'>('index');
+  const [isMobileIndexOpen, setIsMobileIndexOpen] = useState<boolean>(false);
   const [selectedTaxFilter, setSelectedTaxFilter] = useState<TaxScopeCode>('ALL');
   const [expandedInlineCascade, setExpandedInlineCascade] = useState<Record<string, boolean>>({});
   const [floatingEbookModal, setFloatingEbookModal] = useState<SecondaryCascadeItem | null>(null);
@@ -5682,10 +5683,32 @@ export default function App() {
             /* ================================================================ */
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Sub-barra superior del Lector del Documento */}
-              <div className="px-5 py-2.5 bg-[var(--color-superficie)] border-b border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-3 shrink-0">
-                <div className="flex items-center gap-3 flex-wrap">
+              <div className="px-4 sm:px-5 py-2.5 bg-[var(--color-superficie)] border-b border-[var(--color-borde)] flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                  {/* Botón Hamburguesa en Móvil para abrir/ocultar el Índice Lateral Izquierdo */}
                   <button
-                    onClick={() => setReaderSubView('library')}
+                    type="button"
+                    onClick={() => setIsMobileIndexOpen(prev => !prev)}
+                    aria-label="Abrir u ocultar índice de la norma"
+                    className={`md:hidden px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                      isMobileIndexOpen
+                        ? 'bg-[var(--color-secundario)] text-[var(--color-texto-sobre-secundario)] border-[var(--color-secundario)]'
+                        : 'bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border-[var(--color-borde-fuerte)] text-[var(--color-texto)]'
+                    }`}
+                  >
+                    {isMobileIndexOpen ? (
+                      <X className="w-3.5 h-3.5 shrink-0" />
+                    ) : (
+                      <Menu className="w-3.5 h-3.5 shrink-0" />
+                    )}
+                    <span>Índice</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsMobileIndexOpen(false);
+                      setReaderSubView('library');
+                    }}
                     className="px-3 py-1.5 rounded-lg bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[10px] font-semibold text-[var(--color-texto)] flex items-center gap-1.5 transition cursor-pointer"
                   >
                     <span>← Volver a la Biblioteca</span>
@@ -5832,33 +5855,57 @@ export default function App() {
               )}
 
               {/* Cuerpo dividido: Columna Izquierda (Títulos y Capítulos con scroll propio) + Lienzo Derecho (Hojas Desplegables con scroll propio) */}
-              <div className="flex-1 grid grid-cols-12 overflow-hidden min-h-0">
-                {/* COLUMNA IZQUIERDA (Cols 1-4 o 1-3): ÍNDICE DE TÍTULOS Y CAPÍTULOS INDEPENDIENTE */}
-                <aside className="col-span-12 md:col-span-4 lg:col-span-3 bg-[var(--color-superficie)] border-r border-[var(--color-borde)] flex flex-col overflow-hidden min-h-0">
+              <div className="flex-1 grid grid-cols-12 overflow-hidden min-h-0 relative">
+                {/* Fondo semitransparente en móvil cuando el cajón del índice está abierto */}
+                {isMobileIndexOpen && (
+                  <div
+                    onClick={() => setIsMobileIndexOpen(false)}
+                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs md:hidden"
+                  />
+                )}
+
+                {/* COLUMNA IZQUIERDA (Cols 1-4 o 1-3 en escritorio; Cajón deslizable oculto por defecto en móvil): ÍNDICE DE TÍTULOS Y CAPÍTULOS INDEPENDIENTE */}
+                <aside
+                  className={`${
+                    isMobileIndexOpen
+                      ? 'fixed inset-y-0 left-0 z-50 w-[85vw] max-w-xs flex shadow-2xl'
+                      : 'hidden'
+                  } md:static md:z-auto md:w-auto md:max-w-none md:shadow-none md:flex md:col-span-4 lg:col-span-3 bg-[var(--color-superficie)] border-r border-[var(--color-borde)] flex-col overflow-hidden min-h-0`}
+                >
                   <div className="p-3 border-b border-[var(--color-borde)] flex items-center justify-between gap-2 shrink-0">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-texto-secundario)]">
                       Índice de Títulos y Capítulos
                     </span>
-                    <div className="flex items-center gap-1 bg-[var(--color-superficie-secundaria)] p-0.5 rounded-md border border-[var(--color-borde)]">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1 bg-[var(--color-superficie-secundaria)] p-0.5 rounded-md border border-[var(--color-borde)]">
+                        <button
+                          onClick={() => setEbookNavMode('index')}
+                          className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${
+                            ebookNavMode === 'index'
+                              ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
+                              : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
+                          }`}
+                        >
+                          Por Capítulos
+                        </button>
+                        <button
+                          onClick={() => setEbookNavMode('tax')}
+                          className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${
+                            ebookNavMode === 'tax'
+                              ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
+                              : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
+                          }`}
+                        >
+                          Por Tributo
+                        </button>
+                      </div>
                       <button
-                        onClick={() => setEbookNavMode('index')}
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${
-                          ebookNavMode === 'index'
-                            ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
-                            : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
-                        }`}
+                        type="button"
+                        onClick={() => setIsMobileIndexOpen(false)}
+                        aria-label="Cerrar índice"
+                        className="md:hidden p-1 rounded-md bg-[var(--color-superficie-secundaria)] hover:bg-[var(--color-superficie-hover)] border border-[var(--color-borde)] text-[var(--color-texto)] cursor-pointer"
                       >
-                        Por Capítulos
-                      </button>
-                      <button
-                        onClick={() => setEbookNavMode('tax')}
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${
-                          ebookNavMode === 'tax'
-                            ? 'bg-[var(--color-superficie-secundaria)] text-[var(--color-texto)]'
-                            : 'text-[var(--color-texto-secundario)] hover:text-[var(--color-texto)]'
-                        }`}
-                      >
-                        Por Tributo
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -5966,6 +6013,7 @@ export default function App() {
                                               key={art.id}
                                               onClick={() => {
                                                 setSelectedArticleLabel(art.label);
+                                                setIsMobileIndexOpen(false);
                                                 setOpenArticleSheets(prev => ({
                                                   ...prev,
                                                   [art.label]: true
@@ -6027,6 +6075,7 @@ export default function App() {
                                         key={art.id}
                                         onClick={() => {
                                           setSelectedArticleLabel(art.label);
+                                          setIsMobileIndexOpen(false);
                                           setOpenArticleSheets(prev => ({
                                             ...prev,
                                             [art.label]: true
