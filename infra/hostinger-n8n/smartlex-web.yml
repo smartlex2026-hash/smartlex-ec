@@ -1,0 +1,22 @@
+http:
+  routers:
+    smartlex-web-router-web:
+      rule: Host(`smartlexec.cloud`) || Host(`www.smartlexec.cloud`)
+      service: smartlex-web-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https@file
+    smartlex-web-router-websecure:
+      rule: Host(`smartlexec.cloud`) || Host(`www.smartlexec.cloud`)
+      service: smartlex-web-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+  services:
+    smartlex-web-service:
+      loadBalancer:
+        servers:
+          - url: http://smartlex-web:80
+        passHostHeader: true
